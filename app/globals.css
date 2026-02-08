@@ -124,3 +124,28 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Print styles */
+@media print {
+  @page {
+    margin: 1.5cm 1cm;
+    size: A4 portrait;
+  }
+
+  body {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .print\:hidden {
+    display: none !important;
+  }
+
+  .print\:block {
+    display: block !important;
+  }
+
+  .print\:flex-row {
+    flex-direction: row !important;
+  }
+}

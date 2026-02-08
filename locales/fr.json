@@ -1,0 +1,125 @@
+{
+  "common": {
+    "signIn": "Se connecter",
+    "signUp": "Creer un compte",
+    "signOut": "Se deconnecter",
+    "email": "Email",
+    "password": "Mot de passe",
+    "name": "Nom complet",
+    "save": "Enregistrer",
+    "cancel": "Annuler",
+    "delete": "Supprimer",
+    "edit": "Modifier",
+    "loading": "Chargement...",
+    "noResults": "Aucun resultat",
+    "error": "Une erreur est survenue"
+  },
+  "nav": {
+    "dashboard": "Tableau de bord",
+    "candidates": "Candidats",
+    "jobs": "Exigences de poste",
+    "talentIntelligence": "Talent Intelligence",
+    "recruitmentOS": "Systeme de Recrutement",
+    "cvPool": "Pool CV",
+    "export": "Exporter",
+    "users": "Utilisateurs",
+    "roleViews": "Vues par role"
+  },
+  "dashboard": {
+    "title": "Centre de Commande Recrutement",
+    "subtitle": "Screening assiste par IA, guides d'entretien structures et rapports decisionnels.",
+    "pipelineStats": "Apercu du Pipeline",
+    "diversityTracker": "Suivi Diversite",
+    "slaAlerts": "Alertes SLA",
+    "totalCandidates": "Total Candidats",
+    "applied": "Postule",
+    "screening": "Pre-selection",
+    "interviewing": "Entretien",
+    "offer": "Offre",
+    "hired": "Embauche",
+    "rejected": "Rejete"
+  },
+  "candidate": {
+    "title": "Candidats",
+    "subtitle": "Maintenir le pipeline de screening et assurer la coherence des donnees.",
+    "createTitle": "Nouveau Candidat",
+    "detailTitle": "Detail du Candidat",
+    "overview": "Vue d'ensemble",
+    "screeningTab": "Pre-selection",
+    "interviewsTab": "Entretiens",
+    "evaluationTab": "Evaluation",
+    "reportTab": "Rapport",
+    "preboardingTab": "Pre-integration",
+    "status": "Statut",
+    "skills": "Competences",
+    "experiences": "Experiences",
+    "education": "Formation",
+    "languages": "Langues",
+    "uploadDocument": "Telecharger un document",
+    "runScreening": "Lancer le screening IA",
+    "noScreening": "Aucun resultat de screening.",
+    "noGuides": "Aucun guide d'entretien genere.",
+    "noEvaluations": "Aucune evaluation soumise.",
+    "noReport": "Aucun rapport decisionnel.",
+    "noPreboarding": "Aucune checklist de pre-integration."
+  },
+  "job": {
+    "title": "Exigences de Poste",
+    "subtitle": "Definir les competences obligatoires et souhaitees pour chaque role.",
+    "createTitle": "Nouvelle Exigence de Poste",
+    "mustHave": "Competences obligatoires",
+    "niceToHave": "Competences souhaitees",
+    "seniority": "Niveau de seniorite",
+    "businessUnit": "Unite commerciale",
+    "linkedCandidates": "Candidats lies"
+  },
+  "screening": {
+    "overallScore": "Score global",
+    "mustMatchScore": "Correspondance obligatoire",
+    "niceMatchScore": "Correspondance souhaitee",
+    "gaps": "Lacunes identifiees",
+    "matchedMust": "Obligatoires correspondants",
+    "matchedNice": "Souhaites correspondants",
+    "aiSummary": "Resume IA"
+  },
+  "evaluation": {
+    "title": "Evaluation",
+    "interviewType": "Type d'entretien",
+    "scores": "Scores par critere",
+    "overallScore": "Score global",
+    "comments": "Commentaires",
+    "evidence": "Elements de preuve"
+  },
+  "report": {
+    "title": "Rapport Decisionnel",
+    "recommendation": "Recommandation",
+    "strengths": "Points forts",
+    "risks": "Risques",
+    "gaps": "Lacunes",
+    "summary": "Resume",
+    "print": "Imprimer le rapport"
+  },
+  "preboarding": {
+    "title": "Pre-integration",
+    "checklist": "Checklist",
+    "notes": "Notes"
+  },
+  "kpi": {
+    "diversityTarget": "Objectif : 37%",
+    "onTrack": "En bonne voie",
+    "belowTarget": "En dessous de l'objectif",
+    "met": "Atteint",
+    "atRisk": "A risque",
+    "breached": "Depasse",
+    "daysInStage": "jours dans l'etape"
+  },
+  "settings": {
+    "theme": "Theme",
+    "light": "Clair",
+    "dark": "Sombre",
+    "system": "Systeme",
+    "language": "Langue",
+    "english": "Anglais",
+    "french": "Francais"
+  }
+}

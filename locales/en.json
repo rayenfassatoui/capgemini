@@ -1,0 +1,125 @@
+{
+  "common": {
+    "signIn": "Sign In",
+    "signUp": "Create Account",
+    "signOut": "Sign Out",
+    "email": "Email",
+    "password": "Password",
+    "name": "Full Name",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "loading": "Loading...",
+    "noResults": "No results found",
+    "error": "An error occurred"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "candidates": "Candidates",
+    "jobs": "Job Requirements",
+    "talentIntelligence": "Talent Intelligence",
+    "recruitmentOS": "Recruitment OS",
+    "cvPool": "CV Pool",
+    "export": "Export",
+    "users": "Users",
+    "roleViews": "Role Views"
+  },
+  "dashboard": {
+    "title": "Recruitment Command Center",
+    "subtitle": "AI-assisted screening, structured interview guides, and decision reporting.",
+    "pipelineStats": "Pipeline Overview",
+    "diversityTracker": "Diversity Tracker",
+    "slaAlerts": "SLA Alerts",
+    "totalCandidates": "Total Candidates",
+    "applied": "Applied",
+    "screening": "Screening",
+    "interviewing": "Interviewing",
+    "offer": "Offer",
+    "hired": "Hired",
+    "rejected": "Rejected"
+  },
+  "candidate": {
+    "title": "Candidates",
+    "subtitle": "Maintain the screening pipeline and keep candidate data consistent.",
+    "createTitle": "New Candidate",
+    "detailTitle": "Candidate Detail",
+    "overview": "Overview",
+    "screeningTab": "Screening",
+    "interviewsTab": "Interviews",
+    "evaluationTab": "Evaluation",
+    "reportTab": "Report",
+    "preboardingTab": "Pre-boarding",
+    "status": "Status",
+    "skills": "Skills",
+    "experiences": "Experiences",
+    "education": "Education",
+    "languages": "Languages",
+    "uploadDocument": "Upload Document",
+    "runScreening": "Run AI Screening",
+    "noScreening": "No screening results yet.",
+    "noGuides": "No interview guides generated yet.",
+    "noEvaluations": "No evaluations submitted yet.",
+    "noReport": "No decision report yet.",
+    "noPreboarding": "No pre-boarding checklist yet."
+  },
+  "job": {
+    "title": "Job Requirements",
+    "subtitle": "Define must-have and nice-to-have skills for every role.",
+    "createTitle": "New Job Requirement",
+    "mustHave": "Must-Have Skills",
+    "niceToHave": "Nice-To-Have Skills",
+    "seniority": "Seniority Level",
+    "businessUnit": "Business Unit",
+    "linkedCandidates": "Linked Candidates"
+  },
+  "screening": {
+    "overallScore": "Overall Score",
+    "mustMatchScore": "Must-Have Match",
+    "niceMatchScore": "Nice-To-Have Match",
+    "gaps": "Identified Gaps",
+    "matchedMust": "Matched Must-Have",
+    "matchedNice": "Matched Nice-To-Have",
+    "aiSummary": "AI Summary"
+  },
+  "evaluation": {
+    "title": "Evaluation",
+    "interviewType": "Interview Type",
+    "scores": "Criteria Scores",
+    "overallScore": "Overall Score",
+    "comments": "Comments",
+    "evidence": "Evidence"
+  },
+  "report": {
+    "title": "Decision Report",
+    "recommendation": "Recommendation",
+    "strengths": "Strengths",
+    "risks": "Risks",
+    "gaps": "Gaps",
+    "summary": "Summary",
+    "print": "Print Report"
+  },
+  "preboarding": {
+    "title": "Pre-boarding",
+    "checklist": "Checklist",
+    "notes": "Notes"
+  },
+  "kpi": {
+    "diversityTarget": "Target: 37%",
+    "onTrack": "On Track",
+    "belowTarget": "Below Target",
+    "met": "Met",
+    "atRisk": "At Risk",
+    "breached": "Breached",
+    "daysInStage": "days in stage"
+  },
+  "settings": {
+    "theme": "Theme",
+    "light": "Light",
+    "dark": "Dark",
+    "system": "System",
+    "language": "Language",
+    "english": "English",
+    "french": "French"
+  }
+}

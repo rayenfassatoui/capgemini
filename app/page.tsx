@@ -45,15 +45,15 @@ export default function Page() {
             </p>
             
             <div className="mt-10 flex items-center justify-center gap-4">
-              <Link href="/projects">
+              <Link href="/recruitment">
                 <Button className="rounded-full px-8">
-                  View Projects
+                  Open Dashboard
                 </Button>
               </Link>
               
-              <Link href="/projects/new">
+              <Link href="/sign-up">
                 <Button variant="outline" className="rounded-full px-8">
-                  Create Project
+                  Get Started
                 </Button>
               </Link>
             </div>
