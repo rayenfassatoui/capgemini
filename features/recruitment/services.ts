@@ -1004,3 +1004,172 @@ export async function getTodayInterviewSchedule(
 ): Promise<TodayInterview[]> {
   return getTodayInterviews(userId);
 }
+
+// ============ CV POOL EXTRAS ============
+
+export async function getCvDetails(cvId: string) {
+  const [cv] = await db.select().from(cvPool).where(eq(cvPool.id, cvId));
+  return cv ?? null;
+}
+
+export async function getCvFile(cvId: string) {
+  const [cv] = await db
+    .select({
+      id: cvPool.id,
+      filename: cvPool.filename,
+      contentType: cvPool.contentType,
+      rawBytes: cvPool.rawBytes,
+    })
+    .from(cvPool)
+    .where(eq(cvPool.id, cvId));
+
+  return cv ?? null;
+}
+
+export async function exportCvPoolToExcel(userId: string): Promise<Buffer> {
+  const cvs = await db
+    .select()
+    .from(cvPool)
+    .where(eq(cvPool.uploadedBy, userId))
+    .orderBy(desc(cvPool.createdAt));
+
+  const rows = cvs.map((cv) => ({
+    'Name': cv.extractedName ?? 'Unknown',
+    'Email': cv.extractedEmail ?? '',
+    'Phone': cv.extractedPhone ?? '',
+    'Skills': (cv.extractedSkills ?? []).join(', '),
+    'Languages': (cv.extractedLanguages ?? []).join(', '),
+    'Education': (cv.extractedEducation ?? [])
+      .map((e) => Object.values(e).join(' - '))
+      .join('; '),
+    'Experience': (cv.extractedExperiences ?? [])
+      .map((e) => Object.values(e).join(' - '))
+      .join('; '),
+    'Summary': cv.extractedSummary ?? '',
+    'Filename': cv.filename,
+    'Uploaded': cv.createdAt?.toISOString().split('T')[0] ?? '',
+  }));
+
+  const XLSX = await import('xlsx');
+  const workbook = XLSX.utils.book_new();
+  const worksheet = XLSX.utils.json_to_sheet(rows);
+  XLSX.utils.book_append_sheet(workbook, worksheet, 'CV Pool');
+
+  const buffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' }) as Buffer;
+  return Buffer.from(buffer);
+}
+
+// ============ HR DECISION EMAIL ============
+
+export async function generateHRDecisionEmailWithAI(
+  candidateId: string,
+  jobId: string,
+  decision: 'accepted' | 'rejected'
+): Promise<{ subject: string; body: string }> {
+  const candidate = await getCandidate(candidateId);
+  if (!candidate) throw new Error('Candidate not found');
+
+  const job = await getJob(jobId);
+  if (!job) throw new Error('Job not found');
+
+  const systemPrompt =
+    'You are a professional HR email writer at Capgemini. Write formal but warm emails. Respond ONLY with valid JSON containing "subject" and "body" fields. No markdown, no code fences.';
+
+  let userPrompt: string;
+
+  if (decision === 'accepted') {
+    userPrompt = `Write a professional acceptance email for a candidate who has been selected for the position.
+
+Candidate: ${candidate.fullName}
+Position: ${job.title}
+Company: Capgemini
+
+The email should:
+1. Congratulate the candidate warmly
+2. Confirm the position title
+3. List the required documents they need to prepare:
+   - Copy of national ID card (recto/verso)
+   - Copy of diplomas and certificates
+   - Bank account details (RIB)
+   - 2 passport-sized photos
+   - Medical certificate of fitness for work
+   - Previous employment certificates (if applicable)
+   - Social security number
+4. Inform them they will be contacted by the onboarding team for next steps
+5. Include a warm welcome message
+
+Return JSON with "subject" and "body" fields.`;
+  } else {
+    userPrompt = `Write a professional and respectful rejection email for a candidate.
+
+Candidate: ${candidate.fullName}
+Position: ${job.title}
+Company: Capgemini
+
+The email should:
+1. Thank the candidate for their time and interest in Capgemini
+2. Politely inform them that they were not selected for this particular position
+3. Encourage them to apply for future opportunities at Capgemini
+4. Be warm, empathetic, and professional
+
+Return JSON with "subject" and "body" fields.`;
+  }
+
+  const content = await callOpenRouter(systemPrompt, userPrompt);
+  const parsed = JSON.parse(cleanJsonResponse(content)) as {
+    subject: string;
+    body: string;
+  };
+
+  return {
+    subject: parsed.subject ?? `Application Update - ${job.title}`,
+    body: parsed.body ?? 'Email content could not be generated.',
+  };
+}
+
+export async function sendHRDecisionEmail(
+  input: { toEmail: string; toName: string; subject: string; body: string },
+  userId: string
+) {
+  let emailStatus = 'sent';
+  try {
+    const emailUser = process.env.EMAIL_USER;
+    const emailPass = process.env.EMAIL_PASSWORD;
+
+    if (emailUser && emailPass) {
+      const nodemailer = await import('nodemailer');
+      const transporter = nodemailer.createTransport({
+        service: 'gmail',
+        auth: {
+          user: emailUser,
+          pass: emailPass,
+        },
+      });
+
+      await transporter.sendMail({
+        from: emailUser,
+        to: input.toEmail,
+        subject: input.subject,
+        text: input.body,
+      });
+    } else {
+      emailStatus = 'pending';
+    }
+  } catch {
+    emailStatus = 'failed';
+  }
+
+  const [emailLog] = await db
+    .insert(emailLogs)
+    .values({
+      toEmail: input.toEmail,
+      toName: input.toName,
+      subject: input.subject,
+      body: input.body,
+      sentBy: userId,
+      status: emailStatus,
+    })
+    .returning();
+
+  return emailLog;
+}

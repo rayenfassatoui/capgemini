@@ -12,6 +12,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Separator } from '@/components/ui/separator';
 import {
   generateInterviewQuestionsAction,
+  getInterviewGuideAction,
+  updateInterviewQuestionsAction,
   scheduleInterviewAction,
   sendInterviewEmailAction,
   saveInterviewReportAction,
@@ -19,10 +21,11 @@ import {
   markInterviewCompletedAction
 } from '@/features/recruitment/actions';
 import { toast } from 'sonner';
-import { IconMail, IconCalendar, IconCheck, IconX, IconExternalLink, IconCircleCheck, IconCircleDashed, IconPlayerPlay } from '@tabler/icons-react';
+import { IconMail, IconCalendar, IconCheck, IconX, IconExternalLink, IconCircleCheck, IconCircleDashed, IconPlus, IconTrash, IconSparkles, IconEdit, IconDeviceFloppy } from '@tabler/icons-react';
 import type { InterviewDecision, CandidateStage } from '@/features/recruitment/types';
 
 interface InterviewGuide {
+  id: string;
   questions: string[];
 }
 
@@ -91,6 +94,12 @@ export function ManagerCandidateDetailClient({
   const [isSubmittingReport, setIsSubmittingReport] = useState(false);
   const [isDeciding, setIsDeciding] = useState(false);
 
+  // Editable questions state
+  const [editableQuestions, setEditableQuestions] = useState<string[]>(interviewGuide?.questions ?? []);
+  const [isEditingQuestions, setIsEditingQuestions] = useState(false);
+  const [isSavingQuestions, setIsSavingQuestions] = useState(false);
+  const [newQuestionText, setNewQuestionText] = useState('');
+
   // Workflow step completion status
   const step1Done = !!interviewGuide;
   const step2Done = !!currentInterview;
@@ -102,12 +111,58 @@ export function ManagerCandidateDetailClient({
       setIsGeneratingQuestions(true);
       await generateInterviewQuestionsAction(candidate.id, candidate.jobId, 'manager');
       toast.success('Interview questions generated');
+      // Reload to get the new guide with its ID
+      const guide = await getInterviewGuideAction(candidate.id, candidate.jobId, 'manager');
+      if (guide) {
+        setEditableQuestions(guide.questions ?? []);
+      }
       router.refresh();
     } catch (error) {
       toast.error('Failed to generate questions');
     } finally {
       setIsGeneratingQuestions(false);
     }
+  };
+
+  const handleSaveQuestions = async () => {
+    if (!interviewGuide?.id) {
+      toast.error('No interview guide to update');
+      return;
+    }
+    const filtered = editableQuestions.filter((q) => q.trim().length > 0);
+    if (filtered.length === 0) {
+      toast.error('You must have at least one question');
+      return;
+    }
+    try {
+      setIsSavingQuestions(true);
+      await updateInterviewQuestionsAction(interviewGuide.id, filtered);
+      setEditableQuestions(filtered);
+      setIsEditingQuestions(false);
+      toast.success('Questions saved');
+      router.refresh();
+    } catch (error) {
+      toast.error('Failed to save questions');
+    } finally {
+      setIsSavingQuestions(false);
+    }
+  };
+
+  const handleAddQuestion = () => {
+    if (newQuestionText.trim()) {
+      setEditableQuestions([...editableQuestions, newQuestionText.trim()]);
+      setNewQuestionText('');
+    }
+  };
+
+  const handleRemoveQuestion = (index: number) => {
+    setEditableQuestions(editableQuestions.filter((_, i) => i !== index));
+  };
+
+  const handleEditQuestion = (index: number, value: string) => {
+    const updated = [...editableQuestions];
+    updated[index] = value;
+    setEditableQuestions(updated);
   };
 
   const handleScheduleInterview = async () => {
@@ -224,7 +279,6 @@ export function ManagerCandidateDetailClient({
             )}
           </div>
         </div>
-        {/* Join Meeting shortcut - only if interview is scheduled */}
         {currentInterview && currentInterview.status !== 'completed' && (
           <a
             href={currentInterview.meetLink}
@@ -284,7 +338,7 @@ export function ManagerCandidateDetailClient({
         </TabsContent>
 
         <TabsContent value="interview" className="space-y-6">
-          {/* Step 1: Generate Questions */}
+          {/* Step 1: Generate & Edit Questions */}
           <Card className={step1Done ? 'border-emerald-200 dark:border-emerald-900' : ''}>
             <CardHeader>
               <div className="flex items-center justify-between">
@@ -293,23 +347,75 @@ export function ManagerCandidateDetailClient({
                     {step1Done && <IconCircleCheck className="h-5 w-5 text-emerald-500" />}
                     1. Interview Guide
                   </CardTitle>
-                  <CardDescription>Generate AI questions based on the job description and candidate CV.</CardDescription>
+                  <CardDescription>Generate AI questions, then edit, add, or remove as needed.</CardDescription>
                 </div>
+                {interviewGuide && (
+                  <div className="flex gap-2">
+                    {!isEditingQuestions ? (
+                      <Button variant="outline" size="sm" onClick={() => setIsEditingQuestions(true)}>
+                        <IconEdit className="mr-1 h-4 w-4" /> Edit Questions
+                      </Button>
+                    ) : (
+                      <Button variant="default" size="sm" onClick={handleSaveQuestions} disabled={isSavingQuestions}>
+                        <IconDeviceFloppy className="mr-1 h-4 w-4" /> {isSavingQuestions ? 'Saving...' : 'Save Changes'}
+                      </Button>
+                    )}
+                    <Button variant="ghost" size="sm" onClick={handleGenerateQuestions} disabled={isGeneratingQuestions}>
+                      <IconSparkles className="mr-1 h-4 w-4" /> {isGeneratingQuestions ? 'Generating...' : 'Regenerate'}
+                    </Button>
+                  </div>
+                )}
               </div>
             </CardHeader>
             <CardContent>
               {interviewGuide ? (
-                <div className="space-y-2">
-                  <div className="font-medium text-sm">Questions Generated:</div>
-                  <ul className="list-disc pl-5 space-y-1 text-sm">
-                    {interviewGuide.questions.map((q: string, i: number) => (
-                      <li key={i}>{q}</li>
-                    ))}
-                  </ul>
+                <div className="space-y-3">
+                  {isEditingQuestions ? (
+                    <>
+                      {editableQuestions.map((q, idx) => (
+                        <div key={idx} className="flex gap-2 items-start">
+                          <span className="font-mono text-muted-foreground text-sm pt-2 w-6 shrink-0">{idx + 1}.</span>
+                          <Textarea
+                            value={q}
+                            onChange={(e) => handleEditQuestion(idx, e.target.value)}
+                            className="min-h-[50px] flex-1"
+                          />
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-destructive hover:bg-destructive/10 shrink-0 mt-1"
+                            onClick={() => handleRemoveQuestion(idx)}
+                          >
+                            <IconTrash className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ))}
+                      <Separator className="my-2" />
+                      <div className="flex gap-2">
+                        <Input
+                          placeholder="Type a new question..."
+                          value={newQuestionText}
+                          onChange={(e) => setNewQuestionText(e.target.value)}
+                          onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddQuestion(); } }}
+                          className="flex-1"
+                        />
+                        <Button variant="outline" size="sm" onClick={handleAddQuestion} disabled={!newQuestionText.trim()}>
+                          <IconPlus className="mr-1 h-4 w-4" /> Add
+                        </Button>
+                      </div>
+                    </>
+                  ) : (
+                    <ul className="list-disc pl-5 space-y-1.5 text-sm">
+                      {editableQuestions.map((q, i) => (
+                        <li key={i}>{q}</li>
+                      ))}
+                    </ul>
+                  )}
                 </div>
               ) : (
                 <Button onClick={handleGenerateQuestions} disabled={isGeneratingQuestions}>
-                  {isGeneratingQuestions ? 'Generating...' : 'Generate Questions'}
+                  <IconSparkles className="mr-2 h-4 w-4" />
+                  {isGeneratingQuestions ? 'Generating...' : 'Generate Questions with AI'}
                 </Button>
               )}
             </CardContent>

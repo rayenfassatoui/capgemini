@@ -9,6 +9,9 @@ import {
   IconX,
   IconLoader2,
   IconSearch,
+  IconDownload,
+  IconFileSpreadsheet,
+  IconEye,
 } from '@tabler/icons-react';
 import { toast } from 'sonner';
 
@@ -38,7 +41,8 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { uploadCvAction, deleteCvAction } from '../actions';
+import { Separator } from '@/components/ui/separator';
+import { uploadCvAction, deleteCvAction, exportCvPoolAction, getCvDetailsAction, getCvFileAction } from '../actions';
 
 // Define the CV type based on what we expect from the server
 interface CvRecord {
@@ -52,6 +56,19 @@ interface CvRecord {
   createdAt: Date;
 }
 
+interface CvFullDetails {
+  id: string;
+  filename: string;
+  extractedName: string | null;
+  extractedEmail: string | null;
+  extractedPhone: string | null;
+  extractedSkills: string[] | null;
+  extractedExperiences: Array<Record<string, string>> | null;
+  extractedEducation: Array<Record<string, string>> | null;
+  extractedLanguages: string[] | null;
+  extractedSummary: string | null;
+}
+
 interface CvPoolClientProps {
   initialData: CvRecord[];
 }
@@ -62,6 +79,12 @@ export function CvPoolClient({ initialData }: CvPoolClientProps) {
   const [isUploading, setIsUploading] = useState(false);
   const [dragActive, setDragActive] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [isExporting, setIsExporting] = useState(false);
+
+  // Review dialog state
+  const [reviewOpen, setReviewOpen] = useState(false);
+  const [reviewData, setReviewData] = useState<CvFullDetails | null>(null);
+  const [isLoadingReview, setIsLoadingReview] = useState(false);
 
   // Filter CVs based on search query
   const filteredCvs = initialData.filter((cv) => {
@@ -75,7 +98,6 @@ export function CvPoolClient({ initialData }: CvPoolClientProps) {
   });
 
   const handleFileUpload = async (file: File) => {
-    // Validate file type
     if (
       ![
         'application/pdf',
@@ -86,31 +108,35 @@ export function CvPoolClient({ initialData }: CvPoolClientProps) {
       return;
     }
 
-    // Validate file size (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
       toast.error('File too large. Maximum size is 5MB.');
       return;
     }
 
     setIsUploading(true);
+    const toastId = toast.loading(`Uploading "${file.name}"... This may take a moment while AI extracts data.`);
+
     try {
-      const reader = new FileReader();
-      reader.onload = async () => {
-        const base64 = (reader.result as string).split(',')[1];
-        await uploadCvAction({
-          filename: file.name,
-          contentType: file.type,
-          size: file.size,
-          rawBytes: base64,
-        });
-        toast.success('CV uploaded successfully');
-        setIsUploadOpen(false);
-        router.refresh();
-      };
-      reader.readAsDataURL(file);
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve((reader.result as string).split(',')[1]);
+        reader.onerror = () => reject(new Error('Failed to read file'));
+        reader.readAsDataURL(file);
+      });
+
+      await uploadCvAction({
+        filename: file.name,
+        contentType: file.type,
+        size: file.size,
+        rawBytes: base64,
+      });
+
+      toast.success('CV uploaded and parsed successfully!', { id: toastId });
+      setIsUploadOpen(false);
+      router.refresh();
     } catch (error) {
       console.error('Upload error:', error);
-      toast.error('Failed to upload CV');
+      toast.error('Failed to upload CV. Please try again.', { id: toastId });
     } finally {
       setIsUploading(false);
     }
@@ -148,6 +174,75 @@ export function CvPoolClient({ initialData }: CvPoolClientProps) {
     }
   };
 
+  const handleExportExcel = async () => {
+    setIsExporting(true);
+    try {
+      const base64 = await exportCvPoolAction();
+      const byteCharacters = atob(base64);
+      const byteNumbers = new Array(byteCharacters.length);
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+      }
+      const byteArray = new Uint8Array(byteNumbers);
+      const blob = new Blob([byteArray], {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `cv-pool-${new Date().toISOString().split('T')[0]}.xlsx`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success('CV Pool exported to Excel');
+    } catch (error) {
+      console.error('Export error:', error);
+      toast.error('Failed to export CV Pool');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const handleViewCv = async (cvId: string) => {
+    setIsLoadingReview(true);
+    setReviewOpen(true);
+    try {
+      const details = await getCvDetailsAction(cvId);
+      setReviewData(details as CvFullDetails);
+    } catch (error) {
+      console.error('Review error:', error);
+      toast.error('Failed to load CV details');
+      setReviewOpen(false);
+    } finally {
+      setIsLoadingReview(false);
+    }
+  };
+
+  const handleDownloadCv = async (cvId: string, filename: string) => {
+    try {
+      const file = await getCvFileAction(cvId);
+      if (!file || !file.rawBytes) {
+        toast.error('CV file not available for download');
+        return;
+      }
+      const byteCharacters = atob(file.rawBytes);
+      const byteNumbers = new Array(byteCharacters.length);
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+      }
+      const byteArray = new Uint8Array(byteNumbers);
+      const blob = new Blob([byteArray], { type: file.contentType });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Download error:', error);
+      toast.error('Failed to download CV');
+    }
+  };
+
   const formatFileSize = (bytes: number) => {
     if (bytes === 0) return '0 Bytes';
     const k = 1024;
@@ -168,76 +263,86 @@ export function CvPoolClient({ initialData }: CvPoolClientProps) {
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
-        <Dialog open={isUploadOpen} onOpenChange={setIsUploadOpen}>
-          <DialogTrigger className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2">
-            <IconUpload className="mr-2 h-4 w-4" />
-            Upload CV
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle>Upload Resume</DialogTitle>
-              <DialogDescription>
-                Upload a PDF or DOCX file to add to the CV pool.
-              </DialogDescription>
-            </DialogHeader>
-            <div
-              className={`
-                mt-4 flex flex-col items-center justify-center rounded-lg border-2 border-dashed p-8 transition-colors
-                ${
-                  dragActive
-                    ? 'border-primary bg-primary/5'
-                    : 'border-muted-foreground/25 hover:border-primary/50'
-                }
-              `}
-              onDragEnter={onDrag}
-              onDragLeave={onDrag}
-              onDragOver={onDrag}
-              onDrop={onDrop}
-            >
-              {isUploading ? (
-                <div className="flex flex-col items-center gap-2 text-center">
-                  <IconLoader2 className="h-8 w-8 animate-spin text-primary" />
-                  <p className="text-sm text-muted-foreground">
-                    Processing file...
-                  </p>
-                </div>
-              ) : (
-                <div className="flex flex-col items-center gap-2 text-center">
-                  <div className="rounded-full bg-primary/10 p-4">
-                    <IconUpload className="h-8 w-8 text-primary" />
-                  </div>
-                  <div className="mt-2">
-                    <p className="text-sm font-medium">
-                      Drag & drop or click to upload
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      PDF, DOCX up to 5MB
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            onClick={handleExportExcel}
+            disabled={isExporting || initialData.length === 0}
+          >
+            <IconFileSpreadsheet className="mr-2 h-4 w-4" />
+            {isExporting ? 'Exporting...' : 'Export Excel'}
+          </Button>
+          <Dialog open={isUploadOpen} onOpenChange={setIsUploadOpen}>
+            <DialogTrigger className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2">
+              <IconUpload className="mr-2 h-4 w-4" />
+              Upload CV
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle>Upload Resume</DialogTitle>
+                <DialogDescription>
+                  Upload a PDF or DOCX file to add to the CV pool.
+                </DialogDescription>
+              </DialogHeader>
+              <div
+                className={`
+                  mt-4 flex flex-col items-center justify-center rounded-lg border-2 border-dashed p-8 transition-colors
+                  ${
+                    dragActive
+                      ? 'border-primary bg-primary/5'
+                      : 'border-muted-foreground/25 hover:border-primary/50'
+                  }
+                `}
+                onDragEnter={onDrag}
+                onDragLeave={onDrag}
+                onDragOver={onDrag}
+                onDrop={onDrop}
+              >
+                {isUploading ? (
+                  <div className="flex flex-col items-center gap-2 text-center">
+                    <IconLoader2 className="h-8 w-8 animate-spin text-primary" />
+                    <p className="text-sm text-muted-foreground">
+                      Processing and extracting data with AI...
                     </p>
                   </div>
-                  <Input
-                    type="file"
-                    className="hidden"
-                    id="file-upload"
-                    accept=".pdf,.docx"
-                    onChange={(e) =>
-                      e.target.files?.[0] && handleFileUpload(e.target.files[0])
-                    }
-                  />
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="mt-4"
-                    onClick={() =>
-                      document.getElementById('file-upload')?.click()
-                    }
-                  >
-                    Select File
-                  </Button>
-                </div>
-              )}
-            </div>
-          </DialogContent>
-        </Dialog>
+                ) : (
+                  <div className="flex flex-col items-center gap-2 text-center">
+                    <div className="rounded-full bg-primary/10 p-4">
+                      <IconUpload className="h-8 w-8 text-primary" />
+                    </div>
+                    <div className="mt-2">
+                      <p className="text-sm font-medium">
+                        Drag & drop or click to upload
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        PDF, DOCX up to 5MB
+                      </p>
+                    </div>
+                    <Input
+                      type="file"
+                      className="hidden"
+                      id="file-upload"
+                      accept=".pdf,.docx"
+                      onChange={(e) =>
+                        e.target.files?.[0] && handleFileUpload(e.target.files[0])
+                      }
+                    />
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="mt-4"
+                      onClick={() =>
+                        document.getElementById('file-upload')?.click()
+                      }
+                    >
+                      Select File
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
       <Card>
@@ -255,7 +360,7 @@ export function CvPoolClient({ initialData }: CvPoolClientProps) {
                 <TableHead>Skills</TableHead>
                 <TableHead>File Info</TableHead>
                 <TableHead>Uploaded</TableHead>
-                <TableHead className="w-[80px]"></TableHead>
+                <TableHead className="w-[120px]"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -322,14 +427,35 @@ export function CvPoolClient({ initialData }: CvPoolClientProps) {
                       {new Date(cv.createdAt).toLocaleDateString()}
                     </TableCell>
                     <TableCell>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-destructive hover:text-destructive/90 hover:bg-destructive/10"
-                        onClick={() => handleDelete(cv.id)}
-                      >
-                        <IconTrash className="h-4 w-4" />
-                      </Button>
+                      <div className="flex items-center gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => handleViewCv(cv.id)}
+                          title="Review CV"
+                        >
+                          <IconEye className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => handleDownloadCv(cv.id, cv.filename)}
+                          title="Download CV"
+                        >
+                          <IconDownload className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-destructive hover:text-destructive/90 hover:bg-destructive/10"
+                          onClick={() => handleDelete(cv.id)}
+                          title="Delete CV"
+                        >
+                          <IconTrash className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))
@@ -338,6 +464,121 @@ export function CvPoolClient({ initialData }: CvPoolClientProps) {
           </Table>
         </CardContent>
       </Card>
+
+      {/* CV Review Dialog */}
+      <Dialog open={reviewOpen} onOpenChange={setReviewOpen}>
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>CV Review</DialogTitle>
+          </DialogHeader>
+          {isLoadingReview ? (
+            <div className="flex flex-col items-center justify-center py-12">
+              <IconLoader2 className="h-8 w-8 animate-spin text-primary" />
+              <p className="mt-2 text-sm text-muted-foreground">Loading CV details...</p>
+            </div>
+          ) : reviewData ? (
+            <div className="space-y-5">
+              {/* Header */}
+              <div>
+                <h3 className="text-lg font-semibold">{reviewData.extractedName ?? 'Unknown Candidate'}</h3>
+                <div className="flex flex-wrap gap-3 mt-1 text-sm text-muted-foreground">
+                  {reviewData.extractedEmail && <span>{reviewData.extractedEmail}</span>}
+                  {reviewData.extractedPhone && <span>{reviewData.extractedPhone}</span>}
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* Summary */}
+              {reviewData.extractedSummary && (
+                <div>
+                  <h4 className="text-sm font-semibold mb-1">Summary</h4>
+                  <p className="text-sm text-muted-foreground bg-muted p-3 rounded-md">
+                    {reviewData.extractedSummary}
+                  </p>
+                </div>
+              )}
+
+              {/* Skills */}
+              {reviewData.extractedSkills && reviewData.extractedSkills.length > 0 && (
+                <div>
+                  <h4 className="text-sm font-semibold mb-2">Skills</h4>
+                  <div className="flex flex-wrap gap-1.5">
+                    {reviewData.extractedSkills.map((skill) => (
+                      <Badge key={skill} variant="secondary" className="text-xs">
+                        {skill}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Experience */}
+              {reviewData.extractedExperiences && reviewData.extractedExperiences.length > 0 && (
+                <div>
+                  <h4 className="text-sm font-semibold mb-2">Experience</h4>
+                  <div className="space-y-2">
+                    {reviewData.extractedExperiences.map((exp, i) => (
+                      <div key={i} className="text-sm bg-muted p-3 rounded-md">
+                        {Object.entries(exp).map(([key, value]) => (
+                          <div key={key}>
+                            <span className="font-medium capitalize">{key}: </span>
+                            <span className="text-muted-foreground">{value}</span>
+                          </div>
+                        ))}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Education */}
+              {reviewData.extractedEducation && reviewData.extractedEducation.length > 0 && (
+                <div>
+                  <h4 className="text-sm font-semibold mb-2">Education</h4>
+                  <div className="space-y-2">
+                    {reviewData.extractedEducation.map((edu, i) => (
+                      <div key={i} className="text-sm bg-muted p-3 rounded-md">
+                        {Object.entries(edu).map(([key, value]) => (
+                          <div key={key}>
+                            <span className="font-medium capitalize">{key}: </span>
+                            <span className="text-muted-foreground">{value}</span>
+                          </div>
+                        ))}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Languages */}
+              {reviewData.extractedLanguages && reviewData.extractedLanguages.length > 0 && (
+                <div>
+                  <h4 className="text-sm font-semibold mb-2">Languages</h4>
+                  <div className="flex flex-wrap gap-1.5">
+                    {reviewData.extractedLanguages.map((lang) => (
+                      <Badge key={lang} variant="outline" className="text-xs">
+                        {lang}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Download button */}
+              <Separator />
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleDownloadCv(reviewData.id, reviewData.filename)}
+              >
+                <IconDownload className="mr-2 h-4 w-4" />
+                Download Original File
+              </Button>
+            </div>
+          ) : null}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

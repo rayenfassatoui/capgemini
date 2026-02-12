@@ -363,3 +363,47 @@ export async function getTodayInterviewScheduleAction() {
   const services = await getServices();
   return services.getTodayInterviewSchedule(session.user.id);
 }
+
+// ==================== CV POOL EXTRAS ====================
+
+export async function exportCvPoolAction() {
+  const session = await requireRole(['ta', 'admin']);
+  const services = await getServices();
+  const buffer = await services.exportCvPoolToExcel(session.user.id);
+  return Buffer.from(buffer).toString('base64');
+}
+
+export async function getCvDetailsAction(cvId: string) {
+  await requireRole(['ta', 'admin']);
+  const services = await getServices();
+  return services.getCvDetails(cvId);
+}
+
+export async function getCvFileAction(cvId: string) {
+  await requireRole(['ta', 'admin']);
+  const services = await getServices();
+  return services.getCvFile(cvId);
+}
+
+// ==================== HR DECISION EMAIL ACTIONS ====================
+
+export async function generateHRDecisionEmailAction(
+  candidateId: string,
+  jobId: string,
+  decision: 'accepted' | 'rejected'
+) {
+  await requireRole(['hr', 'admin']);
+  const services = await getServices();
+  return services.generateHRDecisionEmailWithAI(candidateId, jobId, decision);
+}
+
+export async function sendHRDecisionEmailAction(input: {
+  toEmail: string;
+  toName: string;
+  subject: string;
+  body: string;
+}) {
+  const session = await requireRole(['hr', 'admin']);
+  const services = await getServices();
+  return services.sendHRDecisionEmail(input, session.user.id);
+}

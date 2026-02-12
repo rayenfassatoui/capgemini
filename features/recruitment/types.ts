@@ -137,3 +137,17 @@ export interface CvMatchResult {
   gaps: string[];
   alreadyAssigned: boolean;
 }
+
+// ---------- HR Email Types ----------
+
+export interface GeneratedEmail {
+  subject: string;
+  body: string;
+}
+
+export interface SendHRDecisionEmailInput {
+  toEmail: string;
+  toName: string;
+  subject: string;
+  body: string;
+}

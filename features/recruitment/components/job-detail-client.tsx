@@ -590,9 +590,6 @@ export function JobDetailClient({
                           <IconFileText className="mr-1 size-3" /> Questions
                         </Button>
                         <div className="flex w-full gap-2 mt-2">
-                           <Button size="sm" variant="outline" className="flex-1 text-green-600 hover:text-green-700" onClick={() => handleOpenReport('new_report', candidate.id)}>
-                             Report
-                           </Button>
                            <Button size="sm" variant="default" className="flex-1 bg-green-600 hover:bg-green-700" onClick={() => handleUpdateStage(candidate.id, 'ta_accepted')}>
                              Accept
                            </Button>
