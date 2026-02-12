@@ -12,7 +12,9 @@
     "test:coverage": "vitest run --coverage",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
-    "db:seed": "bun run db/seed.ts"
+    "db:seed": "bun run db/seed.ts",
+    "db:seed-users": "bun run db/seed-users.ts",
+    "db:seed-jobs": "bun run db/seed-jobs.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.1.0",

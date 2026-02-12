@@ -115,6 +115,15 @@ export async function matchCvsToJobAction(jobId: string) {
   return services.matchCvsToJob(jobId);
 }
 
+export async function matchCvsToJobWithFiltersAction(
+  jobId: string,
+  filters: { skills: string[]; languages: string[]; minPositions: number }
+) {
+  await requireRole(['ta', 'admin']);
+  const services = await getServices();
+  return services.matchCvsToJobWithFilters(jobId, filters);
+}
+
 // ==================== CANDIDATE PIPELINE ACTIONS ====================
 
 export async function assignCvToJobAction(cvId: string, jobId: string) {
@@ -383,6 +392,42 @@ export async function getCvFileAction(cvId: string) {
   await requireRole(['ta', 'admin']);
   const services = await getServices();
   return services.getCvFile(cvId);
+}
+
+// ==================== SINGLE/MULTI CV EXCEL EXPORT ACTIONS ====================
+
+export async function exportSingleCvExcelAction(cvId: string) {
+  await requireRole(['ta', 'admin']);
+  const services = await getServices();
+  const buffer = await services.exportSingleCvToExcel(cvId);
+  return Buffer.from(buffer).toString('base64');
+}
+
+export async function exportMultipleCvsExcelAction(cvIds: string[]) {
+  await requireRole(['ta', 'admin']);
+  const services = await getServices();
+  const buffer = await services.exportMultipleCvsToExcel(cvIds);
+  return Buffer.from(buffer).toString('base64');
+}
+
+// ==================== STATISTICS ACTIONS ====================
+
+export async function getCvPoolStatsAction() {
+  const session = await requireRole(['ta', 'admin']);
+  const services = await getServices();
+  return services.getCvPoolStats(session.user.id);
+}
+
+export async function getJobsStatsAction() {
+  const session = await requireRole(['ta', 'admin']);
+  const services = await getServices();
+  return services.getJobsStats(session.user.id);
+}
+
+export async function getSmartInsightsAction() {
+  const session = await requireRole(['ta', 'admin']);
+  const services = await getServices();
+  return services.getSmartInsights(session.user.id);
 }
 
 // ==================== HR DECISION EMAIL ACTIONS ====================

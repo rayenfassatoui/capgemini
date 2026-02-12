@@ -1,18 +1,15 @@
 import { Suspense } from 'react';
-import { listCvPoolAction } from '@/features/recruitment/actions';
+import { listCvPoolAction, getCvPoolStatsAction } from '@/features/recruitment/actions';
 import { requireRole } from '@/lib/auth';
 import { CvPoolClient } from '@/features/recruitment/components/cv-pool-client';
 import { IconLoader2 } from '@tabler/icons-react';
 
 export default async function CvPoolPage() {
   await requireRole(['ta', 'admin']);
-  const cvList = await listCvPoolAction();
-
-  // Transform the data to match client component expectations if needed
-  // The server action returns the full DB record, we might need to map it if types strictly mismatch
-  // but looking at the interfaces, they should align or be compatible enough.
-  // We'll pass it directly for now, assuming date serialization works (Next.js handles Date objects in server components to client components mostly fine, but sometimes needs stringifying)
-  // Actually, Next.js passes dates as Dates to client components in recent versions, but let's be safe.
+  const [cvList, stats] = await Promise.all([
+    listCvPoolAction(),
+    getCvPoolStatsAction(),
+  ]);
 
   return (
     <div className="flex flex-col gap-6 p-6">
@@ -30,7 +27,7 @@ export default async function CvPoolPage() {
           </div>
         }
       >
-        <CvPoolClient initialData={cvList} />
+        <CvPoolClient initialData={cvList} stats={stats} />
       </Suspense>
     </div>
   );

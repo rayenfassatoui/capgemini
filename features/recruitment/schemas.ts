@@ -156,6 +156,24 @@ export const aiCvExtractionOutputSchema = z.object({
   summary: z.string().nullish(),
 });
 
+// ---------- CV Match Filter Schemas ----------
+
+export const cvMatchFiltersSchema = z.object({
+  skills: z.array(z.string()).default([]),
+  languages: z.array(z.string()).default([]),
+  minPositions: z.number().min(0).default(0),
+});
+
+export const aiMatchRecommendationItemSchema = z.object({
+  cvId: z.string(),
+  score: z.number().min(0).max(100),
+  recommendation: z.string(),
+  strengths: z.array(z.string()).default([]),
+  concerns: z.array(z.string()).default([]),
+});
+
+export const aiMatchRecommendationOutputSchema = z.array(aiMatchRecommendationItemSchema);
+
 // ---------- Inferred Types ----------
 
 export type CreateJobSchema = z.infer<typeof createJobSchema>;

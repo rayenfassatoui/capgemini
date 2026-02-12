@@ -126,6 +126,12 @@ export interface TodayInterview {
 
 // ---------- CV Matching Types ----------
 
+export interface CvMatchFilters {
+  skills: string[];
+  languages: string[];
+  minPositions: number;
+}
+
 export interface CvMatchResult {
   cvId: string;
   cvFilename: string;
@@ -136,6 +142,12 @@ export interface CvMatchResult {
   matchedNiceToHave: string[];
   gaps: string[];
   alreadyAssigned: boolean;
+  aiRecommendation?: string;
+  aiStrengths?: string[];
+  aiConcerns?: string[];
+  candidateSkills?: string[];
+  candidateLanguages?: string[];
+  experienceCount?: number;
 }
 
 // ---------- HR Email Types ----------
@@ -150,4 +162,28 @@ export interface SendHRDecisionEmailInput {
   toName: string;
   subject: string;
   body: string;
+}
+
+// ---------- Statistics Types ----------
+
+export interface CvPoolStats {
+  totalCvs: number;
+  topSkills: Array<{ skill: string; count: number }>;
+  languageDistribution: Array<{ language: string; count: number }>;
+  uploadTrend: Array<{ date: string; count: number }>;
+}
+
+export interface JobsStats {
+  totalJobs: number;
+  bySeniority: Array<{ seniority: string; count: number }>;
+  byStatus: Array<{ status: string; count: number }>;
+  byBusinessUnit: Array<{ unit: string; count: number }>;
+  topSkillsDemand: Array<{ skill: string; count: number }>;
+}
+
+export interface SmartInsights {
+  mostDemandedJobProfiles: Array<{ title: string; count: number }>;
+  mostCommonCvSkills: Array<{ skill: string; count: number }>;
+  skillGapAnalysis: Array<{ skill: string; demand: number; supply: number }>;
+  pipelineFunnel: Record<CandidateStage, number>;
 }

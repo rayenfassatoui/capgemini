@@ -12,9 +12,11 @@ import {
 } from '@/db/schema';
 import {
   aiCvExtractionOutputSchema,
+  aiMatchRecommendationOutputSchema,
   aiScreeningOutputSchema,
   createJobSchema,
   cvExtractionSchema,
+  cvMatchFiltersSchema,
   interviewReportSchema,
   scheduleInterviewSchema,
   screeningSchema,
@@ -26,12 +28,16 @@ import type {
   CandidateStage,
   CreateJobInput,
   CvExtractionResult,
+  CvMatchFilters,
   CvMatchResult,
+  CvPoolStats,
   DashboardStats,
   InterviewReportInput,
   InterviewStage,
+  JobsStats,
   ScheduleInterviewInput,
   SendInterviewEmailInput,
+  SmartInsights,
   TodayInterview,
   UploadCvInput,
 } from './types';
@@ -340,6 +346,167 @@ export async function matchCvsToJob(jobId: string): Promise<CvMatchResult[]> {
   });
 
   return results.sort((a, b) => b.matchScore - a.matchScore);
+}
+
+export async function matchCvsToJobWithFilters(
+  jobId: string,
+  filters: CvMatchFilters
+): Promise<CvMatchResult[]> {
+  const validated = cvMatchFiltersSchema.parse(filters);
+  const job = await getJob(jobId);
+  if (!job) throw new Error('Job not found');
+
+  let allCvs = await db.select().from(cvPool);
+
+  // Check which CVs are already assigned to this job
+  const existingCandidates = await db
+    .select({ cvId: candidates.cvId })
+    .from(candidates)
+    .where(eq(candidates.jobId, jobId));
+
+  const assignedCvIds = new Set(existingCandidates.map((c) => c.cvId));
+
+  // Pre-filter by skills
+  if (validated.skills.length > 0) {
+    const filterSkillsLower = validated.skills.map((s) => s.toLowerCase());
+    allCvs = allCvs.filter((cv) => {
+      const cvSkills = (cv.extractedSkills ?? []).map((s) => s.toLowerCase());
+      return filterSkillsLower.some((fs) =>
+        cvSkills.some((cs) => cs.includes(fs) || fs.includes(cs))
+      );
+    });
+  }
+
+  // Pre-filter by languages
+  if (validated.languages.length > 0) {
+    const filterLangsLower = validated.languages.map((l) => l.toLowerCase());
+    allCvs = allCvs.filter((cv) => {
+      const cvLangs = (cv.extractedLanguages ?? []).map((l) => l.toLowerCase());
+      return filterLangsLower.some((fl) =>
+        cvLangs.some((cl) => cl.includes(fl) || fl.includes(cl))
+      );
+    });
+  }
+
+  // Pre-filter by minimum positions
+  if (validated.minPositions > 0) {
+    allCvs = allCvs.filter(
+      (cv) => (cv.extractedExperiences ?? []).length >= validated.minPositions
+    );
+  }
+
+  // Keyword scoring
+  const mustHaveLower = job.mustHave.map((s) => s.toLowerCase());
+  const niceToHaveLower = job.niceToHave.map((s) => s.toLowerCase());
+
+  const results: CvMatchResult[] = allCvs.map((cv) => {
+    const cvSkills = (cv.extractedSkills ?? []).map((s) => s.toLowerCase());
+
+    const matchedMustHave = mustHaveLower.filter((skill) =>
+      cvSkills.some((cs) => cs.includes(skill) || skill.includes(cs))
+    );
+    const matchedNiceToHave = niceToHaveLower.filter((skill) =>
+      cvSkills.some((cs) => cs.includes(skill) || skill.includes(cs))
+    );
+
+    const mustScore =
+      mustHaveLower.length > 0
+        ? (matchedMustHave.length / mustHaveLower.length) * 100
+        : 100;
+    const niceScore =
+      niceToHaveLower.length > 0
+        ? (matchedNiceToHave.length / niceToHaveLower.length) * 100
+        : 100;
+    const keywordScore = Math.round(mustScore * 0.7 + niceScore * 0.3);
+
+    const gaps = mustHaveLower.filter(
+      (skill) => !cvSkills.some((cs) => cs.includes(skill) || skill.includes(cs))
+    );
+
+    return {
+      cvId: cv.id,
+      cvFilename: cv.filename,
+      candidateName: cv.extractedName ?? 'Unknown',
+      candidateEmail: cv.extractedEmail ?? '',
+      matchScore: keywordScore,
+      matchedMustHave: matchedMustHave.map(
+        (s) => job.mustHave.find((m) => m.toLowerCase() === s) ?? s
+      ),
+      matchedNiceToHave: matchedNiceToHave.map(
+        (s) => job.niceToHave.find((n) => n.toLowerCase() === s) ?? s
+      ),
+      gaps: gaps.map((s) => job.mustHave.find((m) => m.toLowerCase() === s) ?? s),
+      alreadyAssigned: assignedCvIds.has(cv.id),
+      candidateSkills: cv.extractedSkills ?? [],
+      candidateLanguages: cv.extractedLanguages ?? [],
+      experienceCount: (cv.extractedExperiences ?? []).length,
+    };
+  });
+
+  // Sort by keyword score
+  results.sort((a, b) => b.matchScore - a.matchScore);
+
+  // Get AI recommendations for top 10
+  const topResults = results.slice(0, 10);
+  if (topResults.length > 0) {
+    try {
+      const candidateSummaries = topResults.map((r) => {
+        const cv = allCvs.find((c) => c.id === r.cvId);
+        const experiences = (cv?.extractedExperiences ?? [])
+          .map((e) => Object.values(e).join(' at '))
+          .slice(0, 3)
+          .join('; ');
+        return `- ID: ${r.cvId}\n  Name: ${r.candidateName}\n  Skills: ${(r.candidateSkills ?? []).join(', ')}\n  Experience: ${experiences || 'N/A'}\n  Languages: ${(r.candidateLanguages ?? []).join(', ') || 'N/A'}`;
+      });
+
+      const systemPrompt =
+        'You are a JSON API. Respond ONLY with valid JSON. No markdown, no explanations, no code fences. Return strictly valid JSON array.';
+
+      const userPrompt = `You are an expert technical recruiter at Capgemini. Analyze these candidates against the job requirements and provide a recommendation for each.
+
+Job: ${job.title}
+Seniority: ${job.seniority}
+Must-Have Skills: ${job.mustHave.join(', ')}
+Nice-to-Have: ${job.niceToHave.join(', ')}
+Description: ${job.description.slice(0, 400)}
+
+Candidates:
+${candidateSummaries.join('\n')}
+
+Return a JSON array where each object has:
+- "cvId": string (the candidate ID from above)
+- "score": number (0-100, your honest overall assessment considering skills, experience depth, and seniority fit)
+- "recommendation": string (2-3 sentences about the candidate's fit for this specific role)
+- "strengths": string[] (top 2-3 strengths relative to this job)
+- "concerns": string[] (top 1-3 concerns or gaps)`;
+
+      const content = await callOpenRouter(systemPrompt, userPrompt);
+      const aiResults = aiMatchRecommendationOutputSchema.parse(
+        JSON.parse(cleanJsonResponse(content))
+      );
+
+      for (const aiResult of aiResults) {
+        const match = topResults.find((m) => m.cvId === aiResult.cvId);
+        if (match) {
+          // Blend keyword score (30%) with AI score (70%) for final score
+          match.matchScore = Math.round(match.matchScore * 0.3 + aiResult.score * 0.7);
+          match.aiRecommendation = aiResult.recommendation;
+          match.aiStrengths = aiResult.strengths;
+          match.aiConcerns = aiResult.concerns;
+        }
+      }
+
+      // Re-sort top results by blended score
+      topResults.sort((a, b) => b.matchScore - a.matchScore);
+    } catch {
+      // AI failed, continue with keyword-only scores
+    }
+  }
+
+  // Merge back: top results (AI-enhanced) + remaining results
+  const topCvIds = new Set(topResults.map((r) => r.cvId));
+  const remaining = results.filter((r) => !topCvIds.has(r.cvId));
+  return [...topResults, ...remaining];
 }
 
 // ============ CANDIDATES ============
@@ -1057,6 +1224,416 @@ export async function exportCvPoolToExcel(userId: string): Promise<Buffer> {
 
   const buffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' }) as Buffer;
   return Buffer.from(buffer);
+}
+
+// ============ FORMATTED SINGLE CV EXCEL EXPORT ============
+
+export async function exportSingleCvToExcel(cvId: string): Promise<Buffer> {
+  const [cv] = await db.select().from(cvPool).where(eq(cvPool.id, cvId));
+  if (!cv) throw new Error('CV not found');
+
+  const XLSX = await import('xlsx');
+  const workbook = XLSX.utils.book_new();
+  const rows: string[][] = [];
+
+  // Header section
+  rows.push(['CURRICULUM VITAE']);
+  rows.push([]);
+  rows.push(['Name', cv.extractedName ?? 'Unknown']);
+  rows.push(['Email', cv.extractedEmail ?? '']);
+  rows.push(['Phone', cv.extractedPhone ?? '']);
+  rows.push([]);
+
+  // Summary
+  if (cv.extractedSummary) {
+    rows.push(['PROFESSIONAL SUMMARY']);
+    rows.push([cv.extractedSummary]);
+    rows.push([]);
+  }
+
+  // Skills
+  const skills = cv.extractedSkills ?? [];
+  if (skills.length > 0) {
+    rows.push(['SKILLS']);
+    // Group skills 4 per row
+    for (let i = 0; i < skills.length; i += 4) {
+      rows.push(skills.slice(i, i + 4));
+    }
+    rows.push([]);
+  }
+
+  // Experience
+  const experiences = cv.extractedExperiences ?? [];
+  if (experiences.length > 0) {
+    rows.push(['PROFESSIONAL EXPERIENCE']);
+    for (const exp of experiences) {
+      const title = exp.title ?? exp.Title ?? exp.role ?? exp.Role ?? '';
+      const company = exp.company ?? exp.Company ?? exp.organization ?? '';
+      const duration = exp.duration ?? exp.Duration ?? exp.period ?? exp.dates ?? '';
+      rows.push([title, company, duration]);
+    }
+    rows.push([]);
+  }
+
+  // Education
+  const education = cv.extractedEducation ?? [];
+  if (education.length > 0) {
+    rows.push(['EDUCATION']);
+    for (const edu of education) {
+      const degree = edu.degree ?? edu.Degree ?? edu.diploma ?? '';
+      const school = edu.school ?? edu.School ?? edu.institution ?? edu.university ?? '';
+      const year = edu.year ?? edu.Year ?? edu.date ?? '';
+      rows.push([degree, school, year]);
+    }
+    rows.push([]);
+  }
+
+  // Languages
+  const languages = cv.extractedLanguages ?? [];
+  if (languages.length > 0) {
+    rows.push(['LANGUAGES']);
+    rows.push(languages);
+    rows.push([]);
+  }
+
+  const worksheet = XLSX.utils.aoa_to_sheet(rows);
+
+  // Column widths
+  worksheet['!cols'] = [
+    { wch: 30 },
+    { wch: 30 },
+    { wch: 20 },
+    { wch: 20 },
+  ];
+
+  // Merge the title cell across columns
+  worksheet['!merges'] = [
+    { s: { r: 0, c: 0 }, e: { r: 0, c: 3 } },
+  ];
+
+  const candidateName = cv.extractedName ?? 'candidate';
+  const safeName = candidateName.replace(/[^a-zA-Z0-9]/g, '_').slice(0, 30);
+  XLSX.utils.book_append_sheet(workbook, worksheet, safeName);
+
+  const buffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' }) as Buffer;
+  return Buffer.from(buffer);
+}
+
+export async function exportMultipleCvsToExcel(cvIds: string[]): Promise<Buffer> {
+  const XLSX = await import('xlsx');
+  const workbook = XLSX.utils.book_new();
+
+  const cvs = await db
+    .select()
+    .from(cvPool)
+    .where(inArray(cvPool.id, cvIds));
+
+  for (const cv of cvs) {
+    const rows: string[][] = [];
+
+    rows.push(['CURRICULUM VITAE']);
+    rows.push([]);
+    rows.push(['Name', cv.extractedName ?? 'Unknown']);
+    rows.push(['Email', cv.extractedEmail ?? '']);
+    rows.push(['Phone', cv.extractedPhone ?? '']);
+    rows.push([]);
+
+    if (cv.extractedSummary) {
+      rows.push(['PROFESSIONAL SUMMARY']);
+      rows.push([cv.extractedSummary]);
+      rows.push([]);
+    }
+
+    const skills = cv.extractedSkills ?? [];
+    if (skills.length > 0) {
+      rows.push(['SKILLS']);
+      for (let i = 0; i < skills.length; i += 4) {
+        rows.push(skills.slice(i, i + 4));
+      }
+      rows.push([]);
+    }
+
+    const experiences = cv.extractedExperiences ?? [];
+    if (experiences.length > 0) {
+      rows.push(['PROFESSIONAL EXPERIENCE']);
+      for (const exp of experiences) {
+        const title = exp.title ?? exp.Title ?? exp.role ?? exp.Role ?? '';
+        const company = exp.company ?? exp.Company ?? exp.organization ?? '';
+        const duration = exp.duration ?? exp.Duration ?? exp.period ?? exp.dates ?? '';
+        rows.push([title, company, duration]);
+      }
+      rows.push([]);
+    }
+
+    const education = cv.extractedEducation ?? [];
+    if (education.length > 0) {
+      rows.push(['EDUCATION']);
+      for (const edu of education) {
+        const degree = edu.degree ?? edu.Degree ?? edu.diploma ?? '';
+        const school = edu.school ?? edu.School ?? edu.institution ?? edu.university ?? '';
+        const year = edu.year ?? edu.Year ?? edu.date ?? '';
+        rows.push([degree, school, year]);
+      }
+      rows.push([]);
+    }
+
+    const languages = cv.extractedLanguages ?? [];
+    if (languages.length > 0) {
+      rows.push(['LANGUAGES']);
+      rows.push(languages);
+      rows.push([]);
+    }
+
+    const worksheet = XLSX.utils.aoa_to_sheet(rows);
+    worksheet['!cols'] = [
+      { wch: 30 },
+      { wch: 30 },
+      { wch: 20 },
+      { wch: 20 },
+    ];
+    worksheet['!merges'] = [
+      { s: { r: 0, c: 0 }, e: { r: 0, c: 3 } },
+    ];
+
+    const candidateName = cv.extractedName ?? cv.filename;
+    const safeName = candidateName.replace(/[^a-zA-Z0-9]/g, '_').slice(0, 30);
+    // Ensure unique sheet name
+    const existingNames = workbook.SheetNames;
+    let sheetName = safeName;
+    let counter = 1;
+    while (existingNames.includes(sheetName)) {
+      sheetName = `${safeName.slice(0, 27)}_${counter}`;
+      counter++;
+    }
+    XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
+  }
+
+  if (workbook.SheetNames.length === 0) {
+    const ws = XLSX.utils.aoa_to_sheet([['No CVs found']]);
+    XLSX.utils.book_append_sheet(workbook, ws, 'Empty');
+  }
+
+  const buffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' }) as Buffer;
+  return Buffer.from(buffer);
+}
+
+// ============ CV POOL STATISTICS ============
+
+export async function getCvPoolStats(userId: string): Promise<CvPoolStats> {
+  const cvs = await db
+    .select()
+    .from(cvPool)
+    .where(eq(cvPool.uploadedBy, userId));
+
+  // Top skills
+  const skillCounts: Record<string, number> = {};
+  for (const cv of cvs) {
+    for (const skill of cv.extractedSkills ?? []) {
+      const normalized = skill.trim();
+      if (normalized) {
+        skillCounts[normalized] = (skillCounts[normalized] ?? 0) + 1;
+      }
+    }
+  }
+  const topSkills = Object.entries(skillCounts)
+    .map(([skill, count]) => ({ skill, count }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 10);
+
+  // Language distribution
+  const langCounts: Record<string, number> = {};
+  for (const cv of cvs) {
+    for (const lang of cv.extractedLanguages ?? []) {
+      const normalized = lang.trim();
+      if (normalized) {
+        langCounts[normalized] = (langCounts[normalized] ?? 0) + 1;
+      }
+    }
+  }
+  const languageDistribution = Object.entries(langCounts)
+    .map(([language, count]) => ({ language, count }))
+    .sort((a, b) => b.count - a.count);
+
+  // Upload trend (last 7 days)
+  const now = new Date();
+  const uploadTrend: Array<{ date: string; count: number }> = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(now);
+    d.setDate(d.getDate() - i);
+    const dateStr = d.toISOString().split('T')[0];
+    const dayCount = cvs.filter((cv) => {
+      const cvDate = cv.createdAt?.toISOString().split('T')[0];
+      return cvDate === dateStr;
+    }).length;
+    uploadTrend.push({ date: dateStr, count: dayCount });
+  }
+
+  return {
+    totalCvs: cvs.length,
+    topSkills,
+    languageDistribution,
+    uploadTrend,
+  };
+}
+
+// ============ JOBS STATISTICS ============
+
+export async function getJobsStats(userId: string): Promise<JobsStats> {
+  const allJobs = await db
+    .select()
+    .from(jobs)
+    .where(eq(jobs.createdBy, userId));
+
+  // By seniority
+  const senCounts: Record<string, number> = {};
+  for (const j of allJobs) {
+    senCounts[j.seniority] = (senCounts[j.seniority] ?? 0) + 1;
+  }
+  const bySeniority = Object.entries(senCounts)
+    .map(([seniority, count]) => ({ seniority, count }))
+    .sort((a, b) => b.count - a.count);
+
+  // By status
+  const statusCounts: Record<string, number> = {};
+  for (const j of allJobs) {
+    statusCounts[j.status] = (statusCounts[j.status] ?? 0) + 1;
+  }
+  const byStatus = Object.entries(statusCounts)
+    .map(([status, count]) => ({ status, count }))
+    .sort((a, b) => b.count - a.count);
+
+  // By business unit
+  const buCounts: Record<string, number> = {};
+  for (const j of allJobs) {
+    const unit = j.businessUnit ?? 'Unspecified';
+    buCounts[unit] = (buCounts[unit] ?? 0) + 1;
+  }
+  const byBusinessUnit = Object.entries(buCounts)
+    .map(([unit, count]) => ({ unit, count }))
+    .sort((a, b) => b.count - a.count);
+
+  // Top skills demand across all jobs
+  const skillDemand: Record<string, number> = {};
+  for (const j of allJobs) {
+    for (const skill of [...j.mustHave, ...j.niceToHave]) {
+      const normalized = skill.trim();
+      if (normalized) {
+        skillDemand[normalized] = (skillDemand[normalized] ?? 0) + 1;
+      }
+    }
+  }
+  const topSkillsDemand = Object.entries(skillDemand)
+    .map(([skill, count]) => ({ skill, count }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 10);
+
+  return {
+    totalJobs: allJobs.length,
+    bySeniority,
+    byStatus,
+    byBusinessUnit,
+    topSkillsDemand,
+  };
+}
+
+// ============ SMART INSIGHTS ============
+
+export async function getSmartInsights(userId: string): Promise<SmartInsights> {
+  const allJobs = await db
+    .select()
+    .from(jobs)
+    .where(eq(jobs.createdBy, userId));
+
+  const allCvs = await db
+    .select()
+    .from(cvPool)
+    .where(eq(cvPool.uploadedBy, userId));
+
+  const allCandidates = await db.select({ stage: candidates.stage }).from(candidates);
+
+  // Most demanded job profiles (by title similarity)
+  const titleCounts: Record<string, number> = {};
+  for (const j of allJobs) {
+    // Normalize title - take base role
+    const base = j.title.replace(/^(senior|junior|lead|principal|staff)\s+/i, '').trim();
+    titleCounts[base] = (titleCounts[base] ?? 0) + 1;
+  }
+  const mostDemandedJobProfiles = Object.entries(titleCounts)
+    .map(([title, count]) => ({ title, count }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 8);
+
+  // Most common CV skills
+  const cvSkillCounts: Record<string, number> = {};
+  for (const cv of allCvs) {
+    for (const skill of cv.extractedSkills ?? []) {
+      const normalized = skill.trim();
+      if (normalized) {
+        cvSkillCounts[normalized] = (cvSkillCounts[normalized] ?? 0) + 1;
+      }
+    }
+  }
+  const mostCommonCvSkills = Object.entries(cvSkillCounts)
+    .map(([skill, count]) => ({ skill, count }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 10);
+
+  // Skill gap analysis: demand (from jobs) vs supply (from CVs)
+  const jobSkillCounts: Record<string, number> = {};
+  for (const j of allJobs) {
+    for (const skill of j.mustHave) {
+      const normalized = skill.trim().toLowerCase();
+      if (normalized) {
+        jobSkillCounts[normalized] = (jobSkillCounts[normalized] ?? 0) + 1;
+      }
+    }
+  }
+  const cvSkillCountsLower: Record<string, number> = {};
+  for (const cv of allCvs) {
+    for (const skill of cv.extractedSkills ?? []) {
+      const normalized = skill.trim().toLowerCase();
+      if (normalized) {
+        cvSkillCountsLower[normalized] = (cvSkillCountsLower[normalized] ?? 0) + 1;
+      }
+    }
+  }
+  const allSkillKeys = new Set([...Object.keys(jobSkillCounts), ...Object.keys(cvSkillCountsLower)]);
+  const skillGapAnalysis = Array.from(allSkillKeys)
+    .map((skill) => ({
+      skill,
+      demand: jobSkillCounts[skill] ?? 0,
+      supply: cvSkillCountsLower[skill] ?? 0,
+    }))
+    .sort((a, b) => (b.demand - b.supply) - (a.demand - a.supply))
+    .slice(0, 10);
+
+  // Pipeline funnel
+  const pipelineFunnel: Record<string, number> = {
+    new: 0,
+    ta_screening: 0,
+    ta_interview: 0,
+    ta_accepted: 0,
+    ta_rejected: 0,
+    manager_interview: 0,
+    manager_accepted: 0,
+    manager_rejected: 0,
+    hr_interview: 0,
+    hr_accepted: 0,
+    hr_rejected: 0,
+    hired: 0,
+  };
+  for (const c of allCandidates) {
+    if (c.stage in pipelineFunnel) {
+      pipelineFunnel[c.stage]++;
+    }
+  }
+
+  return {
+    mostDemandedJobProfiles,
+    mostCommonCvSkills,
+    skillGapAnalysis,
+    pipelineFunnel: pipelineFunnel as SmartInsights['pipelineFunnel'],
+  };
 }
 
 // ============ HR DECISION EMAIL ============

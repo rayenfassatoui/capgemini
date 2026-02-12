@@ -15,6 +15,7 @@ import {
   IconUsers,
   IconUserShield,
   IconFileSpreadsheet,
+  IconChartBar,
   IconChevronRight,
   IconSun,
   IconMoon,
@@ -33,6 +34,7 @@ const NAV_ITEMS: Record<UserRole, NavItem[]> = {
     { labelKey: 'nav.dashboard', href: '/ta/dashboard', icon: IconLayoutDashboard },
     { labelKey: 'nav.cvPool', href: '/ta/cv-pool', icon: IconFileText },
     { labelKey: 'nav.jobs', href: '/ta/jobs', icon: IconBriefcase },
+    { labelKey: 'nav.statistics', href: '/ta/statistique', icon: IconChartBar },
   ],
   manager: [
     { labelKey: 'nav.dashboard', href: '/manager/dashboard', icon: IconLayoutDashboard },

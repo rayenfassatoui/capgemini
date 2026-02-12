@@ -48,7 +48,6 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 
 import {
-  matchCvsToJobAction,
   assignCvToJobAction,
   generateScreeningAction,
   getScreeningAction,
@@ -61,8 +60,9 @@ import {
   updateInterviewQuestionsAction,
 } from '@/features/recruitment/actions';
 
+import { MatchCvsDialog, InlineCvMatching } from '@/features/recruitment/components/match-cvs-dialog';
+
 import type {
-  CvMatchResult,
   CandidateStage,
   InterviewStage,
   ScheduleInterviewInput,
@@ -129,8 +129,6 @@ export function JobDetailClient({
   jobId,
 }: JobDetailClientProps) {
   const [candidates, setCandidates] = React.useState<Candidate[]>(initialCandidates);
-  const [matchResults, setMatchResults] = React.useState<CvMatchResult[]>([]);
-  const [isMatching, setIsMatching] = React.useState(false);
 
   // Sync state with props when server revalidates
   React.useEffect(() => {
@@ -188,37 +186,6 @@ export function JobDetailClient({
   };
 
   // ---------- Actions ----------
-
-  const handleMatchCvs = async () => {
-    try {
-      setIsMatching(true);
-      const results = await matchCvsToJobAction(jobId);
-      setMatchResults(results);
-      toast.success('CVs matched successfully');
-    } catch (error) {
-      toast.error('Failed to match CVs');
-    } finally {
-      setIsMatching(false);
-    }
-  };
-
-  const handleAssignCv = async (cvId: string) => {
-    try {
-      const newCandidate = await assignCvToJobAction(cvId, jobId);
-      // Optimistic update
-      setMatchResults((prev) =>
-        prev.map((r) => (r.cvId === cvId ? { ...r, alreadyAssigned: true } : r))
-      );
-      // We assume the action returns the full candidate object, but strict typing might fail if backend differs.
-      // Ideally we re-fetch candidates, but for now we push to list if structure matches
-      // Or we just rely on revalidatePath in action triggering a refresh of the page props (which implies a reload).
-      // Since this is a client component receiving props, we might not see the update immediately without router.refresh()
-      // But revalidatePath on server action usually triggers a client refresh of server components.
-      toast.success('Candidate assigned');
-    } catch (error) {
-      toast.error('Failed to assign candidate');
-    }
-  };
 
   const handleGenerateScreening = async (candidateId: string) => {
     try {
@@ -446,91 +413,11 @@ export function JobDetailClient({
 
         {/* TAB 2: CV MATCHING */}
         <TabsContent value="cv-matching" className="mt-6 space-y-4">
-          <div className="flex justify-between items-center">
-            <h2 className="text-xl font-semibold">Matched CVs</h2>
-            <Button onClick={handleMatchCvs} disabled={isMatching}>
-              {isMatching ? <IconSearch className="animate-spin mr-2" /> : <IconSearch className="mr-2" />}
-              Match CVs
-            </Button>
-          </div>
-
-          <Card>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Candidate</TableHead>
-                  <TableHead>Score</TableHead>
-                  <TableHead>Matched Skills</TableHead>
-                  <TableHead>Gaps</TableHead>
-                  <TableHead className="text-right">Action</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {matchResults.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
-                      No matching results yet. Click "Match CVs" to start.
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  matchResults.map((match) => (
-                    <TableRow key={match.cvId}>
-                      <TableCell>
-                        <div className="font-medium">{match.candidateName}</div>
-                        <div className="text-xs text-muted-foreground">{match.candidateEmail}</div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <span className="font-bold">{match.matchScore}%</span>
-                          {/* Simple progress bar representation */}
-                          <div className="h-2 w-16 bg-secondary rounded-full overflow-hidden">
-                            <div 
-                              className="h-full bg-primary" 
-                              style={{ width: `${match.matchScore}%` }} 
-                            />
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex flex-wrap gap-1">
-                          {match.matchedMustHave.slice(0, 3).map((s) => (
-                            <Badge key={s} variant="secondary" className="text-[10px]">{s}</Badge>
-                          ))}
-                          {match.matchedMustHave.length > 3 && (
-                            <Badge variant="secondary" className="text-[10px]">+{match.matchedMustHave.length - 3}</Badge>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex flex-wrap gap-1">
-                          {match.gaps.slice(0, 2).map((s) => (
-                            <Badge key={s} variant="outline" className="text-destructive border-destructive/20 text-[10px]">{s}</Badge>
-                          ))}
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Button 
-                          size="sm" 
-                          onClick={() => handleAssignCv(match.cvId)}
-                          disabled={match.alreadyAssigned}
-                        >
-                          {match.alreadyAssigned ? (
-                            <>
-                              <IconCheck className="mr-1 size-3" /> Assigned
-                            </>
-                          ) : (
-                            <>
-                              <IconPlus className="mr-1 size-3" /> Assign
-                            </>
-                          )}
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </Card>
+          <InlineCvMatching
+            jobId={jobId}
+            jobMustHave={job.mustHave}
+            jobNiceToHave={job.niceToHave}
+          />
         </TabsContent>
 
         {/* TAB 3: PIPELINE */}

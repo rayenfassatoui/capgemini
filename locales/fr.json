@@ -23,7 +23,8 @@
     "cvPool": "Pool CV",
     "export": "Exporter",
     "users": "Utilisateurs",
-    "roleViews": "Vues par role"
+    "roleViews": "Vues par role",
+    "statistics": "Statistiques"
   },
   "dashboard": {
     "title": "Centre de Commande Recrutement",

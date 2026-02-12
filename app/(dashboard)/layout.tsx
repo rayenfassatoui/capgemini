@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { redirect } from 'next/navigation';
 import { getSession, getRoleHome } from '@/lib/auth';
 import { Sidebar } from '@/components/shared/sidebar';
+import { DashboardProviders } from '@/components/shared/dashboard-providers';
 import type { UserRole } from '@/features/recruitment/types';
 
 export default async function DashboardLayout({ children }: { children: ReactNode }) {
@@ -15,11 +16,13 @@ export default async function DashboardLayout({ children }: { children: ReactNod
   const userName = session.user.name ?? 'User';
 
   return (
-    <div className="min-h-screen bg-white dark:bg-gray-950">
-      <div className="mx-auto flex min-h-screen max-w-7xl flex-col gap-6 px-6 py-6 lg:flex-row">
-        <Sidebar role={role} userName={userName} />
-        <main id="main-content" className="flex-1 min-w-0">{children}</main>
+    <DashboardProviders>
+      <div className="min-h-screen bg-white dark:bg-gray-950">
+        <div className="mx-auto flex min-h-screen max-w-7xl flex-col gap-6 px-6 py-6 lg:flex-row">
+          <Sidebar role={role} userName={userName} />
+          <main id="main-content" className="flex-1 min-w-0">{children}</main>
+        </div>
       </div>
-    </div>
+    </DashboardProviders>
   );
 }

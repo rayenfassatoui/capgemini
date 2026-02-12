@@ -1,10 +1,13 @@
-import { listJobsAction } from '@/features/recruitment/actions';
+import { listJobsAction, getJobsStatsAction } from '@/features/recruitment/actions';
 import { requireRole } from '@/lib/auth';
 import JobsClient from '@/features/recruitment/components/jobs-client';
 
 export default async function JobsPage() {
   await requireRole(['ta', 'admin']);
-  const jobs = await listJobsAction();
+  const [jobs, stats] = await Promise.all([
+    listJobsAction(),
+    getJobsStatsAction(),
+  ]);
 
   return (
     <div className="flex-1 space-y-4 p-8 pt-6">
@@ -16,7 +19,7 @@ export default async function JobsPage() {
           </p>
         </div>
       </div>
-      <JobsClient initialJobs={jobs} />
+      <JobsClient initialJobs={jobs} stats={stats} />
     </div>
   );
 }

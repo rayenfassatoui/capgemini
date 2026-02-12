@@ -36,6 +36,7 @@ import {
 } from '@/components/ui/card';
 
 import { createJobAction } from '@/features/recruitment/actions';
+import type { JobsStats } from '@/features/recruitment/types';
 
 // Define the Job type locally based on the expected return shape
 // In a real app we might import this from schema/types if available
@@ -55,9 +56,10 @@ interface Job {
 
 interface JobsClientProps {
   initialJobs: Job[];
+  stats: JobsStats;
 }
 
-export default function JobsClient({ initialJobs }: JobsClientProps) {
+export default function JobsClient({ initialJobs, stats }: JobsClientProps) {
   const [jobs, setJobs] = useState<Job[]>(initialJobs);
   const [isOpen, setIsOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -193,6 +195,70 @@ export default function JobsClient({ initialJobs }: JobsClientProps) {
 
   return (
     <div className="space-y-6">
+      {/* Statistics */}
+      <div className="grid gap-4 md:grid-cols-4">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Total Jobs</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.totalJobs}</div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">By Status</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap gap-1.5">
+              {stats.byStatus.map((item) => (
+                <Badge
+                  key={item.status}
+                  variant={item.status === 'open' ? 'default' : 'secondary'}
+                  className="text-xs capitalize"
+                >
+                  {item.status} ({item.count})
+                </Badge>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">By Seniority</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap gap-1.5">
+              {stats.bySeniority.slice(0, 5).map((item) => (
+                <Badge key={item.seniority} variant="outline" className="text-xs">
+                  {item.seniority} ({item.count})
+                </Badge>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Top Skills Demand</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap gap-1.5">
+              {stats.topSkillsDemand.slice(0, 5).map((item) => (
+                <Badge key={item.skill} variant="secondary" className="text-xs">
+                  {item.skill} ({item.count})
+                </Badge>
+              ))}
+              {stats.topSkillsDemand.length === 0 && (
+                <p className="text-xs text-muted-foreground">No skills yet</p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
       <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
         <div className="relative w-full sm:w-72">
           <IconSearch className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
