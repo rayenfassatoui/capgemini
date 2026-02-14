@@ -44,7 +44,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import { Progress } from '@/components/ui/progress';
-import { deleteCvAction, exportCvPoolAction, exportSingleCvExcelAction, exportMultipleCvsExcelAction, getCvDetailsAction, getCvFileAction } from '../actions';
+import { deleteCvAction, exportCvPoolAction, exportSingleCvExcelAction, exportMultipleCvsZipAction, getCvDetailsAction, getCvFileAction } from '../actions';
 import { useUploadQueue } from './upload-provider';
 import type { CvPoolStats } from '../types';
 
@@ -219,23 +219,22 @@ export function CvPoolClient({ initialData, stats }: CvPoolClientProps) {
   const handleExportExcel = async () => {
     setIsExporting(true);
     try {
-      const base64 = await exportCvPoolAction();
+      const allIds = initialData.map((cv) => cv.id);
+      const base64 = await exportMultipleCvsZipAction(allIds);
       const byteCharacters = atob(base64);
       const byteNumbers = new Array(byteCharacters.length);
       for (let i = 0; i < byteCharacters.length; i++) {
         byteNumbers[i] = byteCharacters.charCodeAt(i);
       }
       const byteArray = new Uint8Array(byteNumbers);
-      const blob = new Blob([byteArray], {
-        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-      });
+      const blob = new Blob([byteArray], { type: 'application/zip' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `cv-pool-${new Date().toISOString().split('T')[0]}.xlsx`;
+      a.download = `cv-pool-${new Date().toISOString().split('T')[0]}.zip`;
       a.click();
       URL.revokeObjectURL(url);
-      toast.success('CV Pool exported to Excel');
+      toast.success('CV Pool exported as ZIP');
     } catch (error) {
       console.error('Export error:', error);
       toast.error('Failed to export CV Pool');
@@ -321,14 +320,23 @@ export function CvPoolClient({ initialData, stats }: CvPoolClientProps) {
     if (selectedIds.size === 0) return;
     setIsBulkExporting(true);
     try {
-      const base64 = await exportMultipleCvsExcelAction(Array.from(selectedIds));
-      downloadBase64Excel(
-        base64,
-        `selected-cvs-${new Date().toISOString().split('T')[0]}.xlsx`
-      );
-      toast.success(`${selectedIds.size} CV(s) exported to Excel`);
+      const base64 = await exportMultipleCvsZipAction(Array.from(selectedIds));
+      const byteCharacters = atob(base64);
+      const byteNumbers = new Array(byteCharacters.length);
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+      }
+      const byteArray = new Uint8Array(byteNumbers);
+      const blob = new Blob([byteArray], { type: 'application/zip' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `cvs-export-${new Date().toISOString().split('T')[0]}.zip`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success(`${selectedIds.size} CV(s) exported as ZIP`);
     } catch (error) {
-      console.error('Bulk Excel export error:', error);
+      console.error('Bulk ZIP export error:', error);
       toast.error('Failed to export selected CVs');
     } finally {
       setIsBulkExporting(false);
@@ -425,7 +433,7 @@ export function CvPoolClient({ initialData, stats }: CvPoolClientProps) {
             disabled={isExporting || initialData.length === 0}
           >
             <IconFileSpreadsheet className="mr-2 h-4 w-4" />
-            {isExporting ? 'Exporting...' : 'Export Excel'}
+            {isExporting ? 'Exporting...' : 'Export ZIP'}
           </Button>
           <Dialog open={isUploadOpen} onOpenChange={setIsUploadOpen}>
             <DialogTrigger className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2">
@@ -512,7 +520,7 @@ export function CvPoolClient({ initialData, stats }: CvPoolClientProps) {
             ) : (
               <IconFileSpreadsheet className="mr-2 h-4 w-4" />
             )}
-            {isBulkExporting ? 'Exporting...' : 'Download Excel'}
+            {isBulkExporting ? 'Exporting...' : 'Download ZIP'}
           </Button>
           <Button
             variant="destructive"

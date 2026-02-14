@@ -403,10 +403,10 @@ export async function exportSingleCvExcelAction(cvId: string) {
   return Buffer.from(buffer).toString('base64');
 }
 
-export async function exportMultipleCvsExcelAction(cvIds: string[]) {
+export async function exportMultipleCvsZipAction(cvIds: string[]) {
   await requireRole(['ta', 'admin']);
   const services = await getServices();
-  const buffer = await services.exportMultipleCvsToExcel(cvIds);
+  const buffer = await services.exportMultipleCvsAsZip(cvIds);
   return Buffer.from(buffer).toString('base64');
 }
 

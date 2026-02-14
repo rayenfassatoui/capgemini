@@ -57,7 +57,7 @@ export {
   exportAcceptedCandidatesToExcel,
   exportCvPoolToExcel,
   exportSingleCvToExcel,
-  exportMultipleCvsToExcel,
+  exportMultipleCvsAsZip,
 } from './export';
 
 export { getDashboardStats, getTodayInterviewSchedule } from './dashboard';

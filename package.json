@@ -28,6 +28,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "drizzle-orm": "^0.45.1",
+    "fflate": "^0.8.2",
     "framer-motion": "^12.34.0",
     "mammoth": "^1.11.0",
     "next": "16.1.6",

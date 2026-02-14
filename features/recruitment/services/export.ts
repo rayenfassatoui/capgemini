@@ -3,6 +3,7 @@ import { db } from '@/lib/db';
 import { candidates, cvPool } from '@/db/schema';
 import { getJob } from './jobs';
 import { getInterviewReportsByCandidate } from './interview-reports';
+import { zipSync } from 'fflate';
 
 export async function exportAcceptedCandidatesToExcel(): Promise<Buffer> {
   const acceptedCandidates = await db
@@ -153,99 +154,36 @@ export async function exportSingleCvToExcel(cvId: string): Promise<Buffer> {
   return Buffer.from(buffer);
 }
 
-export async function exportMultipleCvsToExcel(cvIds: string[]): Promise<Buffer> {
-  const XLSX = await import('xlsx');
-  const workbook = XLSX.utils.book_new();
-
+export async function exportMultipleCvsAsZip(cvIds: string[]): Promise<Buffer> {
   const cvs = await db
     .select()
     .from(cvPool)
     .where(inArray(cvPool.id, cvIds));
 
+  const files: Record<string, Uint8Array> = {};
+  const usedNames = new Set<string>();
+
   for (const cv of cvs) {
-    const rows: string[][] = [];
+    const excelBuffer = await exportSingleCvToExcel(cv.id);
+    const candidateName = cv.extractedName ?? cv.filename.replace(/\.[^.]+$/, '');
+    let safeName = candidateName.replace(/[^a-zA-Z0-9 _-]/g, '_').trim();
+    if (!safeName) safeName = 'candidate';
 
-    rows.push(['CURRICULUM VITAE']);
-    rows.push([]);
-    rows.push(['Name', cv.extractedName ?? 'Unknown']);
-    rows.push(['Email', cv.extractedEmail ?? '']);
-    rows.push(['Phone', cv.extractedPhone ?? '']);
-    rows.push([]);
-
-    if (cv.extractedSummary) {
-      rows.push(['PROFESSIONAL SUMMARY']);
-      rows.push([cv.extractedSummary]);
-      rows.push([]);
-    }
-
-    const skills = cv.extractedSkills ?? [];
-    if (skills.length > 0) {
-      rows.push(['SKILLS']);
-      for (let i = 0; i < skills.length; i += 4) {
-        rows.push(skills.slice(i, i + 4));
-      }
-      rows.push([]);
-    }
-
-    const experiences = cv.extractedExperiences ?? [];
-    if (experiences.length > 0) {
-      rows.push(['PROFESSIONAL EXPERIENCE']);
-      for (const exp of experiences) {
-        const title = exp.title ?? exp.Title ?? exp.role ?? exp.Role ?? '';
-        const company = exp.company ?? exp.Company ?? exp.organization ?? '';
-        const duration = exp.duration ?? exp.Duration ?? exp.period ?? exp.dates ?? '';
-        rows.push([title, company, duration]);
-      }
-      rows.push([]);
-    }
-
-    const education = cv.extractedEducation ?? [];
-    if (education.length > 0) {
-      rows.push(['EDUCATION']);
-      for (const edu of education) {
-        const degree = edu.degree ?? edu.Degree ?? edu.diploma ?? '';
-        const school = edu.school ?? edu.School ?? edu.institution ?? edu.university ?? '';
-        const year = edu.year ?? edu.Year ?? edu.date ?? '';
-        rows.push([degree, school, year]);
-      }
-      rows.push([]);
-    }
-
-    const languages = cv.extractedLanguages ?? [];
-    if (languages.length > 0) {
-      rows.push(['LANGUAGES']);
-      rows.push(languages);
-      rows.push([]);
-    }
-
-    const worksheet = XLSX.utils.aoa_to_sheet(rows);
-    worksheet['!cols'] = [
-      { wch: 30 },
-      { wch: 30 },
-      { wch: 20 },
-      { wch: 20 },
-    ];
-    worksheet['!merges'] = [
-      { s: { r: 0, c: 0 }, e: { r: 0, c: 3 } },
-    ];
-
-    const candidateName = cv.extractedName ?? cv.filename;
-    const safeName = candidateName.replace(/[^a-zA-Z0-9]/g, '_').slice(0, 30);
-    const existingNames = workbook.SheetNames;
-    let sheetName = safeName;
+    let fileName = `${safeName}.xlsx`;
     let counter = 1;
-    while (existingNames.includes(sheetName)) {
-      sheetName = `${safeName.slice(0, 27)}_${counter}`;
+    while (usedNames.has(fileName.toLowerCase())) {
+      fileName = `${safeName}_${counter}.xlsx`;
       counter++;
     }
-    XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
+    usedNames.add(fileName.toLowerCase());
+
+    files[fileName] = new Uint8Array(excelBuffer);
   }
 
-  if (workbook.SheetNames.length === 0) {
-    const ws = XLSX.utils.aoa_to_sheet([['No CVs found']]);
-    XLSX.utils.book_append_sheet(workbook, ws, 'Empty');
+  if (Object.keys(files).length === 0) {
+    throw new Error('No CVs found for the given IDs');
   }
 
-  const buffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' }) as Buffer;
-  return Buffer.from(buffer);
+  const zipped = zipSync(files, { level: 6 });
+  return Buffer.from(zipped);
 }
