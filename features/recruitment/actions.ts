@@ -452,3 +452,17 @@ export async function sendHRDecisionEmailAction(input: {
   const services = await getServices();
   return services.sendHRDecisionEmail(input, session.user.id);
 }
+
+// ==================== AI STATISTICS CHAT ACTIONS ====================
+
+export async function askAiStatisticsAction(question: string) {
+  try {
+    const session = await requireRole(['ta', 'admin']);
+    const { aiStatisticsChatSchema } = await import('./schemas');
+    const validated = aiStatisticsChatSchema.parse({ question });
+    const services = await getServices();
+    return { answer: await services.askAiAboutStatistics(validated.question, session.user.id) };
+  } catch (error) {
+    handleActionError(error);
+  }
+}

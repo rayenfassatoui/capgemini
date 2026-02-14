@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import { getSession, getRoleHome } from '@/lib/auth';
 import { Sidebar } from '@/components/shared/sidebar';
 import { DashboardProviders } from '@/components/shared/dashboard-providers';
+import { StatisticsChat } from '@/features/recruitment/components/statistics-chat';
 import type { UserRole } from '@/features/recruitment/types';
 
 export default async function DashboardLayout({ children }: { children: ReactNode }) {
@@ -23,6 +24,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
           <main id="main-content" className="flex-1 min-w-0">{children}</main>
         </div>
       </div>
+      <StatisticsChat />
     </DashboardProviders>
   );
 }

@@ -260,6 +260,32 @@ export const interviewReports = pgTable('interview_reports', {
 });
 
 /**
+ * Chat conversations: one active analytics conversation per user.
+ */
+export const chatConversations = pgTable('chat_conversations', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: text('user_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  title: text('title').notNull().default('Analytics Chat'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+/**
+ * Chat messages: individual messages in a conversation.
+ */
+export const chatMessages = pgTable('chat_messages', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  conversationId: uuid('conversation_id')
+    .notNull()
+    .references(() => chatConversations.id, { onDelete: 'cascade' }),
+  role: text('role').notNull(), // 'user' | 'assistant'
+  content: text('content').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+/**
  * Email log: tracks all emails sent from the system.
  */
 export const emailLogs = pgTable('email_logs', {
@@ -288,6 +314,7 @@ export const usersRelations = relations(users, ({ many }) => ({
   interviewReports: many(interviewReports),
   uploadedCvs: many(cvPool),
   emailLogs: many(emailLogs),
+  chatConversations: many(chatConversations),
 }));
 
 export const sessionsRelations = relations(sessions, ({ one }) => ({
@@ -348,4 +375,13 @@ export const interviewReportsRelations = relations(interviewReports, ({ one }) =
 export const emailLogsRelations = relations(emailLogs, ({ one }) => ({
   sentByUser: one(users, { fields: [emailLogs.sentBy], references: [users.id] }),
   interview: one(interviews, { fields: [emailLogs.interviewId], references: [interviews.id] }),
+}));
+
+export const chatConversationsRelations = relations(chatConversations, ({ one, many }) => ({
+  user: one(users, { fields: [chatConversations.userId], references: [users.id] }),
+  messages: many(chatMessages),
+}));
+
+export const chatMessagesRelations = relations(chatMessages, ({ one }) => ({
+  conversation: one(chatConversations, { fields: [chatMessages.conversationId], references: [chatConversations.id] }),
 }));

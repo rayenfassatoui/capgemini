@@ -188,3 +188,19 @@ export type ScheduleInterviewSchema = z.infer<typeof scheduleInterviewSchema>;
 export type InterviewReportSchema = z.infer<typeof interviewReportSchema>;
 export type SendInterviewEmailSchema = z.infer<typeof sendInterviewEmailSchema>;
 export type AiCvExtractionOutput = z.infer<typeof aiCvExtractionOutputSchema>;
+
+// ---------- AI Statistics Chat Schema ----------
+
+export const aiStatisticsChatSchema = z.object({
+  question: z.string().min(3, 'Question must be at least 3 characters').max(500, 'Question must be at most 500 characters'),
+});
+
+export const chatMessageSchema = z.object({
+  role: z.enum(['user', 'assistant']),
+  content: z.string().min(1).max(4000),
+});
+
+export const statisticsChatRequestSchema = z.object({
+  conversationId: z.string().uuid().optional(),
+  messages: z.array(chatMessageSchema).min(1).max(20),
+});
