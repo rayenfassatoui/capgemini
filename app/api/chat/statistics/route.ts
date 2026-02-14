@@ -98,8 +98,8 @@ export async function POST(request: Request) {
     await saveChatMessage(conversation.id, 'user', lastUserMessage.content);
   }
 
-  // Gather data context scoped to user
-  const dataContext = await getStatisticsChatContext(session.user.id);
+  // Gather data context scoped to user role
+  const dataContext = await getStatisticsChatContext(session.user.id, role);
 
   const today = new Date().toISOString().split('T')[0];
 
@@ -118,6 +118,7 @@ Current user role: ${role}
 
 RULES:
 - Answer ONLY based on the data provided below
+- When asked to name or list candidates, use EXACTLY the names from the "Candidates by Stage" section - never guess or substitute names
 - Be concise, data-driven, and actionable
 - Use markdown formatting for readability (tables, lists, bold, headers)
 - If the data doesn't contain information to answer the question, say so clearly
