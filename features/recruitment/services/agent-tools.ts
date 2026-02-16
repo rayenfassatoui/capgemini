@@ -158,6 +158,20 @@ export const TOOL_DEFINITIONS: AgentToolDefinition[] = [
     allowedRoles: ['ta', 'admin'],
     mutating: true,
   },
+  {
+    name: 'close_job',
+    description:
+      'Close an open job. Allowed only when there are no scheduled interviews and no in-progress candidates for that job.',
+    parameters: {
+      type: 'object',
+      properties: {
+        jobId: { type: 'string', description: 'UUID of the job to close' },
+      },
+      required: ['jobId'],
+    },
+    allowedRoles: ['ta', 'admin'],
+    mutating: true,
+  },
 
   // ==================== CANDIDATES ====================
   {
@@ -861,12 +875,58 @@ export async function executeAgentTool(
 
       const index = Number(raw);
       const isIndex = Number.isInteger(index) && index >= 0;
+
+      // --- Name-based lookup when value is a non-numeric string ---
       if (!isIndex) {
+        const needle = raw.toLowerCase();
+
+        if (paramName === 'candidateId') {
+          const rows = await services.getCandidatesByStage(ALL_CANDIDATE_STAGES);
+          const match = rows.find(
+            (r) => (r.fullName ?? '').toLowerCase() === needle
+          ) ?? rows.find(
+            (r) => (r.fullName ?? '').toLowerCase().includes(needle)
+          );
+          if (match) return match.id;
+          throw new Error(
+            `No candidate found matching "${raw}". Provide a UUID, index, or exact name.`
+          );
+        }
+
+        if (paramName === 'jobId') {
+          const rows = await services.listJobs(ctx.userId);
+          const match = rows.find(
+            (r) => (r.title ?? '').toLowerCase() === needle
+          ) ?? rows.find(
+            (r) => (r.title ?? '').toLowerCase().includes(needle)
+          );
+          if (match) return match.id;
+          throw new Error(
+            `No job found matching "${raw}". Provide a UUID, index, or exact title.`
+          );
+        }
+
+        if (paramName === 'cvId') {
+          const rows = await services.listCvPool(ctx.userId);
+          const match = rows.find(
+            (r) => (r.extractedName ?? '').toLowerCase() === needle
+          ) ?? rows.find(
+            (r) => (r.extractedName ?? '').toLowerCase().includes(needle)
+          ) ?? rows.find(
+            (r) => (r.filename ?? '').toLowerCase().includes(needle)
+          );
+          if (match) return match.id;
+          throw new Error(
+            `No CV found matching "${raw}". Provide a UUID, index, or candidate name.`
+          );
+        }
+
         throw new Error(
           `Invalid ${paramName}: expected a UUID or non-negative index, got "${raw}"`
         );
       }
 
+      // --- Index-based lookup ---
       if (paramName === 'cvId') {
         const rows = await services.listCvPool(ctx.userId);
         if (index >= rows.length) {
@@ -1020,6 +1080,15 @@ export async function executeAgentTool(
           ctx.userId
         );
         result = sanitizeForJson(job);
+        break;
+      }
+      case 'close_job': {
+        const closedJob = await services.closeJob(
+          await resolveId(args.jobId, 'jobId'),
+          ctx.userId,
+          ctx.role
+        );
+        result = sanitizeForJson(closedJob);
         break;
       }
 

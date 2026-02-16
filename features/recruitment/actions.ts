@@ -11,6 +11,7 @@ import type {
   SendInterviewEmailInput,
   InterviewStage,
   CandidateStage,
+  UserRole,
 } from './types';
 
 // ---------- Error Handling Utility ----------
@@ -105,6 +106,23 @@ export async function getJobAction(jobId: string) {
   await requireRole(['ta', 'manager', 'hr', 'admin']);
   const services = await getServices();
   return services.getJob(jobId);
+}
+
+export async function closeJobAction(jobId: string) {
+  try {
+    const session = await requireRole(['ta', 'admin']);
+    const services = await getServices();
+    const job = await services.closeJob(
+      jobId,
+      session.user.id,
+      (session.user.role ?? 'ta') as UserRole
+    );
+    revalidatePath('/ta/jobs');
+    revalidatePath(`/ta/jobs/${jobId}`);
+    return job;
+  } catch (error) {
+    handleActionError(error);
+  }
 }
 
 // ==================== CV MATCHING ACTIONS ====================

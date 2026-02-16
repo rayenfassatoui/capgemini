@@ -102,9 +102,13 @@ export function HRCandidateDetailClient({
   const [isSendingEmail, setIsSendingEmail] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
 
+  // Hiring state
+  const [isHiring, setIsHiring] = useState(false);
+
   // Decision state
   const hasDecided = candidate.stage === 'hr_accepted' || candidate.stage === 'hr_rejected' || candidate.stage === 'hired';
   const isAccepted = candidate.stage === 'hr_accepted' || candidate.stage === 'hired';
+  const isHired = candidate.stage === 'hired';
   const isRejected = candidate.stage === 'hr_rejected';
 
   const handleDecision = async (decision: 'hr_accepted' | 'hr_rejected') => {
@@ -117,6 +121,19 @@ export function HRCandidateDetailClient({
       toast.error('Failed to update decision');
     } finally {
       setIsDeciding(false);
+    }
+  };
+
+  const handleMarkAsHired = async () => {
+    try {
+      setIsHiring(true);
+      await updateCandidateStageAction(candidate.id, 'hired');
+      toast.success('Candidate marked as hired!');
+      router.refresh();
+    } catch (error) {
+      toast.error('Failed to mark candidate as hired');
+    } finally {
+      setIsHiring(false);
     }
   };
 
@@ -526,6 +543,44 @@ export function HRCandidateDetailClient({
               )}
             </CardContent>
           </Card>
+
+          {/* Step 3: Mark as Hired (only for accepted candidates) */}
+          {isAccepted && (
+            <Card className={isHired ? 'border-emerald-200 dark:border-emerald-900' : ''}>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  {isHired && <IconCircleCheck className="h-5 w-5 text-emerald-500" />}
+                  <IconUserCheck className="h-5 w-5" />
+                  3. Finalize Hiring
+                </CardTitle>
+                <CardDescription>
+                  {isHired
+                    ? 'This candidate has been officially hired.'
+                    : 'Once the candidate has accepted the offer and onboarding is ready, mark them as hired.'}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {isHired ? (
+                  <div className="flex items-center gap-3 p-4 rounded-lg bg-emerald-50 dark:bg-emerald-900/20">
+                    <IconCircleCheck className="h-5 w-5 text-emerald-500" />
+                    <div>
+                      <p className="font-medium text-emerald-600 dark:text-emerald-400">Officially Hired</p>
+                      <p className="text-sm text-muted-foreground">{candidate.fullName} is now part of the team.</p>
+                    </div>
+                  </div>
+                ) : (
+                  <Button
+                    onClick={handleMarkAsHired}
+                    disabled={isHiring}
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                  >
+                    <IconCheck className="mr-2 h-4 w-4" />
+                    {isHiring ? 'Processing...' : 'Mark as Hired'}
+                  </Button>
+                )}
+              </CardContent>
+            </Card>
+          )}
 
         </TabsContent>
       </Tabs>

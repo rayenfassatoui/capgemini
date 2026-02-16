@@ -44,11 +44,23 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 
 import {
   assignCvToJobAction,
+  closeJobAction,
   generateScreeningAction,
   getScreeningAction,
   generateInterviewQuestionsAction,
@@ -123,17 +135,32 @@ interface JobDetailClientProps {
   jobId: string;
 }
 
+const ACTIVE_CANDIDATE_STAGES: CandidateStage[] = [
+  'new',
+  'ta_screening',
+  'ta_interview',
+  'ta_accepted',
+  'manager_interview',
+  'manager_accepted',
+  'hr_interview',
+];
+
 export function JobDetailClient({
   job,
   candidates: initialCandidates,
   jobId,
 }: JobDetailClientProps) {
   const [candidates, setCandidates] = React.useState<Candidate[]>(initialCandidates);
+  const [jobStatus, setJobStatus] = React.useState(job.status);
 
   // Sync state with props when server revalidates
   React.useEffect(() => {
     setCandidates(initialCandidates);
   }, [initialCandidates]);
+
+  React.useEffect(() => {
+    setJobStatus(job.status);
+  }, [job.status]);
 
   // Dialog States
   const [scheduleDialogOpen, setScheduleDialogOpen] = React.useState(false);
@@ -338,6 +365,17 @@ export function JobDetailClient({
     }
   };
 
+  const handleCloseJob = async () => {
+    try {
+      await closeJobAction(jobId);
+      setJobStatus('closed');
+      toast.success('Job closed successfully');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to close job';
+      toast.error(message);
+    }
+  };
+
   // Derive all interviews from candidates
   const allInterviews = React.useMemo(() => {
     const interviews: { interview: Interview; candidate: Candidate }[] = [];
@@ -351,13 +389,69 @@ export function JobDetailClient({
     return interviews;
   }, [candidates]);
 
+  const scheduledInterviewCount = allInterviews.filter(
+    ({ interview }) => interview.status === 'scheduled'
+  ).length;
+  const inProgressCandidates = candidates.filter((candidate) =>
+    ACTIVE_CANDIDATE_STAGES.includes(candidate.stage)
+  );
+  const canCloseJob =
+    jobStatus === 'open' && scheduledInterviewCount === 0 && inProgressCandidates.length === 0;
+
+  let closeBlockedReason = '';
+  if (jobStatus !== 'open') {
+    closeBlockedReason = 'This job is already closed.';
+  } else if (scheduledInterviewCount > 0) {
+    closeBlockedReason =
+      `${scheduledInterviewCount} scheduled interview(s) must be completed or cancelled first.`;
+  } else if (inProgressCandidates.length > 0) {
+    const names = inProgressCandidates.map((c) => c.fullName).join(', ');
+    closeBlockedReason =
+      `${inProgressCandidates.length} candidate(s) still in progress: ${names}. Accept, reject, or hire them before closing.`;
+  }
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold tracking-tight">{job.title}</h1>
-        <Badge variant={job.status === 'open' ? 'default' : 'secondary'}>
-          {job.status}
-        </Badge>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">{job.title}</h1>
+          {closeBlockedReason && (
+            <p className="mt-1 text-xs text-muted-foreground">{closeBlockedReason}</p>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          <Badge variant={jobStatus === 'open' ? 'default' : 'secondary'}>
+            {jobStatus}
+          </Badge>
+          {jobStatus === 'open' && (
+            <AlertDialog>
+              <AlertDialogTrigger
+                render={
+                  <Button variant="outline" size="sm" disabled={!canCloseJob}>
+                    Close Job
+                  </Button>
+                }
+              />
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Close this job?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This will mark the job as closed and stop it from being treated as an open position.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    onClick={handleCloseJob}
+                  >
+                    Close Job
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
+        </div>
       </div>
 
       <Tabs defaultValue="overview" className="w-full">

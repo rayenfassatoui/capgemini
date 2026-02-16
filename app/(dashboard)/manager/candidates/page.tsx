@@ -5,7 +5,7 @@ import { ManagerCandidatesClient } from '@/features/recruitment/components/manag
 
 export default async function ManagerCandidatesPage() {
   await requireRole(['manager', 'admin']);
-  const candidates = await getCandidatesByStageAction(['manager_interview', 'manager_accepted', 'manager_rejected']);
+  const candidates = await getCandidatesByStageAction(['ta_accepted', 'manager_interview', 'manager_accepted', 'manager_rejected']);
 
   return (
     <div className="space-y-8 p-8 animate-in fade-in duration-500">

@@ -14,7 +14,7 @@ export {
   searchCvPool,
 } from './cv-pool';
 
-export { createJob, listJobs, getJob } from './jobs';
+export { createJob, listJobs, getJob, closeJob } from './jobs';
 
 export { matchCvsToJob, matchCvsToJobWithFilters } from './cv-matching';
 

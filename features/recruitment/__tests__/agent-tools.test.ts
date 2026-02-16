@@ -14,6 +14,7 @@ vi.mock('../services/index', () => ({
   listJobs: vi.fn(),
   getJob: vi.fn(),
   createJob: vi.fn(),
+  closeJob: vi.fn(),
   assignCvToJob: vi.fn(),
   getCandidatesByJob: vi.fn(),
   getCandidatesByStage: vi.fn(),
@@ -68,6 +69,7 @@ describe('agent-tools executeAgentTool', () => {
     expect(managerTools).toContain('get_candidate');
     expect(managerTools).not.toContain('delete_cv');
     expect(managerTools).not.toContain('create_job');
+    expect(managerTools).not.toContain('close_job');
   });
 
   it('returns error for unknown tool', async () => {
@@ -217,6 +219,60 @@ describe('agent-tools executeAgentTool', () => {
     expect(res.error).toContain('Invalid cvId index 8');
   });
 
+  it('resolves candidate by name', async () => {
+    mockedServices.getCandidatesByStage.mockResolvedValue([
+      { id: CAND_1, fullName: 'Mohamed Achref Ben Abdallah', email: 'achref@test.com', stage: 'ta_accepted' },
+    ] as never);
+    mockedServices.getCandidate.mockResolvedValue(
+      { id: CAND_1, fullName: 'Mohamed Achref Ben Abdallah' } as never
+    );
+
+    const res = await executeAgentTool(
+      'get_candidate',
+      { candidateId: 'Mohamed Achref Ben Abdallah' },
+      { userId: 'user-1', role: 'ta' }
+    );
+
+    expect(res.success).toBe(true);
+    expect(mockedServices.getCandidate).toHaveBeenCalledWith(CAND_1);
+  });
+
+  it('resolves candidate by partial name match', async () => {
+    mockedServices.getCandidatesByStage.mockResolvedValue([
+      { id: CAND_1, fullName: 'Mohamed Achref Ben Abdallah', email: 'achref@test.com', stage: 'ta_accepted' },
+    ] as never);
+    mockedServices.getCandidate.mockResolvedValue(
+      { id: CAND_1, fullName: 'Mohamed Achref Ben Abdallah' } as never
+    );
+
+    const res = await executeAgentTool(
+      'get_candidate',
+      { candidateId: 'Achref' },
+      { userId: 'user-1', role: 'ta' }
+    );
+
+    expect(res.success).toBe(true);
+    expect(mockedServices.getCandidate).toHaveBeenCalledWith(CAND_1);
+  });
+
+  it('resolves job by title', async () => {
+    mockedServices.listJobs.mockResolvedValue([
+      { id: JOB_1, title: 'Full Stack Engineer - React & Python' },
+    ] as never);
+    mockedServices.getJob.mockResolvedValue(
+      { id: JOB_1, title: 'Full Stack Engineer - React & Python' } as never
+    );
+
+    const res = await executeAgentTool(
+      'get_job',
+      { jobId: 'Full Stack Engineer' },
+      { userId: 'user-1', role: 'ta' }
+    );
+
+    expect(res.success).toBe(true);
+    expect(mockedServices.getJob).toHaveBeenCalledWith(JOB_1);
+  });
+
   it('returns clear error when upload attachment is missing', async () => {
     const res = await executeAgentTool(
       'upload_cv',
@@ -342,6 +398,29 @@ describe('agent-tools executeAgentTool', () => {
     expect(data.requestedCount).toBe(1);
     expect(mockedServices.assignCvToJob).toHaveBeenCalledTimes(1);
     expect(mockedServices.assignCvToJob).toHaveBeenCalledWith(CV_1, JOB_1, 'user-1');
+  });
+
+  it('close_job closes eligible job', async () => {
+    mockedServices.listJobs.mockResolvedValue([{ id: JOB_1 }] as never);
+    mockedServices.closeJob.mockResolvedValue({
+      id: JOB_1,
+      status: 'closed',
+    } as never);
+
+    const res = await executeAgentTool(
+      'close_job',
+      { jobId: JOB_1 },
+      { userId: 'user-1', role: 'ta' }
+    );
+
+    expect(res.success).toBe(true);
+    expect(mockedServices.closeJob).toHaveBeenCalledWith(
+      JOB_1,
+      'user-1',
+      'ta'
+    );
+    const data = res.data as { status: string };
+    expect(data.status).toBe('closed');
   });
 
   it('reschedule_interview calls service with new date/time', async () => {
@@ -532,6 +611,7 @@ describe('agent-tools executeAgentTool', () => {
     const taTools = getToolsForRole('ta').map((t) => t.function.name);
     expect(taTools).toContain('search_cv_pool');
     expect(taTools).toContain('bulk_assign_cvs_to_job');
+    expect(taTools).toContain('close_job');
     expect(taTools).toContain('reschedule_interview');
     expect(taTools).toContain('cancel_interview');
     expect(taTools).toContain('create_interview_report');
@@ -544,6 +624,7 @@ describe('agent-tools executeAgentTool', () => {
     const managerTools = getToolsForRole('manager').map((t) => t.function.name);
     expect(managerTools).not.toContain('search_cv_pool');
     expect(managerTools).not.toContain('bulk_assign_cvs_to_job');
+    expect(managerTools).not.toContain('close_job');
     expect(managerTools).toContain('reschedule_interview');
     expect(managerTools).toContain('cancel_interview');
     expect(managerTools).toContain('create_interview_report');
