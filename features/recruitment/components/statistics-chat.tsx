@@ -14,14 +14,31 @@ import {
   IconPlus,
   IconHistory,
   IconArrowLeft,
+  IconTool,
+  IconCheck,
+  IconAlertTriangle,
+  IconLoader2,
+  IconPaperclip,
+  IconFile,
 } from '@tabler/icons-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+
+// ---- Tool activity tracking ----
+
+interface ToolEvent {
+  id: string;
+  tool: string;
+  status: 'running' | 'success' | 'error';
+  summary?: string;
+}
 
 interface ChatMessage {
   id: string;
   role: 'user' | 'assistant';
   content: string;
+  /** Tool events that happened before/during this assistant message */
+  toolEvents?: ToolEvent[];
 }
 
 interface Conversation {
@@ -30,11 +47,18 @@ interface Conversation {
   updatedAt: string;
 }
 
+/** Human-readable label for a tool name */
+function formatToolName(name: string): string {
+  return name
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
 const SUGGESTIONS = [
-  'What are the top CV skills?',
-  'Summarize the pipeline health',
-  'Which skills have the biggest gap?',
-  'How many interviews this week?',
+  'List all open jobs',
+  'Show me the candidate pipeline',
+  'Match CVs to the latest job',
+  'Create a Senior React Developer job',
 ];
 
 function formatRelativeTime(dateStr: string): string {
@@ -62,8 +86,10 @@ export function StatisticsChat() {
   const [isStreaming, setIsStreaming] = useState(false);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
   const [conversationsLoaded, setConversationsLoaded] = useState(false);
+  const [attachedFile, setAttachedFile] = useState<File | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const abortRef = useRef<AbortController | null>(null);
 
   const scrollToBottom = useCallback(() => {
@@ -186,7 +212,7 @@ export function StatisticsChat() {
 
   const sendMessage = useCallback(
     async (text: string) => {
-      const trimmed = text.trim();
+      const trimmed = text.trim() || (attachedFile ? `Upload and process ${attachedFile.name}` : '');
       if (!trimmed || isStreaming) return;
 
       // If no active conversation, create one first
@@ -214,11 +240,33 @@ export function StatisticsChat() {
         id: crypto.randomUUID(),
         role: 'assistant',
         content: '',
+        toolEvents: [],
       };
 
       setMessages((prev) => [...prev, userMsg, assistantMsg]);
       setInput('');
       setIsStreaming(true);
+
+      // Read attached file to base64 if present
+      let attachments: Array<{ filename: string; contentType: string; size: number; rawBytes: string }> | undefined;
+      if (attachedFile) {
+        const fileData = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => {
+            const result = reader.result as string;
+            resolve(result.split(',')[1]); // strip data:...;base64, prefix
+          };
+          reader.onerror = reject;
+          reader.readAsDataURL(attachedFile);
+        });
+        attachments = [{
+          filename: attachedFile.name,
+          contentType: attachedFile.type || 'application/octet-stream',
+          size: attachedFile.size,
+          rawBytes: fileData,
+        }];
+        setAttachedFile(null);
+      }
 
       const controller = new AbortController();
       abortRef.current = controller;
@@ -232,7 +280,7 @@ export function StatisticsChat() {
         const response = await fetch('/api/chat/statistics', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ conversationId: convId, messages: history }),
+          body: JSON.stringify({ conversationId: convId, messages: history, ...(attachments ? { attachments } : {}) }),
           signal: controller.signal,
         });
 
@@ -258,25 +306,96 @@ export function StatisticsChat() {
 
         const decoder = new TextDecoder();
         let accumulated = '';
+        let textContent = '';
+        const toolEventsAccum: ToolEvent[] = [];
 
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
 
           accumulated += decoder.decode(value, { stream: true });
-          const content = accumulated;
-          setMessages((prev) =>
-            prev.map((m) =>
-              m.id === assistantMsg.id ? { ...m, content } : m
-            )
-          );
+
+          // Process line-by-line for tool events
+          const lines = accumulated.split('\n');
+          // Keep the last potentially incomplete line
+          accumulated = lines.pop() ?? '';
+
+          for (const line of lines) {
+            if (line.startsWith('@@TOOL_START@@')) {
+              try {
+                const payload = JSON.parse(line.slice('@@TOOL_START@@'.length)) as {
+                  tool: string;
+                  args: Record<string, unknown>;
+                };
+                const evt: ToolEvent = {
+                  id: crypto.randomUUID(),
+                  tool: payload.tool,
+                  status: 'running',
+                };
+                toolEventsAccum.push(evt);
+                setMessages((prev) =>
+                  prev.map((m) =>
+                    m.id === assistantMsg.id
+                      ? { ...m, toolEvents: [...toolEventsAccum] }
+                      : m
+                  )
+                );
+              } catch {
+                // malformed tool start event
+              }
+            } else if (line.startsWith('@@TOOL_END@@')) {
+              try {
+                const payload = JSON.parse(line.slice('@@TOOL_END@@'.length)) as {
+                  tool: string;
+                  success: boolean;
+                  summary: string;
+                };
+                // Find the matching running event and update it
+                const idx = toolEventsAccum.findIndex(
+                  (e) => e.tool === payload.tool && e.status === 'running'
+                );
+                if (idx !== -1) {
+                  toolEventsAccum[idx] = {
+                    ...toolEventsAccum[idx],
+                    status: payload.success ? 'success' : 'error',
+                    summary: payload.summary,
+                  };
+                }
+                setMessages((prev) =>
+                  prev.map((m) =>
+                    m.id === assistantMsg.id
+                      ? { ...m, toolEvents: [...toolEventsAccum] }
+                      : m
+                  )
+                );
+              } catch {
+                // malformed tool end event
+              }
+            } else {
+              // Regular text content
+              textContent += line;
+              setMessages((prev) =>
+                prev.map((m) =>
+                  m.id === assistantMsg.id
+                    ? { ...m, content: textContent }
+                    : m
+                )
+              );
+            }
+          }
         }
 
-        accumulated += decoder.decode();
-        if (accumulated) {
+        // Process remaining buffer as text
+        if (accumulated && !accumulated.startsWith('@@TOOL_')) {
+          textContent += accumulated;
+        }
+
+        if (textContent) {
           setMessages((prev) =>
             prev.map((m) =>
-              m.id === assistantMsg.id ? { ...m, content: accumulated } : m
+              m.id === assistantMsg.id
+                ? { ...m, content: textContent, toolEvents: [...toolEventsAccum] }
+                : m
             )
           );
         }
@@ -318,7 +437,7 @@ export function StatisticsChat() {
         abortRef.current = null;
       }
     },
-    [isStreaming, messages, activeConversationId]
+    [isStreaming, messages, activeConversationId, attachedFile]
   );
 
   const handleSubmit = useCallback(
@@ -398,12 +517,12 @@ export function StatisticsChat() {
                 )}
                 <div>
                   <p className="text-sm font-semibold text-foreground leading-none">
-                    {view === 'history' ? 'Chat History' : 'Analytics Assistant'}
+                    {view === 'history' ? 'Chat History' : 'Recruitment Agent'}
                   </p>
                   <p className="text-[11px] text-muted-foreground mt-0.5">
                     {view === 'history'
                       ? `${conversations.length} conversation${conversations.length !== 1 ? 's' : ''}`
-                      : 'Ask about your recruitment data'}
+                      : 'Ask questions or take actions'}
                   </p>
                 </div>
               </div>
@@ -532,11 +651,11 @@ export function StatisticsChat() {
                       </div>
                       <div className="text-center">
                         <p className="text-sm font-medium text-foreground">
-                          What would you like to know?
+                          What would you like to do?
                         </p>
                         <p className="text-xs text-muted-foreground mt-1">
-                          Ask questions about CVs, jobs, pipeline, interviews, or
-                          skill gaps
+                          I can read data, create jobs, match CVs, manage
+                          candidates, and more
                         </p>
                       </div>
                       <div className="flex flex-wrap justify-center gap-1.5 mt-2">
@@ -582,6 +701,39 @@ export function StatisticsChat() {
                                 : 'bg-muted/50'
                             )}
                           >
+                            {/* Tool events */}
+                            {msg.role === 'assistant' &&
+                              msg.toolEvents &&
+                              msg.toolEvents.length > 0 && (
+                                <div className="mb-2 space-y-1">
+                                  {msg.toolEvents.map((evt) => (
+                                    <div
+                                      key={evt.id}
+                                      className="flex items-center gap-1.5 rounded-md border border-border/50 bg-background/60 px-2 py-1"
+                                    >
+                                      {evt.status === 'running' && (
+                                        <IconLoader2 className="size-3 text-muted-foreground animate-spin" />
+                                      )}
+                                      {evt.status === 'success' && (
+                                        <IconCheck className="size-3 text-emerald-500" />
+                                      )}
+                                      {evt.status === 'error' && (
+                                        <IconAlertTriangle className="size-3 text-destructive" />
+                                      )}
+                                      <IconTool className="size-3 text-muted-foreground" />
+                                      <span className="text-[11px] font-medium text-foreground">
+                                        {formatToolName(evt.tool)}
+                                      </span>
+                                      {evt.summary && (
+                                        <span className="text-[10px] text-muted-foreground ml-auto">
+                                          {evt.summary}
+                                        </span>
+                                      )}
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+
                             {msg.role === 'user' ? (
                               <p className="text-sm whitespace-pre-wrap">
                                 {msg.content}
@@ -595,13 +747,13 @@ export function StatisticsChat() {
                                   {msg.content}
                                 </Streamdown>
                               </div>
-                            ) : (
+                            ) : isLast && isStreaming && (!msg.toolEvents || msg.toolEvents.length === 0) ? (
                               <div className="flex items-center gap-1.5 py-1">
                                 <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/40 animate-pulse" />
                                 <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/40 animate-pulse [animation-delay:150ms]" />
                                 <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/40 animate-pulse [animation-delay:300ms]" />
                               </div>
-                            )}
+                            ) : null}
                           </div>
 
                           {msg.role === 'user' && (
@@ -628,16 +780,66 @@ export function StatisticsChat() {
                       </button>
                     </div>
                   )}
+
+                  {/* Attached file preview */}
+                  {attachedFile && (
+                    <div className="flex items-center gap-2 mb-2 rounded-md border border-border bg-muted/40 px-2.5 py-1.5">
+                      <IconFile className="size-4 text-muted-foreground shrink-0" />
+                      <span className="text-xs text-foreground truncate flex-1">
+                        {attachedFile.name}
+                      </span>
+                      <span className="text-[10px] text-muted-foreground shrink-0">
+                        {Math.round(attachedFile.size / 1024)}KB
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setAttachedFile(null)}
+                        className="shrink-0 rounded-sm p-0.5 text-muted-foreground hover:text-foreground transition-colors"
+                        aria-label="Remove attached file"
+                      >
+                        <IconX className="size-3" />
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Hidden file input */}
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      if (file.size > 5 * 1024 * 1024) {
+                        return; // silently reject > 5MB
+                      }
+                      setAttachedFile(file);
+                      e.target.value = ''; // reset so same file can be re-selected
+                    }}
+                  />
+
                   <form
                     onSubmit={handleSubmit}
                     className="flex items-end gap-2"
                   >
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-9 w-9 shrink-0 text-muted-foreground hover:text-foreground"
+                      disabled={isStreaming}
+                      onClick={() => fileInputRef.current?.click()}
+                      aria-label="Attach a CV file"
+                    >
+                      <IconPaperclip className="size-4" />
+                    </Button>
                     <textarea
                       ref={inputRef}
                       value={input}
                       onChange={(e) => setInput(e.target.value)}
                       onKeyDown={handleKeyDown}
-                      placeholder="Ask about your data..."
+                      placeholder={attachedFile ? 'Describe what to do with this file...' : 'Ask a question or request an action...'}
                       disabled={isStreaming}
                       rows={1}
                       className="flex-1 resize-none rounded-lg border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50"
@@ -647,7 +849,7 @@ export function StatisticsChat() {
                       type="submit"
                       size="icon"
                       className="h-9 w-9 shrink-0"
-                      disabled={!input.trim() || isStreaming}
+                      disabled={(!input.trim() && !attachedFile) || isStreaming}
                       aria-label="Send message"
                     >
                       <IconSend2 className="size-4" />

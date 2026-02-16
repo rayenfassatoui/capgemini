@@ -200,7 +200,15 @@ export const chatMessageSchema = z.object({
   content: z.string().min(1).max(4000),
 });
 
+export const chatAttachmentSchema = z.object({
+  filename: z.string().min(1),
+  contentType: z.string().min(1),
+  size: z.number().positive().max(5 * 1024 * 1024), // 5 MB limit
+  rawBytes: z.string().min(1), // base64
+});
+
 export const statisticsChatRequestSchema = z.object({
   conversationId: z.string().uuid().optional(),
   messages: z.array(chatMessageSchema).min(1).max(20),
+  attachments: z.array(chatAttachmentSchema).max(5).optional(),
 });

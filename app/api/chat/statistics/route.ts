@@ -10,6 +10,14 @@ import {
   createChatConversation,
   deleteChatConversation,
 } from '@/features/recruitment/services';
+import {
+  getToolsForRole,
+  executeAgentTool,
+} from '@/features/recruitment/services/agent-tools';
+import type { UserRole } from '@/features/recruitment/types';
+
+// Max tool-call iterations before we force a final answer
+const MAX_AGENT_STEPS = 8;
 
 async function getAuthSession() {
   const headersList = await headers();
@@ -65,15 +73,41 @@ export async function PUT() {
   return Response.json(conversation);
 }
 
-// ============ POST: Send message and stream response ============
+// ---- Helpers for SSE streaming ----
+
+interface ToolCallDelta {
+  id?: string;
+  function?: { name?: string; arguments?: string };
+}
+
+interface LLMChoice {
+  delta?: {
+    content?: string;
+    tool_calls?: ToolCallDelta[];
+  };
+  finish_reason?: string | null;
+  message?: {
+    content?: string | null;
+    tool_calls?: Array<{
+      id: string;
+      type: 'function';
+      function: { name: string; arguments: string };
+    }>;
+  };
+}
+
+interface LLMResponse {
+  choices?: LLMChoice[];
+}
+
+// ============ POST: Agentic chat with tool calling ============
 
 export async function POST(request: Request) {
   const session = await getAuthSession();
   if (!session) return new Response('Unauthorized', { status: 401 });
 
-  const role = session.user.role ?? 'ta';
+  const role = (session.user.role ?? 'ta') as UserRole;
 
-  // Parse and validate request body
   let body: unknown;
   try {
     body = await request.json();
@@ -84,72 +118,85 @@ export async function POST(request: Request) {
   const parsed = statisticsChatRequestSchema.safeParse(body);
   if (!parsed.success) {
     return new Response(
-      JSON.stringify({ error: parsed.error.errors.map((e) => e.message).join(', ') }),
+      JSON.stringify({
+        error: parsed.error.errors.map((e) => e.message).join(', '),
+      }),
       { status: 400, headers: { 'Content-Type': 'application/json' } }
     );
   }
 
-  const { messages, conversationId: reqConversationId } = parsed.data;
+  const { messages, conversationId: reqConversationId, attachments } = parsed.data;
 
-  // Get or create conversation and save the user message
-  const conversation = await getOrCreateChatConversation(session.user.id, reqConversationId);
+  const conversation = await getOrCreateChatConversation(
+    session.user.id,
+    reqConversationId
+  );
   const lastUserMessage = messages[messages.length - 1];
   if (lastUserMessage?.role === 'user') {
     await saveChatMessage(conversation.id, 'user', lastUserMessage.content);
   }
 
-  // Gather data context scoped to user role
   const dataContext = await getStatisticsChatContext(session.user.id, role);
-
   const today = new Date().toISOString().split('T')[0];
 
   const roleDescriptions: Record<string, string> = {
-    ta: 'You are answering a Talent Acquisition specialist. They can see CV pool data, job requirements, candidate pipeline, screening results, interviews, and skill gaps.',
-    manager: 'You are answering a Hiring Manager. They can see candidate pipeline data (especially manager-stage candidates), interviews they conduct, and job requirements. They cannot see raw CV pool uploads or TA-specific screening details.',
-    hr: 'You are answering an HR representative. They can see candidate pipeline data (especially HR-stage candidates and hired candidates), interviews, and overall recruitment metrics. They cannot see raw CV pool uploads.',
-    admin: 'You are answering an Admin user. They have full access to all recruitment data.',
+    ta: 'You are answering a Talent Acquisition specialist. They have full access to CV pool, jobs, candidates, screening, interviews, and matching.',
+    manager:
+      'You are answering a Hiring Manager. They can see candidates (especially manager-stage), interviews they conduct, and jobs.',
+    hr: 'You are answering an HR representative. They can see candidates (especially HR-stage and hired), interviews, and recruitment metrics.',
+    admin:
+      'You are answering an Admin user. They have full access to all recruitment data and operations.',
   };
 
-  const systemPrompt = `You are an AI recruitment analytics assistant at Capgemini. You analyze recruitment data and provide actionable insights.
+  // Build tool list for this role
+  const tools = getToolsForRole(role);
+
+  const systemPrompt = `You are an AI-powered recruitment agent at Capgemini. You can both analyze data AND take actions on behalf of the user by calling tools.
 
 ROLE CONTEXT:
 ${roleDescriptions[role] ?? roleDescriptions.ta}
 Current user role: ${role}
 
+CAPABILITIES:
+You have access to tools that let you:
+- List, view, and delete CVs in the pool
+- Create jobs, list jobs, view job details
+- Assign CVs to jobs (creating candidates)
+- View candidates by job or pipeline stage, update candidate stages
+- Match CVs against job requirements (basic or AI-enhanced)
+- Generate AI screening for candidates
+- Generate interview questions, schedule interviews
+- View interview reports and today's schedule
+- Get dashboard stats, CV pool stats, job stats, smart insights
+
 RULES:
-- Answer ONLY based on the data provided below
-- When asked to name or list candidates, use EXACTLY the names from the "Candidates by Stage" section - never guess or substitute names
+- Use tools to fetch real-time data rather than relying only on the static context below
+- When the user asks you to DO something (create a job, match CVs, move a candidate), USE the appropriate tool
+- When listing data, use tools to get the latest information
 - Be concise, data-driven, and actionable
 - Use markdown formatting for readability (tables, lists, bold, headers)
-- If the data doesn't contain information to answer the question, say so clearly
-- Never invent or extrapolate data that isn't provided
+- If a tool call fails, explain the error clearly
+- Never invent data - use tools or the context below
 - Round percentages to whole numbers
-- For date-range queries, filter the interview data by the requested dates
-- Always include specific numbers when available
-- Keep responses focused and avoid filler text
-- When the user asks for a chart or visual, or when a chart would help illustrate the data, generate a Mermaid diagram using a fenced code block with language "mermaid". Supported chart types: pie, xychart-beta (bar/line), flowchart, gantt. Examples:
-  \`\`\`mermaid
-  pie title Pipeline Distribution
-    "New" : 6
-    "TA Interview" : 3
-    "Hired" : 3
-  \`\`\`
-  \`\`\`mermaid
-  xychart-beta
-    title "Top Skills"
-    x-axis ["Git", "Python", "SQL"]
-    bar [20, 16, 14]
-  \`\`\`
-- Prefer pie charts for distributions, xychart-beta bar for comparisons, gantt for timelines
+- When a chart would help, use Mermaid diagrams in fenced code blocks
+- For mutating actions (create, delete, update), confirm what you did after the tool completes
+- For ID parameters (cvId, jobId, candidateId, interviewId), prefer UUID values from tool results; numeric indexes are also accepted
 
-DATA:
+STATIC CONTEXT (may be stale - prefer tool calls for fresh data):
 ${dataContext}
 
-Today's date: ${today}`;
+Today's date: ${today}
+${attachments && attachments.length > 0 ? `\nATTACHMENTS:\nThe user has attached ${attachments.length} file(s) to this message. You can process them with the upload_cv tool by specifying the attachmentIndex.\n${attachments.map((a, i) => `[${i}] ${a.filename} (${a.contentType}, ${Math.round(a.size / 1024)}KB)`).join('\n')}` : ''}`;
 
-  // Build message array for OpenRouter
-  const llmMessages = [
-    { role: 'system' as const, content: systemPrompt },
+  // Build LLM messages with conversation history
+  type LLMMessage =
+    | { role: 'system'; content: string }
+    | { role: 'user'; content: string }
+    | { role: 'assistant'; content: string | null; tool_calls?: Array<{ id: string; type: 'function'; function: { name: string; arguments: string } }> }
+    | { role: 'tool'; tool_call_id: string; content: string };
+
+  const llmMessages: LLMMessage[] = [
+    { role: 'system', content: systemPrompt },
     ...messages.slice(-10).map((m) => ({
       role: m.role as 'user' | 'assistant',
       content: m.content,
@@ -161,112 +208,197 @@ Today's date: ${today}`;
     return new Response('AI service not configured', { status: 503 });
   }
 
-  // Stream from OpenRouter
-  const openRouterResponse = await fetch(
-    'https://openrouter.ai/api/v1/chat/completions',
-    {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'openai/gpt-4.1-nano',
-        messages: llmMessages,
-        stream: true,
-        temperature: 0.3,
-      }),
-    }
-  );
-
-  if (!openRouterResponse.ok) {
-    return new Response(
-      JSON.stringify({ error: `AI service error: ${openRouterResponse.status}` }),
-      {
-        status: 502,
-        headers: { 'Content-Type': 'application/json' },
-      }
-    );
-  }
-
-  if (!openRouterResponse.body) {
-    return new Response('No response stream', { status: 502 });
-  }
-
-  // Parse SSE stream from OpenRouter and forward text content
-  const reader = openRouterResponse.body.getReader();
-  const decoder = new TextDecoder();
   const encoder = new TextEncoder();
   const conversationId = conversation.id;
 
+  // We use SSE to send: tool events (as JSON lines) then the final streamed text
+  // Format:
+  //   @@TOOL_START@@{"tool":"name","args":{...}}
+  //   @@TOOL_END@@{"tool":"name","success":true,"summary":"..."}
+  //   (then plain text streaming for final response)
+
   const stream = new ReadableStream({
     async start(controller) {
-      let buffer = '';
       let fullResponse = '';
 
       try {
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
+        // Agent loop: iterate until we get a text response or hit max steps
+        let step = 0;
+        while (step < MAX_AGENT_STEPS) {
+          step++;
 
-          buffer += decoder.decode(value, { stream: true });
-          const lines = buffer.split('\n');
-          // Keep the last potentially incomplete line in the buffer
-          buffer = lines.pop() ?? '';
-
-          for (const line of lines) {
-            const trimmed = line.trim();
-            if (!trimmed || !trimmed.startsWith('data: ')) continue;
-
-            const data = trimmed.slice(6);
-            if (data === '[DONE]') continue;
-
-            try {
-              const parsed = JSON.parse(data) as {
-                choices?: Array<{
-                  delta?: { content?: string };
-                }>;
-              };
-              const content = parsed.choices?.[0]?.delta?.content;
-              if (content) {
-                fullResponse += content;
-                controller.enqueue(encoder.encode(content));
-              }
-            } catch {
-              // Skip malformed JSON chunks
+          // Call LLM (non-streaming for tool-call steps)
+          const llmResponse = await fetch(
+            'https://openrouter.ai/api/v1/chat/completions',
+            {
+              method: 'POST',
+              headers: {
+                Authorization: `Bearer ${apiKey}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                model: 'openai/gpt-4.1-nano',
+                messages: llmMessages,
+                tools: tools.length > 0 ? tools : undefined,
+                tool_choice: 'auto',
+                temperature: 0.3,
+                stream: false,
+              }),
             }
+          );
+
+          if (!llmResponse.ok) {
+            controller.enqueue(
+              encoder.encode(
+                `Sorry, the AI service returned an error (${llmResponse.status}). Please try again.`
+              )
+            );
+            break;
           }
+
+          const llmJson = (await llmResponse.json()) as LLMResponse;
+          const choice = llmJson.choices?.[0];
+          if (!choice) {
+            controller.enqueue(
+              encoder.encode('No response from AI. Please try again.')
+            );
+            break;
+          }
+
+          const message = choice.message;
+          const toolCalls = message?.tool_calls;
+
+          // If no tool calls, we have a final text response
+          if (!toolCalls || toolCalls.length === 0) {
+            const textContent = message?.content ?? '';
+
+            // Now stream this final response to the client
+            // We already have the full text, but we simulate streaming for UI consistency
+            if (textContent) {
+              // Push the assistant message to llmMessages for context
+              llmMessages.push({
+                role: 'assistant',
+                content: textContent,
+              });
+              fullResponse = textContent;
+
+              // Stream in chunks for smooth UI
+              const chunkSize = 12;
+              for (let i = 0; i < textContent.length; i += chunkSize) {
+                controller.enqueue(
+                  encoder.encode(textContent.slice(i, i + chunkSize))
+                );
+                // Small delay for stream feel
+                await new Promise((r) => setTimeout(r, 8));
+              }
+            }
+            break;
+          }
+
+          // We have tool calls - execute them
+          // Add assistant message with tool_calls to history
+          llmMessages.push({
+            role: 'assistant',
+            content: message?.content ?? null,
+            tool_calls: toolCalls,
+          });
+
+          // Execute each tool call
+          for (const tc of toolCalls) {
+            const toolName = tc.function.name;
+            let toolArgs: Record<string, unknown> = {};
+            try {
+              toolArgs = JSON.parse(tc.function.arguments) as Record<
+                string,
+                unknown
+              >;
+            } catch {
+              toolArgs = {};
+            }
+
+            // Send tool start event to client
+            controller.enqueue(
+              encoder.encode(
+                `@@TOOL_START@@${JSON.stringify({ tool: toolName, args: toolArgs })}\n`
+              )
+            );
+
+            // Inject attachment data for upload_cv tool
+            if (toolName === 'upload_cv' && attachments) {
+              const idx = parseInt(String(toolArgs.attachmentIndex ?? '0'), 10);
+              if (idx >= 0 && idx < attachments.length) {
+                toolArgs._attachment = attachments[idx];
+              }
+            }
+
+            // Execute tool
+            const result = await executeAgentTool(toolName, toolArgs, {
+              userId: session.user.id,
+              role,
+            });
+
+            // Build a compact summary for the UI event
+            let summary: string;
+            if (result.success) {
+              if (Array.isArray(result.data)) {
+                summary = `Returned ${result.data.length} result(s)`;
+              } else if (result.data && typeof result.data === 'object') {
+                summary = 'Completed successfully';
+              } else {
+                summary = 'Done';
+              }
+            } else {
+              summary = result.error ?? 'Failed';
+            }
+
+            // Send tool end event
+            controller.enqueue(
+              encoder.encode(
+                `@@TOOL_END@@${JSON.stringify({ tool: toolName, success: result.success, summary })}\n`
+              )
+            );
+
+            // Add tool result to LLM history
+            const toolResultContent = result.success
+              ? JSON.stringify(result.data)
+              : JSON.stringify({ error: result.error });
+
+            llmMessages.push({
+              role: 'tool',
+              tool_call_id: tc.id,
+              content: toolResultContent,
+            });
+          }
+
+          // Continue loop - the LLM will see tool results and decide next step
         }
 
-        // Process any remaining buffer
-        if (buffer.trim().startsWith('data: ')) {
-          const data = buffer.trim().slice(6);
-          if (data !== '[DONE]') {
-            try {
-              const parsed = JSON.parse(data) as {
-                choices?: Array<{
-                  delta?: { content?: string };
-                }>;
-              };
-              const content = parsed.choices?.[0]?.delta?.content;
-              if (content) {
-                fullResponse += content;
-                controller.enqueue(encoder.encode(content));
-              }
-            } catch {
-              // Skip
-            }
-          }
+        // If we hit max steps without a final response, force one
+        if (step >= MAX_AGENT_STEPS && !fullResponse) {
+          const fallback =
+            'I reached the maximum number of steps for this request. Here is what I found so far based on the tool calls above. Please ask a more specific question if you need additional details.';
+          controller.enqueue(encoder.encode(fallback));
+          fullResponse = fallback;
         }
 
-        // Save complete assistant response to DB
+        // Save assistant response
         if (fullResponse.trim()) {
           await saveChatMessage(conversationId, 'assistant', fullResponse);
         }
       } catch {
-        // Stream read error - still try to save partial response
+        if (!fullResponse) {
+          controller.enqueue(
+            encoder.encode(
+              'An error occurred while processing your request. Please try again.'
+            )
+          );
+        }
         if (fullResponse.trim()) {
-          await saveChatMessage(conversationId, 'assistant', fullResponse).catch(() => {});
+          await saveChatMessage(
+            conversationId,
+            'assistant',
+            fullResponse
+          ).catch(() => {});
         }
       } finally {
         controller.close();
