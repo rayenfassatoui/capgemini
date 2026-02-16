@@ -11,6 +11,7 @@ export {
   deleteCv,
   getCvDetails,
   getCvFile,
+  searchCvPool,
 } from './cv-pool';
 
 export { createJob, listJobs, getJob } from './jobs';
@@ -39,6 +40,8 @@ export {
   getInterviewByCandidateAndStage,
   getTodayInterviews,
   markInterviewCompleted,
+  cancelInterview,
+  rescheduleInterview,
 } from './interviews';
 
 export {

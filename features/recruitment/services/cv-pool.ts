@@ -140,3 +140,58 @@ export async function getCvFile(cvId: string) {
 
   return cv ?? null;
 }
+
+export interface SearchCvPoolFilters {
+  skills?: string[];
+  languages?: string[];
+  minExperience?: number;
+  location?: string;
+}
+
+export async function searchCvPool(userId: string, filters: SearchCvPoolFilters) {
+  const allCvs = await db
+    .select()
+    .from(cvPool)
+    .where(eq(cvPool.uploadedBy, userId))
+    .orderBy(desc(cvPool.createdAt));
+
+  return allCvs.filter((cv) => {
+    const cvSkills = (cv.extractedSkills ?? []).map((s) => s.toLowerCase());
+    const cvLangs = (cv.extractedLanguages ?? []).map((l) => l.toLowerCase());
+    const cvExpCount = (cv.extractedExperiences ?? []).length;
+    const cvText = [
+      cv.extractedSummary ?? '',
+      ...(cv.extractedExperiences ?? []).map((e) => Object.values(e).join(' ')),
+      ...(cv.extractedEducation ?? []).map((e) => Object.values(e).join(' ')),
+    ]
+      .join(' ')
+      .toLowerCase();
+
+    if (filters.skills && filters.skills.length > 0) {
+      const wantedSkills = filters.skills.map((s) => s.toLowerCase());
+      const hasSkill = wantedSkills.some((ws) =>
+        cvSkills.some((cs) => cs.includes(ws) || ws.includes(cs))
+      );
+      if (!hasSkill) return false;
+    }
+
+    if (filters.languages && filters.languages.length > 0) {
+      const wantedLangs = filters.languages.map((l) => l.toLowerCase());
+      const hasLang = wantedLangs.some((wl) =>
+        cvLangs.some((cl) => cl.includes(wl) || wl.includes(cl))
+      );
+      if (!hasLang) return false;
+    }
+
+    if (filters.minExperience && filters.minExperience > 0) {
+      if (cvExpCount < filters.minExperience) return false;
+    }
+
+    if (filters.location && filters.location.trim()) {
+      const loc = filters.location.toLowerCase();
+      if (!cvText.includes(loc)) return false;
+    }
+
+    return true;
+  });
+}

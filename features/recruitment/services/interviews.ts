@@ -120,3 +120,35 @@ export async function markInterviewCompleted(interviewId: string) {
 
   return updated;
 }
+
+export async function cancelInterview(interviewId: string) {
+  const [updated] = await db
+    .update(interviews)
+    .set({ status: 'cancelled', updatedAt: new Date() })
+    .where(eq(interviews.id, interviewId))
+    .returning();
+
+  return updated;
+}
+
+export async function rescheduleInterview(
+  interviewId: string,
+  newDate: string,
+  newTime: string
+) {
+  const [day, month, year] = newDate.split('/');
+  const dbDate = `${year}-${month}-${day}`;
+
+  const [updated] = await db
+    .update(interviews)
+    .set({
+      scheduledDate: dbDate,
+      scheduledTime: newTime,
+      status: 'scheduled',
+      updatedAt: new Date(),
+    })
+    .where(eq(interviews.id, interviewId))
+    .returning();
+
+  return updated;
+}

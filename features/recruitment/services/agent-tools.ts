@@ -7,7 +7,7 @@
  * session context.
  */
 
-import type { UserRole, CandidateStage, InterviewStage } from '../types';
+import type { UserRole, CandidateStage } from '../types';
 
 // ---- Tool definition types ----
 
@@ -543,6 +543,249 @@ export const TOOL_DEFINITIONS: AgentToolDefinition[] = [
     allowedRoles: ['ta', 'admin'],
     mutating: false,
   },
+
+  // ==================== SEARCH CV POOL ====================
+  {
+    name: 'search_cv_pool',
+    description:
+      'Search and filter CVs in the pool by skills, languages, minimum experience positions, and/or location keyword. Returns matching CVs with extracted data.',
+    parameters: {
+      type: 'object',
+      properties: {
+        skills: {
+          type: 'array',
+          description: 'Filter: only include CVs with at least one of these skills',
+          items: { type: 'string' },
+        },
+        languages: {
+          type: 'array',
+          description: 'Filter: only include CVs speaking at least one of these languages',
+          items: { type: 'string' },
+        },
+        minExperience: {
+          type: 'string',
+          description: 'Filter: minimum number of past positions/experiences (as number)',
+        },
+        location: {
+          type: 'string',
+          description: 'Filter: keyword to search in CV text (city, country, region)',
+        },
+      },
+      required: [],
+    },
+    allowedRoles: ['ta', 'admin'],
+    mutating: false,
+  },
+
+  // ==================== BULK ASSIGN CVS ====================
+  {
+    name: 'bulk_assign_cvs_to_job',
+    description:
+      'Assign the top N matched CVs from the pool to a job in one action. Runs keyword matching first, then assigns the top scoring CVs that are not already assigned.',
+    parameters: {
+      type: 'object',
+      properties: {
+        jobId: {
+          type: 'string',
+          description: 'UUID of the job to assign CVs to',
+        },
+        count: {
+          type: 'string',
+          description: 'Number of top CVs to assign (default: 5)',
+        },
+      },
+      required: ['jobId'],
+    },
+    allowedRoles: ['ta', 'admin'],
+    mutating: true,
+  },
+
+  // ==================== RESCHEDULE & CANCEL INTERVIEW ====================
+  {
+    name: 'reschedule_interview',
+    description:
+      'Reschedule an existing interview to a new date and time. The interview status will be reset to scheduled.',
+    parameters: {
+      type: 'object',
+      properties: {
+        interviewId: {
+          type: 'string',
+          description: 'UUID of the interview to reschedule',
+        },
+        newDate: {
+          type: 'string',
+          description: 'New interview date in DD/MM/YYYY format',
+        },
+        newTime: {
+          type: 'string',
+          description: 'New interview time in HH:mm format',
+        },
+      },
+      required: ['interviewId', 'newDate', 'newTime'],
+    },
+    allowedRoles: ['ta', 'manager', 'hr', 'admin'],
+    mutating: true,
+  },
+  {
+    name: 'cancel_interview',
+    description:
+      'Cancel a scheduled interview. Sets its status to cancelled.',
+    parameters: {
+      type: 'object',
+      properties: {
+        interviewId: {
+          type: 'string',
+          description: 'UUID of the interview to cancel',
+        },
+      },
+      required: ['interviewId'],
+    },
+    allowedRoles: ['ta', 'manager', 'hr', 'admin'],
+    mutating: true,
+  },
+
+  // ==================== CREATE INTERVIEW REPORT ====================
+  {
+    name: 'create_interview_report',
+    description:
+      'Save an interview report with notes, candidate answers, score (0-100), and decision (pending/accepted/rejected). Also marks the interview as completed and updates the candidate stage accordingly.',
+    parameters: {
+      type: 'object',
+      properties: {
+        interviewId: {
+          type: 'string',
+          description: 'UUID of the interview',
+        },
+        candidateId: {
+          type: 'string',
+          description: 'UUID of the candidate',
+        },
+        stage: {
+          type: 'string',
+          description: 'Interview stage',
+          enum: ['ta', 'manager', 'hr'],
+        },
+        notes: {
+          type: 'string',
+          description: 'Interviewer notes and observations (optional)',
+        },
+        candidateAnswers: {
+          type: 'array',
+          description: 'Array of {question, answer} objects from the interview',
+          items: { type: 'object' },
+        },
+        overallEvaluation: {
+          type: 'string',
+          description: 'Overall evaluation summary (optional)',
+        },
+        score: {
+          type: 'string',
+          description: 'Score from 0-100',
+        },
+        decision: {
+          type: 'string',
+          description: 'Decision: pending, accepted, or rejected',
+          enum: ['pending', 'accepted', 'rejected'],
+        },
+      },
+      required: ['interviewId', 'candidateId', 'stage', 'score', 'decision'],
+    },
+    allowedRoles: ['ta', 'manager', 'hr', 'admin'],
+    mutating: true,
+  },
+
+  // ==================== EMAIL TOOLS ====================
+  {
+    name: 'send_interview_invite_email',
+    description:
+      'Send an interview invitation email to a candidate with date, time, and Google Meet link details.',
+    parameters: {
+      type: 'object',
+      properties: {
+        interviewId: {
+          type: 'string',
+          description: 'UUID of the interview',
+        },
+        candidateEmail: {
+          type: 'string',
+          description: 'Candidate email address',
+        },
+        candidateName: {
+          type: 'string',
+          description: 'Candidate full name',
+        },
+        jobTitle: {
+          type: 'string',
+          description: 'Job title',
+        },
+        scheduledDate: {
+          type: 'string',
+          description: 'Interview date (DD/MM/YYYY)',
+        },
+        scheduledTime: {
+          type: 'string',
+          description: 'Interview time (HH:mm)',
+        },
+        meetLink: {
+          type: 'string',
+          description: 'Google Meet link',
+        },
+        interviewerName: {
+          type: 'string',
+          description: 'Name of the interviewer',
+        },
+        stage: {
+          type: 'string',
+          description: 'Interview stage',
+          enum: ['ta', 'manager', 'hr'],
+        },
+      },
+      required: [
+        'interviewId',
+        'candidateEmail',
+        'candidateName',
+        'jobTitle',
+        'scheduledDate',
+        'scheduledTime',
+        'meetLink',
+        'interviewerName',
+        'stage',
+      ],
+    },
+    allowedRoles: ['ta', 'manager', 'hr', 'admin'],
+    mutating: true,
+  },
+  {
+    name: 'send_rejection_email',
+    description:
+      'Generate and send a professional rejection email to a candidate using AI. The email is warm, respectful, and encourages future applications.',
+    parameters: {
+      type: 'object',
+      properties: {
+        candidateId: {
+          type: 'string',
+          description: 'UUID of the candidate',
+        },
+        jobId: {
+          type: 'string',
+          description: 'UUID of the job',
+        },
+      },
+      required: ['candidateId', 'jobId'],
+    },
+    allowedRoles: ['ta', 'hr', 'admin'],
+    mutating: true,
+  },
+
+  // ==================== EXPORT ====================
+  {
+    name: 'export_candidates_csv',
+    description:
+      'Export accepted/hired candidates to an Excel file. Returns a confirmation message with the count of exported candidates. The file is generated server-side.',
+    parameters: { type: 'object', properties: {}, required: [] },
+    allowedRoles: ['ta', 'hr', 'admin'],
+    mutating: false,
+  },
 ];
 
 // ---- Tool executor map ----
@@ -971,6 +1214,153 @@ export async function executeAgentTool(
         result = sanitizeForJson(
           await services.getSmartInsights(ctx.userId)
         );
+        break;
+      }
+
+      // ---- Search CV Pool ----
+      case 'search_cv_pool': {
+        const filtered = await services.searchCvPool(ctx.userId, {
+          skills: (args.skills as string[]) ?? undefined,
+          languages: (args.languages as string[]) ?? undefined,
+          minExperience: args.minExperience
+            ? Number(args.minExperience)
+            : undefined,
+          location: (args.location as string) ?? undefined,
+        });
+        result = truncateArray(
+          filtered.map((cv) => sanitizeForJson(cv)),
+          30
+        );
+        break;
+      }
+
+      // ---- Bulk Assign CVs to Job ----
+      case 'bulk_assign_cvs_to_job': {
+        const jobId = await resolveId(args.jobId, 'jobId');
+        const count = Math.min(Math.max(Number(args.count ?? 5), 1), 20);
+        const matches = await services.matchCvsToJob(jobId);
+        const toAssign = matches
+          .filter((m) => !m.alreadyAssigned)
+          .slice(0, count);
+
+        const assigned: unknown[] = [];
+        for (const match of toAssign) {
+          try {
+            const candidate = await services.assignCvToJob(
+              match.cvId,
+              jobId,
+              ctx.userId
+            );
+            assigned.push(sanitizeForJson(candidate));
+          } catch {
+            // Skip already assigned or other errors
+          }
+        }
+        result = {
+          assignedCount: assigned.length,
+          requestedCount: count,
+          totalMatches: matches.length,
+          candidates: assigned,
+        };
+        break;
+      }
+
+      // ---- Reschedule Interview ----
+      case 'reschedule_interview': {
+        const interviewId = await resolveId(args.interviewId, 'interviewId');
+        const updated = await services.rescheduleInterview(
+          interviewId,
+          args.newDate as string,
+          args.newTime as string
+        );
+        result = sanitizeForJson(updated);
+        break;
+      }
+
+      // ---- Cancel Interview ----
+      case 'cancel_interview': {
+        const interviewId = await resolveId(args.interviewId, 'interviewId');
+        const cancelled = await services.cancelInterview(interviewId);
+        result = sanitizeForJson(cancelled);
+        break;
+      }
+
+      // ---- Create Interview Report ----
+      case 'create_interview_report': {
+        const report = await services.saveInterviewReport(
+          {
+            interviewId: await resolveId(args.interviewId, 'interviewId'),
+            candidateId: await resolveId(args.candidateId, 'candidateId'),
+            stage: args.stage as 'ta' | 'manager' | 'hr',
+            notes: (args.notes as string) ?? null,
+            candidateAnswers: (args.candidateAnswers as Array<{
+              question: string;
+              answer: string;
+            }>) ?? [],
+            overallEvaluation: (args.overallEvaluation as string) ?? null,
+            score: Number(args.score),
+            decision: args.decision as 'pending' | 'accepted' | 'rejected',
+          },
+          ctx.userId
+        );
+        result = sanitizeForJson(report);
+        break;
+      }
+
+      // ---- Send Interview Invite Email ----
+      case 'send_interview_invite_email': {
+        const emailLog = await services.sendInterviewEmail(
+          {
+            interviewId: await resolveId(args.interviewId, 'interviewId'),
+            candidateEmail: args.candidateEmail as string,
+            candidateName: args.candidateName as string,
+            jobTitle: args.jobTitle as string,
+            scheduledDate: args.scheduledDate as string,
+            scheduledTime: args.scheduledTime as string,
+            meetLink: args.meetLink as string,
+            interviewerName: args.interviewerName as string,
+            stage: args.stage as 'ta' | 'manager' | 'hr',
+          },
+          ctx.userId
+        );
+        result = sanitizeForJson(emailLog);
+        break;
+      }
+
+      // ---- Send Rejection Email ----
+      case 'send_rejection_email': {
+        const candidateId = await resolveId(args.candidateId, 'candidateId');
+        const jobId = await resolveId(args.jobId, 'jobId');
+        const candidate = await services.getCandidate(candidateId);
+        if (!candidate) {
+          return { success: false, error: 'Candidate not found' };
+        }
+        const emailContent = await services.generateHRDecisionEmailWithAI(
+          candidateId,
+          jobId,
+          'rejected'
+        );
+        const emailLog = await services.sendHRDecisionEmail(
+          {
+            toEmail: candidate.email,
+            toName: candidate.fullName,
+            subject: emailContent.subject,
+            body: emailContent.body,
+          },
+          ctx.userId
+        );
+        result = sanitizeForJson(emailLog);
+        break;
+      }
+
+      // ---- Export Candidates CSV ----
+      case 'export_candidates_csv': {
+        const buffer = await services.exportAcceptedCandidatesToExcel();
+        result = {
+          message: 'Export generated successfully',
+          sizeBytes: buffer.length,
+          format: 'xlsx',
+        };
         break;
       }
 
