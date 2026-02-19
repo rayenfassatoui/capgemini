@@ -5,11 +5,25 @@ export interface ToolEvent {
   summary?: string;
 }
 
+export interface ChatAttachment {
+  filename: string;
+  size: number;
+  contentType: string;
+}
+
+export interface FileDownload {
+  filename: string;
+  base64: string;
+  contentType: string;
+}
+
 export interface ChatMessage {
   id: string;
   role: 'user' | 'assistant';
   content: string;
   toolEvents?: ToolEvent[];
+  attachments?: ChatAttachment[];
+  fileDownloads?: FileDownload[];
 }
 
 export interface Conversation {

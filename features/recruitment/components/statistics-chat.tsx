@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { IconMessageChatbot } from '@tabler/icons-react';
 import { Button } from '@/components/ui/button';
 
-import type { ChatView, ChatMessage, Conversation, ToolEvent } from './chat/chat-types';
+import type { ChatView, ChatMessage, Conversation, ToolEvent, FileDownload } from './chat/chat-types';
 import { ChatHeader } from './chat/chat-header';
 import { ChatHistory } from './chat/chat-history';
 import { ChatMessageList } from './chat/chat-message-list';
@@ -153,6 +153,9 @@ export function StatisticsChat() {
         id: crypto.randomUUID(),
         role: 'user',
         content: trimmed,
+        attachments: attachedFile
+          ? [{ filename: attachedFile.name, size: attachedFile.size, contentType: attachedFile.type || 'application/octet-stream' }]
+          : undefined,
       };
 
       const assistantMsg: ChatMessage = {
@@ -227,6 +230,7 @@ export function StatisticsChat() {
         let accumulated = '';
         let textContent = '';
         const toolEventsAccum: ToolEvent[] = [];
+        const fileDownloadsAccum: FileDownload[] = [];
 
         while (true) {
           const { done, value } = await reader.read();
@@ -287,6 +291,20 @@ export function StatisticsChat() {
               } catch {
                 // malformed tool end
               }
+            } else if (line.startsWith('@@FILE@@')) {
+              try {
+                const payload = JSON.parse(line.slice('@@FILE@@'.length)) as FileDownload;
+                fileDownloadsAccum.push(payload);
+                setMessages((prev) =>
+                  prev.map((m) =>
+                    m.id === assistantMsg.id
+                      ? { ...m, fileDownloads: [...fileDownloadsAccum] }
+                      : m
+                  )
+                );
+              } catch {
+                // malformed file event
+              }
             } else {
               textContent += line;
               setMessages((prev) =>
@@ -300,15 +318,15 @@ export function StatisticsChat() {
           }
         }
 
-        if (accumulated && !accumulated.startsWith('@@TOOL_')) {
+        if (accumulated && !accumulated.startsWith('@@TOOL_') && !accumulated.startsWith('@@FILE@@')) {
           textContent += accumulated;
         }
 
-        if (textContent) {
+        if (textContent || fileDownloadsAccum.length > 0) {
           setMessages((prev) =>
             prev.map((m) =>
               m.id === assistantMsg.id
-                ? { ...m, content: textContent, toolEvents: [...toolEventsAccum] }
+                ? { ...m, content: textContent, toolEvents: [...toolEventsAccum], fileDownloads: fileDownloadsAccum.length > 0 ? [...fileDownloadsAccum] : undefined }
                 : m
             )
           );

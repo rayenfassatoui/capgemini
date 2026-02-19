@@ -337,6 +337,22 @@ ${attachments && attachments.length > 0 ? `\nATTACHMENTS:\nThe user has attached
               role,
             });
 
+            // If tool returned a file download, send it via SSE
+            if (
+              result.success &&
+              result.data &&
+              typeof result.data === 'object' &&
+              '_fileDownload' in (result.data as Record<string, unknown>)
+            ) {
+              const fileData = (result.data as Record<string, unknown>)._fileDownload;
+              controller.enqueue(
+                encoder.encode(`@@FILE@@${JSON.stringify(fileData)}\n`)
+              );
+              // Strip the binary data before sending to LLM to save tokens
+              const { _fileDownload, ...rest } = result.data as Record<string, unknown>;
+              result.data = rest;
+            }
+
             // Build a compact summary for the UI event
             let summary: string;
             if (result.success) {

@@ -10,6 +10,8 @@ import {
   IconCheck,
   IconAlertTriangle,
   IconLoader2,
+  IconFile,
+  IconDownload,
 } from '@tabler/icons-react';
 import { cn } from '@/lib/utils';
 import type { ChatMessage, ToolEvent } from './chat-types';
@@ -44,6 +46,60 @@ function ToolEventChip({ evt }: { evt: ToolEvent }) {
         </span>
       )}
     </div>
+  );
+}
+
+function AttachmentChip({ filename, size }: { filename: string; size: number }) {
+  return (
+    <div className="flex items-center gap-1.5 rounded-md border border-primary-foreground/20 bg-primary-foreground/10 px-2 py-1 mt-1.5">
+      <IconFile className="size-3 shrink-0" />
+      <span className="text-[11px] font-medium truncate">{filename}</span>
+      <span className="text-[10px] opacity-70 shrink-0">
+        {Math.round(size / 1024)}KB
+      </span>
+    </div>
+  );
+}
+
+function FileDownloadButton({
+  filename,
+  base64,
+  contentType,
+}: {
+  filename: string;
+  base64: string;
+  contentType: string;
+}) {
+  const handleDownload = () => {
+    const byteCharacters = atob(base64);
+    const byteNumbers = new Array(byteCharacters.length);
+    for (let i = 0; i < byteCharacters.length; i++) {
+      byteNumbers[i] = byteCharacters.charCodeAt(i);
+    }
+    const byteArray = new Uint8Array(byteNumbers);
+    const blob = new Blob([byteArray], { type: contentType });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  return (
+    <button
+      type="button"
+      onClick={handleDownload}
+      className="flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2 mt-2 text-sm text-foreground transition-colors hover:bg-muted group w-full"
+    >
+      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-emerald-500/10">
+        <IconDownload className="size-4 text-emerald-600 dark:text-emerald-400" />
+      </div>
+      <div className="flex flex-col items-start min-w-0 flex-1">
+        <span className="text-xs font-medium truncate w-full text-left">{filename}</span>
+        <span className="text-[10px] text-muted-foreground">Click to download</span>
+      </div>
+    </button>
   );
 }
 
@@ -128,15 +184,42 @@ function MessageBubble({
           )}
 
         {msg.role === 'user' ? (
-          <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+          <div>
+            <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+            {msg.attachments && msg.attachments.length > 0 && (
+              <div>
+                {msg.attachments.map((att) => (
+                  <AttachmentChip
+                    key={att.filename}
+                    filename={att.filename}
+                    size={att.size}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
         ) : msg.content ? (
-          <div className="text-sm [&_p]:leading-relaxed [&_table]:text-xs [&_th]:px-2 [&_th]:py-1 [&_td]:px-2 [&_td]:py-1 [&_ul]:ml-4 [&_ol]:ml-4 [&_li]:text-sm [&_h1]:text-base [&_h2]:text-sm [&_h3]:text-sm [&_h1]:font-semibold [&_h2]:font-semibold [&_h3]:font-medium [&_pre]:text-xs [&_code]:text-xs">
-            <Streamdown
-              plugins={{ mermaid }}
-              isAnimating={isLast && isStreaming}
-            >
-              {msg.content}
-            </Streamdown>
+          <div>
+            <div className="text-sm [&_p]:leading-relaxed [&_table]:text-xs [&_th]:px-2 [&_th]:py-1 [&_td]:px-2 [&_td]:py-1 [&_ul]:ml-4 [&_ol]:ml-4 [&_li]:text-sm [&_h1]:text-base [&_h2]:text-sm [&_h3]:text-sm [&_h1]:font-semibold [&_h2]:font-semibold [&_h3]:font-medium [&_pre]:text-xs [&_code]:text-xs">
+              <Streamdown
+                plugins={{ mermaid }}
+                isAnimating={isLast && isStreaming}
+              >
+                {msg.content}
+              </Streamdown>
+            </div>
+            {msg.fileDownloads && msg.fileDownloads.length > 0 && (
+              <div>
+                {msg.fileDownloads.map((fd) => (
+                  <FileDownloadButton
+                    key={fd.filename}
+                    filename={fd.filename}
+                    base64={fd.base64}
+                    contentType={fd.contentType}
+                  />
+                ))}
+              </div>
+            )}
           </div>
         ) : isLast &&
           isStreaming &&

@@ -1429,6 +1429,11 @@ export async function executeAgentTool(
           message: 'Export generated successfully',
           sizeBytes: buffer.length,
           format: 'xlsx',
+          _fileDownload: {
+            filename: `accepted-candidates-${new Date().toISOString().split('T')[0]}.xlsx`,
+            base64: Buffer.from(buffer).toString('base64'),
+            contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+          },
         };
         break;
       }
