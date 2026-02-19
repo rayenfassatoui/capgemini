@@ -17,7 +17,7 @@ import {
 import type { UserRole } from '@/features/recruitment/types';
 
 // Max tool-call iterations before we force a final answer
-const MAX_AGENT_STEPS = 8;
+const MAX_AGENT_STEPS = 15;
 
 async function getAuthSession() {
   const headersList = await headers();
@@ -136,6 +136,9 @@ export async function POST(request: Request) {
     await saveChatMessage(conversation.id, 'user', lastUserMessage.content);
   }
 
+  // Load full conversation history from DB so the model always has complete memory
+  const { messages: dbHistory } = await getChatHistory(conversation.id);
+
   const dataContext = await getStatisticsChatContext(session.user.id, role);
   const today = new Date().toISOString().split('T')[0];
 
@@ -159,20 +162,62 @@ Current user role: ${role}
 
 CAPABILITIES:
 You have access to tools that let you:
-- List, view, and delete CVs in the pool
-- Create jobs, list jobs, view job details
-- Assign CVs to jobs (creating candidates)
+- List, view, search, and delete CVs in the pool
+- Create jobs, list jobs, view job details, close jobs
+- Generate full job descriptions with AI from just a title (generate_job_description)
+- Assign CVs to jobs (creating candidates), bulk assign top N CVs
 - View candidates by job or pipeline stage, update candidate stages
-- Match CVs against job requirements (basic or AI-enhanced)
-- Generate AI screening for candidates
-- Generate interview questions, schedule interviews
-- View interview reports and today's schedule
-- Get dashboard stats, CV pool stats, job stats, smart insights
+- Match CVs against job requirements (basic or AI-enhanced with filters)
+- Generate AI screening for candidates, view screening results
+- Generate interview questions, schedule interviews, view interview guides and reports
+- AI Interview Debrief: analyze interview report and recommend accept/reject/hold (ai_interview_debrief)
+- Compare 2-5 candidates side by side with pros/cons and ranking (compare_candidates)
+- Generate professional offer or rejection emails with AI (generate_candidate_email)
+- Predict hiring probability with AI based on all data points (predict_pipeline_score)
+- Get today's interview schedule, dashboard stats, CV pool stats, job stats, smart insights
+
+WORKFLOW CHAINS - follow these exact sequences for complex requests:
+
+1. FULL PIPELINE for a new hire request:
+   list_cv_pool → match_cvs_to_job (jobId) → assign_cv_to_job (cvId+jobId) → generate_screening (candidateId+jobId) → generate_interview_questions (candidateId+jobId+stage) → schedule_interview → update_candidate_stage
+
+2. ASSIGN AND SCREEN top candidates:
+   list_jobs [to get jobId] → match_cvs_to_job OR bulk_assign_cvs_to_job → get_candidates_by_job [to get candidateIds] → generate_screening for each candidate
+
+3. SCHEDULE an interview:
+   get_candidates_by_job OR get_candidates_by_stage [to get candidateId] → generate_interview_questions (optional) → schedule_interview (requires candidateId, jobId, stage, date DD/MM/YYYY, time HH:mm, meetLink)
+
+4. MOVE a candidate through the pipeline:
+   get_candidates_by_job OR get_candidates_by_stage [to get candidateId] → update_candidate_stage
+
+5. CREATE a job then fill it:
+   create_job → list_cv_pool OR search_cv_pool → match_cvs_to_job → bulk_assign_cvs_to_job
+
+6. ANALYZE a candidate fully:
+   get_candidate → get_screening → get_interview_reports_by_candidate → ai_interview_debrief (per interview) → predict_pipeline_score
+
+7. DASHBOARD overview:
+   get_dashboard_stats → get_smart_insights → get_cv_pool_stats OR get_jobs_stats
+
+8. AI JOB CREATION (from scratch):
+   generate_job_description (title+seniority) → create_job (using the AI output directly)
+
+9. CANDIDATE COMPARISON:
+   get_candidates_by_job [to get IDs] → compare_candidates (candidateIds+jobId)
+
+10. POST-INTERVIEW ANALYSIS:
+    get_interview_reports_by_candidate → ai_interview_debrief (per interviewId) → predict_pipeline_score
+
+11. SEND OFFER/REJECTION:
+    generate_candidate_email (candidateId+jobId+emailType) → then present the email to the user for review
 
 RULES:
+- ALWAYS use tools to fetch real IDs (cvId, jobId, candidateId) — never guess or use names as IDs
+- When the user gives you a multi-step task, plan all steps mentally first, then execute them in the correct order
+- Chain tool calls automatically without asking the user for IDs — fetch them yourself using list/search tools
+- When the user says "the best CVs" or "top candidates", use match_cvs_to_job first to rank them
 - Use tools to fetch real-time data rather than relying only on the static context below
 - When the user asks you to DO something (create a job, match CVs, move a candidate), USE the appropriate tool
-- When listing data, use tools to get the latest information
 - Be concise, data-driven, and actionable
 - Use markdown formatting for readability (tables, lists, bold, headers)
 - If a tool call fails, explain the error clearly
@@ -197,7 +242,7 @@ ${attachments && attachments.length > 0 ? `\nATTACHMENTS:\nThe user has attached
 
   const llmMessages: LLMMessage[] = [
     { role: 'system', content: systemPrompt },
-    ...messages.slice(-10).map((m) => ({
+    ...dbHistory.slice(-20).map((m) => ({
       role: m.role as 'user' | 'assistant',
       content: m.content,
     })),
@@ -237,7 +282,7 @@ ${attachments && attachments.length > 0 ? `\nATTACHMENTS:\nThe user has attached
                 'Content-Type': 'application/json',
               },
               body: JSON.stringify({
-                model: 'openai/gpt-4.1-nano',
+                model: 'arcee-ai/trinity-large-preview:free',
                 messages: llmMessages,
                 tools: tools.length > 0 ? tools : undefined,
                 tool_choice: 'auto',

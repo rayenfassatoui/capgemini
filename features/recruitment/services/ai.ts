@@ -67,7 +67,7 @@ export async function callOpenRouter(
   const client = new OpenRouter({ apiKey });
 
   const response = await client.chat.send({
-    model: 'stepfun/step-3.5-flash:free',
+    model: 'arcee-ai/trinity-large-preview:free',
     messages: [
       { role: 'system', content: systemPrompt },
       { role: 'user', content: userPrompt },

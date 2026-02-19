@@ -174,6 +174,70 @@ export const aiMatchRecommendationItemSchema = z.object({
 
 export const aiMatchRecommendationOutputSchema = z.array(aiMatchRecommendationItemSchema);
 
+// ---------- AI Interview Debrief ----------
+
+export const aiInterviewDebriefOutputSchema = z.object({
+  recommendation: z.enum(['accept', 'reject', 'hold']),
+  confidence: z.number().min(0).max(100),
+  reasoning: z.string(),
+  strengths: z.array(z.string()).default([]),
+  weaknesses: z.array(z.string()).default([]),
+  suggestedNextSteps: z.string(),
+});
+
+// ---------- AI Candidate Comparison ----------
+
+export const aiCandidateComparisonOutputSchema = z.object({
+  candidates: z.array(
+    z.object({
+      candidateId: z.string(),
+      name: z.string(),
+      stage: z.string(),
+      screeningScore: z.number().nullable(),
+      interviewScore: z.number().nullable(),
+      pros: z.array(z.string()).default([]),
+      cons: z.array(z.string()).default([]),
+      overallFit: z.number().min(0).max(100),
+    })
+  ),
+  recommendation: z.string(),
+  rankingOrder: z.array(z.string()),
+});
+
+// ---------- AI Job Description Writer ----------
+
+export const aiJobDescriptionOutputSchema = z.object({
+  title: z.string(),
+  description: z.string(),
+  mustHave: z.array(z.string()).min(1),
+  niceToHave: z.array(z.string()).default([]),
+  seniority: z.string(),
+  businessUnit: z.string().nullable().default(null),
+});
+
+// ---------- AI Candidate Email ----------
+
+export const aiCandidateEmailOutputSchema = z.object({
+  subject: z.string(),
+  body: z.string(),
+});
+
+// ---------- AI Predictive Pipeline Score ----------
+
+export const aiPredictivePipelineOutputSchema = z.object({
+  hiringProbability: z.number().min(0).max(100),
+  confidence: z.number().min(0).max(100),
+  factors: z.array(
+    z.object({
+      factor: z.string(),
+      impact: z.enum(['positive', 'negative', 'neutral']),
+      detail: z.string(),
+    })
+  ).default([]),
+  riskLevel: z.enum(['low', 'medium', 'high']),
+  summary: z.string(),
+});
+
 // ---------- Inferred Types ----------
 
 export type CreateJobSchema = z.infer<typeof createJobSchema>;

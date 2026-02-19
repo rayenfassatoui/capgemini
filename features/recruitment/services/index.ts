@@ -78,3 +78,11 @@ export {
   deleteChatConversation,
   clearChatConversation,
 } from './chat';
+
+export {
+  generateInterviewDebrief,
+  compareCandidates,
+  generateJobDescription,
+  generateCandidateEmail,
+  predictPipelineScore,
+} from './ai-features';
