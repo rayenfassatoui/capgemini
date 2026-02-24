@@ -18,7 +18,8 @@ import {
   sendInterviewEmailAction,
   saveInterviewReportAction,
   updateCandidateStageAction,
-  markInterviewCompletedAction
+  markInterviewCompletedAction,
+  assignHrToCandidateAction,
 } from '@/features/recruitment/actions';
 import { toast } from 'sonner';
 import { IconMail, IconCalendar, IconCheck, IconX, IconExternalLink, IconCircleCheck, IconCircleDashed, IconPlus, IconTrash, IconSparkles, IconEdit, IconDeviceFloppy } from '@tabler/icons-react';
@@ -55,11 +56,19 @@ interface Candidate {
   job?: { title: string };
 }
 
+interface UserListItem {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+}
+
 interface ManagerCandidateDetailClientProps {
   candidate: Candidate;
   taReports: Report[];
   interviewGuide?: InterviewGuide | null;
   currentInterview?: Interview | null;
+  hrUsers?: UserListItem[];
 }
 
 function StepIndicator({ step, label, done, active }: { step: number; label: string; done: boolean; active: boolean }) {
@@ -83,7 +92,8 @@ export function ManagerCandidateDetailClient({
   candidate,
   taReports,
   interviewGuide,
-  currentInterview
+  currentInterview,
+  hrUsers,
 }: ManagerCandidateDetailClientProps) {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState('interview');
@@ -94,6 +104,8 @@ export function ManagerCandidateDetailClient({
   const [isSubmittingReport, setIsSubmittingReport] = useState(false);
   const [isDeciding, setIsDeciding] = useState(false);
 
+  // HR selection state for accept flow
+  const [selectedHrId, setSelectedHrId] = useState('');
   // Editable questions state
   const [editableQuestions, setEditableQuestions] = useState<string[]>(interviewGuide?.questions ?? []);
   const [isEditingQuestions, setIsEditingQuestions] = useState(false);
@@ -250,15 +262,32 @@ export function ManagerCandidateDetailClient({
   };
 
   const handleDecision = async (decision: 'manager_accepted' | 'manager_rejected') => {
-    try {
-      setIsDeciding(true);
-      await updateCandidateStageAction(candidate.id, decision);
-      toast.success(`Candidate ${decision === 'manager_accepted' ? 'accepted and forwarded to HR' : 'rejected'}`);
-      router.refresh();
-    } catch (error) {
-      toast.error('Failed to update decision');
-    } finally {
-      setIsDeciding(false);
+    if (decision === 'manager_accepted') {
+      if (!selectedHrId) {
+        toast.error('Please select an HR representative first');
+        return;
+      }
+      try {
+        setIsDeciding(true);
+        await assignHrToCandidateAction(candidate.id, selectedHrId);
+        toast.success('Candidate accepted and assigned to HR');
+        router.refresh();
+      } catch (error) {
+        toast.error('Failed to assign HR');
+      } finally {
+        setIsDeciding(false);
+      }
+    } else {
+      try {
+        setIsDeciding(true);
+        await updateCandidateStageAction(candidate.id, decision);
+        toast.success('Candidate rejected');
+        router.refresh();
+      } catch (error) {
+        toast.error('Failed to update decision');
+      } finally {
+        setIsDeciding(false);
+      }
     }
   };
 
@@ -593,21 +622,38 @@ export function ManagerCandidateDetailClient({
                   )}
                 </div>
               ) : (
-                <div className="flex gap-3">
-                  <Button 
-                    onClick={() => handleDecision('manager_accepted')} 
-                    disabled={isDeciding}
-                    className="bg-emerald-600 hover:bg-emerald-700 text-white"
-                  >
-                    <IconCheck className="mr-2 h-4 w-4" /> Accept & Forward to HR
-                  </Button>
-                  <Button 
-                    variant="destructive" 
-                    onClick={() => handleDecision('manager_rejected')} 
-                    disabled={isDeciding}
-                  >
-                    <IconX className="mr-2 h-4 w-4" /> Reject Candidate
-                  </Button>
+                <div className="space-y-4">
+                  {hrUsers && hrUsers.length > 0 && (
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Select HR Representative</label>
+                      <select
+                        className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                        value={selectedHrId}
+                        onChange={(e) => setSelectedHrId(e.target.value)}
+                      >
+                        <option value="" disabled>Select HR...</option>
+                        {hrUsers.map(hr => (
+                          <option key={hr.id} value={hr.id}>{hr.name} ({hr.email})</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+                  <div className="flex gap-3">
+                    <Button 
+                      onClick={() => handleDecision('manager_accepted')} 
+                      disabled={isDeciding || !selectedHrId}
+                      className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                    >
+                      <IconCheck className="mr-2 h-4 w-4" /> Accept & Assign to HR
+                    </Button>
+                    <Button 
+                      variant="destructive" 
+                      onClick={() => handleDecision('manager_rejected')} 
+                      disabled={isDeciding}
+                    >
+                      <IconX className="mr-2 h-4 w-4" /> Reject Candidate
+                    </Button>
+                  </div>
                 </div>
               )}
             </CardContent>

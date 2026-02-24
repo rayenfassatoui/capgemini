@@ -1,0 +1,1396 @@
+- generic [active] [ref=e1]:
+  - link "Skip to main content" [ref=e2] [cursor=pointer]:
+    - /url: "#main-content"
+  - generic [ref=e37]:
+    - complementary [ref=e38]:
+      - generic [ref=e39]:
+        - img [ref=e40]
+        - generic [ref=e42]:
+          - paragraph [ref=e43]: Talent Intelligence
+          - paragraph [ref=e44]: Recruitment OS
+      - generic [ref=e46]:
+        - paragraph [ref=e47]: Talent Acquisition
+        - generic [ref=e48]: Talent Acquisition
+      - navigation [ref=e49]:
+        - link "Dashboard" [ref=e50] [cursor=pointer]:
+          - /url: /ta/dashboard
+          - img [ref=e51]
+          - generic [ref=e56]: Dashboard
+        - link "CV Pool" [ref=e59] [cursor=pointer]:
+          - /url: /ta/cv-pool
+          - img [ref=e60]
+          - generic [ref=e63]: CV Pool
+        - link "Job Requirements" [ref=e64] [cursor=pointer]:
+          - /url: /ta/jobs
+          - img [ref=e65]
+          - generic [ref=e69]: Job Requirements
+          - img [ref=e151]
+        - link "Calendar" [ref=e70] [cursor=pointer]:
+          - /url: /ta/calendar
+          - img [ref=e71]
+          - generic [ref=e73]: Calendar
+        - link "Statistics" [ref=e74] [cursor=pointer]:
+          - /url: /ta/statistique
+          - img [ref=e75]
+          - generic [ref=e79]: Statistics
+      - generic [ref=e80]:
+        - generic [ref=e81]:
+          - generic [ref=e82]:
+            - generic [ref=e83]: Theme
+            - button "Switch to dark mode" [ref=e84]:
+              - img [ref=e85]
+              - text: Dark
+          - generic [ref=e87]:
+            - generic [ref=e88]: Language
+            - button "Switch to French" [ref=e89]:
+              - img [ref=e90]
+              - text: FR
+        - button "Sign Out" [ref=e95]:
+          - img
+          - text: Sign Out
+    - main [ref=e96]:
+      - button "Notifications" [ref=e99]:
+        - img [ref=e100]
+      - generic [ref=e1090]:
+        - link "Back to Jobs" [ref=e1092] [cursor=pointer]:
+          - /url: /ta/jobs
+          - img [ref=e1093]
+          - text: Back to Jobs
+        - generic [ref=e1096]:
+          - generic [ref=e1097]:
+            - generic [ref=e1098]:
+              - heading "Tech Lead - Microservices Architecture" [level=1] [ref=e1099]
+              - paragraph [ref=e1100]: "2 candidate(s) still in progress: NANCY WRIGHT, Ahmed Attafi. Accept, reject, or hire them before closing."
+            - generic [ref=e1101]:
+              - generic [ref=e1102]: open
+              - button "Close Job" [disabled]
+          - generic [ref=e1103]:
+            - tablist [ref=e1104]:
+              - tab "Overview" [ref=e1105]
+              - tab "CV Matching" [selected] [ref=e1106]
+              - tab "Pipeline" [ref=e1107]
+              - tab "Interviews" [ref=e1108]
+            - tabpanel "CV Matching" [ref=e1233]:
+              - generic [ref=e1355]:
+                - generic [ref=e1356]:
+                  - generic [ref=e1357]:
+                    - heading "Match Results" [level=3] [ref=e1358]:
+                      - img [ref=e1359]
+                      - text: Match Results
+                    - paragraph [ref=e1361]:
+                      - text: 55 candidates found
+                      - generic [ref=e1362]: "- 10 AI-analyzed"
+                  - button "New Search" [ref=e1363]:
+                    - img
+                    - text: New Search
+                - generic [ref=e1364]:
+                  - generic [ref=e1366]:
+                    - generic [ref=e1368]:
+                      - img [ref=e1369]
+                      - generic [ref=e1372]: "66"
+                    - generic [ref=e1373]:
+                      - generic [ref=e1374]:
+                        - generic [ref=e1375]: NANCY WRIGHT
+                        - generic [ref=e1376]: nancy.wright@email.com
+                      - generic [ref=e1377]:
+                        - generic [ref=e1378]: Microservices
+                        - generic [ref=e1379]: Agile
+                      - generic [ref=e1380]:
+                        - generic [ref=e1381]: "Gaps:"
+                        - generic [ref=e1382]: System Design
+                        - generic [ref=e1383]: Leadership
+                        - generic [ref=e1384]: Cloud
+                        - generic [ref=e1385]: API Design
+                      - generic [ref=e1386]:
+                        - generic [ref=e1387]:
+                          - img [ref=e1388]
+                          - text: AI Recommendation
+                        - paragraph [ref=e1390]: This candidate has the strongest technical fit for the Tech Lead role with direct microservices experience and modern architecture skills. The combination of full-stack development, cloud knowledge, and containerization experience makes this candidate well-suited for leading microservices-based platforms.
+                        - generic [ref=e1391]:
+                          - generic [ref=e1392]: Direct microservices and Kubernetes experience
+                          - generic [ref=e1393]: Strong cloud and containerization skills
+                          - generic [ref=e1394]: Modern tech stack including TypeScript and CI/CD
+                      - generic [ref=e1396]:
+                        - img [ref=e1397]
+                        - text: 2 positions
+                    - generic [ref=e1401]:
+                      - button "Assigned" [disabled]:
+                        - img
+                        - text: Assigned
+                  - generic [ref=e1404]:
+                    - generic [ref=e1406]:
+                      - img [ref=e1407]
+                      - generic [ref=e1410]: "65"
+                    - generic [ref=e1411]:
+                      - generic [ref=e1412]:
+                        - generic [ref=e1413]: Ahmed Attafi
+                        - generic [ref=e1414]: attafiahmed.dev@gmail.com
+                      - generic [ref=e1415]:
+                        - generic [ref=e1416]: Microservices
+                        - generic [ref=e1417]: Cloud
+                        - generic [ref=e1418]: CQRS
+                        - generic [ref=e1419]: Communication
+                      - generic [ref=e1420]:
+                        - generic [ref=e1421]: "Gaps:"
+                        - generic [ref=e1422]: System Design
+                        - generic [ref=e1423]: Leadership
+                        - generic [ref=e1424]: API Design
+                      - generic [ref=e1425]:
+                        - generic [ref=e1426]:
+                          - img [ref=e1427]
+                          - text: AI Recommendation
+                        - paragraph [ref=e1429]: This candidate has strong technical skills across multiple domains including cloud platforms, APIs, and modern frameworks. The automotive QA experience at Capgemini demonstrates relevant industry exposure, though the candidate would need to strengthen their microservices architecture and leadership experience.
+                        - generic [ref=e1430]:
+                          - generic [ref=e1431]: Strong cloud platform knowledge (Azure, AWS, GCP)
+                          - generic [ref=e1432]: Experience with RESTful APIs and modern frameworks
+                          - generic [ref=e1433]: Capgemini industry experience
+                      - generic [ref=e1434]:
+                        - generic [ref=e1435]:
+                          - img [ref=e1436]
+                          - text: English, French, Arabic
+                        - generic [ref=e1441]:
+                          - img [ref=e1442]
+                          - text: 7 positions
+                    - generic [ref=e1446]:
+                      - button "Assigned" [disabled]:
+                        - img
+                        - text: Assigned
+                  - generic [ref=e1448]:
+                    - generic [ref=e1450]:
+                      - img [ref=e1451]
+                      - generic [ref=e1454]: "44"
+                    - generic [ref=e1455]:
+                      - generic [ref=e1456]:
+                        - generic [ref=e1457]: Mohamed Khayredine Gabsi
+                        - generic [ref=e1458]: khayredinegabsi@gmail.com
+                      - generic [ref=e1459]:
+                        - generic [ref=e1460]: Microservices
+                        - generic [ref=e1461]: Cloud
+                        - generic [ref=e1462]: CQRS
+                        - generic [ref=e1463]: Communication
+                      - generic [ref=e1464]:
+                        - generic [ref=e1465]: "Gaps:"
+                        - generic [ref=e1466]: System Design
+                        - generic [ref=e1467]: Leadership
+                        - generic [ref=e1468]: API Design
+                      - generic [ref=e1469]:
+                        - generic [ref=e1470]:
+                          - img [ref=e1471]
+                          - text: AI Recommendation
+                        - paragraph [ref=e1473]: This candidate has strong data analysis and machine learning skills but lacks the core microservices and system design experience required for a Tech Lead role. The candidate's background is more aligned with data science and analytics rather than microservices architecture leadership.
+                        - generic [ref=e1474]:
+                          - generic [ref=e1475]: Strong Python and data analysis skills
+                          - generic [ref=e1476]: Experience with modern frontend frameworks
+                          - generic [ref=e1477]: Good communication and collaboration skills
+                      - generic [ref=e1478]:
+                        - generic [ref=e1479]:
+                          - img [ref=e1480]
+                          - text: Arabic, English, French
+                        - generic [ref=e1485]:
+                          - img [ref=e1486]
+                          - text: 5 positions
+                    - button "Assign" [ref=e1491]:
+                      - img
+                      - text: Assign
+                  - generic [ref=e1493]:
+                    - generic [ref=e1495]:
+                      - img [ref=e1496]
+                      - generic [ref=e1499]: "40"
+                    - generic [ref=e1500]:
+                      - generic [ref=e1501]:
+                        - generic [ref=e1502]: Anthony Walker
+                        - generic [ref=e1503]: anthony.walker@email.com
+                      - generic [ref=e1504]:
+                        - generic [ref=e1505]: Microservices
+                        - generic [ref=e1506]: Leadership
+                        - generic [ref=e1507]: Event-Driven
+                        - generic [ref=e1508]: CQRS
+                      - generic [ref=e1509]:
+                        - generic [ref=e1510]: "Gaps:"
+                        - generic [ref=e1511]: System Design
+                        - generic [ref=e1512]: Cloud
+                        - generic [ref=e1513]: API Design
+                      - generic [ref=e1514]:
+                        - generic [ref=e1515]:
+                          - img [ref=e1516]
+                          - text: AI Recommendation
+                        - paragraph [ref=e1518]: This candidate has some BI and data analysis skills but lacks the core technical requirements for a microservices Tech Lead role. The experience is too focused on traditional BI tools rather than modern distributed systems architecture.
+                        - generic [ref=e1519]:
+                          - generic [ref=e1520]: BI analysis and data visualization skills
+                          - generic [ref=e1521]: Knowledge of Looker and Qlik
+                          - generic [ref=e1522]: Python programming experience
+                      - generic [ref=e1524]:
+                        - img [ref=e1525]
+                        - text: 2 positions
+                    - generic [ref=e1529]:
+                      - button "Assigned" [disabled]:
+                        - img
+                        - text: Assigned
+                  - generic [ref=e1531]:
+                    - generic [ref=e1533]:
+                      - img [ref=e1534]
+                      - generic [ref=e1537]: "37"
+                    - generic [ref=e1538]:
+                      - generic [ref=e1539]:
+                        - generic [ref=e1540]: Charles Baker
+                        - generic [ref=e1541]: charles.baker@email.com
+                      - generic [ref=e1542]:
+                        - generic [ref=e1543]: Microservices
+                        - generic [ref=e1544]: Leadership
+                        - generic [ref=e1545]: Event-Driven
+                        - generic [ref=e1546]: CQRS
+                      - generic [ref=e1547]:
+                        - generic [ref=e1548]: "Gaps:"
+                        - generic [ref=e1549]: System Design
+                        - generic [ref=e1550]: Cloud
+                        - generic [ref=e1551]: API Design
+                      - generic [ref=e1552]:
+                        - generic [ref=e1553]:
+                          - img [ref=e1554]
+                          - text: AI Recommendation
+                        - paragraph [ref=e1556]: This candidate has basic BI development skills but lacks the technical depth required for a Tech Lead role in microservices architecture. The experience is too junior and focused on traditional BI rather than modern distributed systems.
+                        - generic [ref=e1557]:
+                          - generic [ref=e1558]: Data modeling and ETL experience
+                          - generic [ref=e1559]: Knowledge of R and data analysis
+                          - generic [ref=e1560]: KPI development skills
+                      - generic [ref=e1562]:
+                        - img [ref=e1563]
+                        - text: 2 positions
+                    - button "Assign" [ref=e1568]:
+                      - img
+                      - text: Assign
+                  - generic [ref=e1570]:
+                    - generic [ref=e1572]:
+                      - img [ref=e1573]
+                      - generic [ref=e1576]: "37"
+                    - generic [ref=e1577]:
+                      - generic [ref=e1578]:
+                        - generic [ref=e1579]: Joshua Harris
+                        - generic [ref=e1580]: joshua.harris@email.com
+                      - generic [ref=e1581]:
+                        - generic [ref=e1582]: Microservices
+                        - generic [ref=e1583]: Leadership
+                        - generic [ref=e1584]: Event-Driven
+                        - generic [ref=e1585]: CQRS
+                      - generic [ref=e1586]:
+                        - generic [ref=e1587]: "Gaps:"
+                        - generic [ref=e1588]: System Design
+                        - generic [ref=e1589]: Cloud
+                        - generic [ref=e1590]: API Design
+                      - generic [ref=e1591]:
+                        - generic [ref=e1592]:
+                          - img [ref=e1593]
+                          - text: AI Recommendation
+                        - paragraph [ref=e1595]: This candidate has junior BI development experience but lacks the technical depth and leadership skills required for a Tech Lead role in microservices architecture. The skills are more aligned with traditional BI rather than modern distributed systems.
+                        - generic [ref=e1596]:
+                          - generic [ref=e1597]: Dashboard design and data visualization
+                          - generic [ref=e1598]: ETL and data processing experience
+                          - generic [ref=e1599]: Knowledge of multiple BI tools
+                      - generic [ref=e1601]:
+                        - img [ref=e1602]
+                        - text: 2 positions
+                    - button "Assign" [ref=e1607]:
+                      - img
+                      - text: Assign
+                  - generic [ref=e1609]:
+                    - generic [ref=e1611]:
+                      - img [ref=e1612]
+                      - generic [ref=e1615]: "37"
+                    - generic [ref=e1616]:
+                      - generic [ref=e1617]:
+                        - generic [ref=e1618]: Charles Baker
+                        - generic [ref=e1619]: charles.baker@email.com
+                      - generic [ref=e1620]:
+                        - generic [ref=e1621]: Microservices
+                        - generic [ref=e1622]: Leadership
+                        - generic [ref=e1623]: Event-Driven
+                        - generic [ref=e1624]: CQRS
+                      - generic [ref=e1625]:
+                        - generic [ref=e1626]: "Gaps:"
+                        - generic [ref=e1627]: System Design
+                        - generic [ref=e1628]: Cloud
+                        - generic [ref=e1629]: API Design
+                      - generic [ref=e1630]:
+                        - generic [ref=e1631]:
+                          - img [ref=e1632]
+                          - text: AI Recommendation
+                        - paragraph [ref=e1634]: This candidate has junior BI development experience but lacks the technical depth and leadership skills required for a Tech Lead role in microservices architecture. The skills are more aligned with traditional BI rather than modern distributed systems.
+                        - generic [ref=e1635]:
+                          - generic [ref=e1636]: Data modeling and ETL experience
+                          - generic [ref=e1637]: Knowledge of R and data analysis
+                          - generic [ref=e1638]: KPI development skills
+                      - generic [ref=e1640]:
+                        - img [ref=e1641]
+                        - text: 2 positions
+                    - button "Assign" [ref=e1646]:
+                      - img
+                      - text: Assign
+                  - generic [ref=e1648]:
+                    - generic [ref=e1650]:
+                      - img [ref=e1651]
+                      - generic [ref=e1654]: "33"
+                    - generic [ref=e1655]:
+                      - generic [ref=e1656]:
+                        - generic [ref=e1657]: Barbara Walker
+                        - generic [ref=e1658]: barbara.walker@email.com
+                      - generic [ref=e1659]:
+                        - generic [ref=e1660]: Microservices
+                        - generic [ref=e1661]: Leadership
+                        - generic [ref=e1662]: Event-Driven
+                        - generic [ref=e1663]: CQRS
+                      - generic [ref=e1664]:
+                        - generic [ref=e1665]: "Gaps:"
+                        - generic [ref=e1666]: System Design
+                        - generic [ref=e1667]: Cloud
+                        - generic [ref=e1668]: API Design
+                      - generic [ref=e1669]:
+                        - generic [ref=e1670]:
+                          - img [ref=e1671]
+                          - text: AI Recommendation
+                        - paragraph [ref=e1673]: This candidate's skills are heavily focused on business intelligence and data analysis tools, which are not aligned with the microservices architecture requirements. The candidate lacks the technical depth in system design, cloud platforms, and microservices needed for this leadership role.
+                        - generic [ref=e1674]:
+                          - generic [ref=e1675]: Strong BI and data visualization skills
+                          - generic [ref=e1676]: Experience with Power BI and Qlik
+                          - generic [ref=e1677]: Data warehousing knowledge
+                      - generic [ref=e1679]:
+                        - img [ref=e1680]
+                        - text: 2 positions
+                    - button "Assign" [ref=e1685]:
+                      - img
+                      - text: Assign
+                  - generic [ref=e1687]:
+                    - generic [ref=e1689]:
+                      - img [ref=e1690]
+                      - generic [ref=e1693]: "33"
+                    - generic [ref=e1694]:
+                      - generic [ref=e1695]:
+                        - generic [ref=e1696]: Kimberly Anderson
+                        - generic [ref=e1697]: kimberly.anderson@email.com
+                      - generic [ref=e1698]:
+                        - generic [ref=e1699]: Microservices
+                        - generic [ref=e1700]: Leadership
+                        - generic [ref=e1701]: Event-Driven
+                        - generic [ref=e1702]: CQRS
+                      - generic [ref=e1703]:
+                        - generic [ref=e1704]: "Gaps:"
+                        - generic [ref=e1705]: System Design
+                        - generic [ref=e1706]: Cloud
+                        - generic [ref=e1707]: API Design
+                      - generic [ref=e1708]:
+                        - generic [ref=e1709]:
+                          - img [ref=e1710]
+                          - text: AI Recommendation
+                        - paragraph [ref=e1712]: This candidate's skills are primarily in data analysis and traditional BI tools, which do not align with the microservices architecture requirements. The candidate lacks the technical depth in system design, cloud platforms, and distributed systems needed for this leadership role.
+                        - generic [ref=e1713]:
+                          - generic [ref=e1714]: Data analysis and statistical skills
+                          - generic [ref=e1715]: Experience with Hadoop and big data
+                          - generic [ref=e1716]: Knowledge of SAP and enterprise systems
+                      - generic [ref=e1718]:
+                        - img [ref=e1719]
+                        - text: 2 positions
+                    - button "Assign" [ref=e1724]:
+                      - img
+                      - text: Assign
+                  - generic [ref=e1726]:
+                    - generic [ref=e1728]:
+                      - img [ref=e1729]
+                      - generic [ref=e1732]: "33"
+                    - generic [ref=e1733]:
+                      - generic [ref=e1734]:
+                        - generic [ref=e1735]: Barbara Walker
+                        - generic [ref=e1736]: barbara.walker@email.com
+                      - generic [ref=e1737]:
+                        - generic [ref=e1738]: Microservices
+                        - generic [ref=e1739]: Leadership
+                        - generic [ref=e1740]: Event-Driven
+                        - generic [ref=e1741]: CQRS
+                      - generic [ref=e1742]:
+                        - generic [ref=e1743]: "Gaps:"
+                        - generic [ref=e1744]: System Design
+                        - generic [ref=e1745]: Cloud
+                        - generic [ref=e1746]: API Design
+                      - generic [ref=e1747]:
+                        - generic [ref=e1748]:
+                          - img [ref=e1749]
+                          - text: AI Recommendation
+                        - paragraph [ref=e1751]: This candidate has strong BI and data analysis skills but lacks the technical depth required for a microservices Tech Lead role. The experience is focused on traditional BI tools rather than modern distributed systems architecture.
+                        - generic [ref=e1752]:
+                          - generic [ref=e1753]: Strong BI and data visualization skills
+                          - generic [ref=e1754]: Experience with Power BI and Qlik
+                          - generic [ref=e1755]: Data warehousing knowledge
+                      - generic [ref=e1757]:
+                        - img [ref=e1758]
+                        - text: 2 positions
+                    - button "Assign" [ref=e1763]:
+                      - img
+                      - text: Assign
+                  - generic [ref=e1765]:
+                    - generic [ref=e1767]:
+                      - img [ref=e1768]
+                      - generic [ref=e1771]: "20"
+                    - generic [ref=e1772]:
+                      - generic [ref=e1773]:
+                        - generic [ref=e1774]: William Flores
+                        - generic [ref=e1775]: william.flores@email.com
+                      - generic [ref=e1776]:
+                        - generic [ref=e1777]: Microservices
+                        - generic [ref=e1778]: Agile
+                      - generic [ref=e1779]:
+                        - generic [ref=e1780]: "Gaps:"
+                        - generic [ref=e1781]: System Design
+                        - generic [ref=e1782]: Leadership
+                        - generic [ref=e1783]: Cloud
+                        - generic [ref=e1784]: API Design
+                      - generic [ref=e1786]:
+                        - img [ref=e1787]
+                        - text: 2 positions
+                    - button "Assign" [ref=e1792]:
+                      - img
+                      - text: Assign
+                  - generic [ref=e1794]:
+                    - generic [ref=e1796]:
+                      - img [ref=e1797]
+                      - generic [ref=e1800]: "20"
+                    - generic [ref=e1801]:
+                      - generic [ref=e1802]:
+                        - generic [ref=e1803]: Nancy Wright
+                        - generic [ref=e1804]: nancy.wright@email.com
+                      - generic [ref=e1805]:
+                        - generic [ref=e1806]: Microservices
+                        - generic [ref=e1807]: Agile
+                      - generic [ref=e1808]:
+                        - generic [ref=e1809]: "Gaps:"
+                        - generic [ref=e1810]: System Design
+                        - generic [ref=e1811]: Leadership
+                        - generic [ref=e1812]: Cloud
+                        - generic [ref=e1813]: API Design
+                      - generic [ref=e1815]:
+                        - img [ref=e1816]
+                        - text: 2 positions
+                    - button "Assign" [ref=e1821]:
+                      - img
+                      - text: Assign
+                  - generic [ref=e1823]:
+                    - generic [ref=e1825]:
+                      - img [ref=e1826]
+                      - generic [ref=e1829]: "14"
+                    - generic [ref=e1830]:
+                      - generic [ref=e1831]:
+                        - generic [ref=e1832]: Mohamed Achref Ben Abdallah
+                        - generic [ref=e1833]: ashrefbenabdallah@icloud.com
+                      - generic [ref=e1835]: Cloud
+                      - generic [ref=e1836]:
+                        - generic [ref=e1837]: "Gaps:"
+                        - generic [ref=e1838]: Microservices
+                        - generic [ref=e1839]: System Design
+                        - generic [ref=e1840]: Leadership
+                        - generic [ref=e1841]: API Design
+                      - generic [ref=e1843]:
+                        - img [ref=e1844]
+                        - text: 9 positions
+                    - button "Assign" [ref=e1849]:
+                      - img
+                      - text: Assign
+                  - generic [ref=e1851]:
+                    - generic [ref=e1853]:
+                      - img [ref=e1854]
+                      - generic [ref=e1857]: "14"
+                    - generic [ref=e1858]:
+                      - generic [ref=e1859]:
+                        - generic [ref=e1860]: Mark Davis
+                        - generic [ref=e1861]: mark.davis@email.com
+                      - generic [ref=e1863]: Microservices
+                      - generic [ref=e1864]:
+                        - generic [ref=e1865]: "Gaps:"
+                        - generic [ref=e1866]: System Design
+                        - generic [ref=e1867]: Leadership
+                        - generic [ref=e1868]: Cloud
+                        - generic [ref=e1869]: API Design
+                      - generic [ref=e1871]:
+                        - img [ref=e1872]
+                        - text: 2 positions
+                    - button "Assign" [ref=e1877]:
+                      - img
+                      - text: Assign
+                  - generic [ref=e1879]:
+                    - generic [ref=e1881]:
+                      - img [ref=e1882]
+                      - generic [ref=e1885]: "14"
+                    - generic [ref=e1886]:
+                      - generic [ref=e1887]:
+                        - generic [ref=e1888]: JOHN LOPEZ
+                        - generic [ref=e1889]: john.lopez@email.com
+                      - generic [ref=e1891]: Microservices
+                      - generic [ref=e1892]:
+                        - generic [ref=e1893]: "Gaps:"
+                        - generic [ref=e1894]: System Design
+                        - generic [ref=e1895]: Leadership
+                        - generic [ref=e1896]: Cloud
+                        - generic [ref=e1897]: API Design
+                      - generic [ref=e1899]:
+                        - img [ref=e1900]
+                        - text: 2 positions
+                    - button "Assign" [ref=e1905]:
+                      - img
+                      - text: Assign
+                  - generic [ref=e1907]:
+                    - generic [ref=e1909]:
+                      - img [ref=e1910]
+                      - generic [ref=e1913]: "14"
+                    - generic [ref=e1914]:
+                      - generic [ref=e1915]:
+                        - generic [ref=e1916]: Joshua Anderson
+                        - generic [ref=e1917]: joshua.anderson@email.com
+                      - generic [ref=e1919]: Microservices
+                      - generic [ref=e1920]:
+                        - generic [ref=e1921]: "Gaps:"
+                        - generic [ref=e1922]: System Design
+                        - generic [ref=e1923]: Leadership
+                        - generic [ref=e1924]: Cloud
+                        - generic [ref=e1925]: API Design
+                      - generic [ref=e1927]:
+                        - img [ref=e1928]
+                        - text: 2 positions
+                    - button "Assign" [ref=e1933]:
+                      - img
+                      - text: Assign
+                  - generic [ref=e1935]:
+                    - generic [ref=e1937]:
+                      - img [ref=e1938]
+                      - generic [ref=e1941]: "14"
+                    - generic [ref=e1942]:
+                      - generic [ref=e1943]:
+                        - generic [ref=e1944]: Chahine Chammar
+                        - generic [ref=e1945]: chahine.ena@gmail.com
+                      - generic [ref=e1947]: Cloud
+                      - generic [ref=e1948]:
+                        - generic [ref=e1949]: "Gaps:"
+                        - generic [ref=e1950]: Microservices
+                        - generic [ref=e1951]: System Design
+                        - generic [ref=e1952]: Leadership
+                        - generic [ref=e1953]: API Design
+                      - generic [ref=e1954]:
+                        - generic [ref=e1955]:
+                          - img [ref=e1956]
+                          - text: Russian, French, English, Arabic
+                        - generic [ref=e1961]:
+                          - img [ref=e1962]
+                          - text: 4 positions
+                    - button "Assign" [ref=e1967]:
+                      - img
+                      - text: Assign
+                  - generic [ref=e1969]:
+                    - generic [ref=e1971]:
+                      - img [ref=e1972]
+                      - generic [ref=e1975]: "6"
+                    - generic [ref=e1976]:
+                      - generic [ref=e1977]:
+                        - generic [ref=e1978]: BETTY LOPEZ
+                        - generic [ref=e1979]: betty.lopez@email.com
+                      - generic [ref=e1980]:
+                        - generic [ref=e1981]: "Gaps:"
+                        - generic [ref=e1982]: Microservices
+                        - generic [ref=e1983]: System Design
+                        - generic [ref=e1984]: Leadership
+                        - generic [ref=e1985]: Cloud
+                        - generic [ref=e1986]: API Design
+                      - generic [ref=e1988]:
+                        - img [ref=e1989]
+                        - text: 2 positions
+                    - button "Assign" [ref=e1994]:
+                      - img
+                      - text: Assign
+                  - generic [ref=e1996]:
+                    - generic [ref=e1998]:
+                      - img [ref=e1999]
+                      - generic [ref=e2002]: "6"
+                    - generic [ref=e2003]:
+                      - generic [ref=e2004]:
+                        - generic [ref=e2005]: Betty Lopez
+                        - generic [ref=e2006]: betty.lopez@email.com
+                      - generic [ref=e2007]:
+                        - generic [ref=e2008]: "Gaps:"
+                        - generic [ref=e2009]: Microservices
+                        - generic [ref=e2010]: System Design
+                        - generic [ref=e2011]: Leadership
+                        - generic [ref=e2012]: Cloud
+                        - generic [ref=e2013]: API Design
+                      - generic [ref=e2015]:
+                        - img [ref=e2016]
+                        - text: 2 positions
+                    - button "Assign" [ref=e2021]:
+                      - img
+                      - text: Assign
+                  - generic [ref=e2023]:
+                    - generic [ref=e2025]:
+                      - img [ref=e2026]
+                      - generic [ref=e2029]: "6"
+                    - generic [ref=e2030]:
+                      - generic [ref=e2031]:
+                        - generic [ref=e2032]: CHARLES RAMIREZ
+                        - generic [ref=e2033]: charles.ramirez@email.com
+                      - generic [ref=e2034]:
+                        - generic [ref=e2035]: "Gaps:"
+                        - generic [ref=e2036]: Microservices
+                        - generic [ref=e2037]: System Design
+                        - generic [ref=e2038]: Leadership
+                        - generic [ref=e2039]: Cloud
+                        - generic [ref=e2040]: API Design
+                      - generic [ref=e2042]:
+                        - img [ref=e2043]
+                        - text: 2 positions
+                    - button "Assign" [ref=e2048]:
+                      - img
+                      - text: Assign
+                  - generic [ref=e2050]:
+                    - generic [ref=e2052]:
+                      - img [ref=e2053]
+                      - generic [ref=e2056]: "6"
+                    - generic [ref=e2057]:
+                      - generic [ref=e2058]:
+                        - generic [ref=e2059]: THOMAS LOPEZ
+                        - generic [ref=e2060]: thomas.lopez@email.com
+                      - generic [ref=e2061]:
+                        - generic [ref=e2062]: "Gaps:"
+                        - generic [ref=e2063]: Microservices
+                        - generic [ref=e2064]: System Design
+                        - generic [ref=e2065]: Leadership
+                        - generic [ref=e2066]: Cloud
+                        - generic [ref=e2067]: API Design
+                      - generic [ref=e2069]:
+                        - img [ref=e2070]
+                        - text: 2 positions
+                    - button "Assign" [ref=e2075]:
+                      - img
+                      - text: Assign
+                  - generic [ref=e2077]:
+                    - generic [ref=e2079]:
+                      - img [ref=e2080]
+                      - generic [ref=e2083]: "6"
+                    - generic [ref=e2084]:
+                      - generic [ref=e2085]:
+                        - generic [ref=e2086]: CHRISTOPHER KING
+                        - generic [ref=e2087]: christopher.king@email.com
+                      - generic [ref=e2088]:
+                        - generic [ref=e2089]: "Gaps:"
+                        - generic [ref=e2090]: Microservices
+                        - generic [ref=e2091]: System Design
+                        - generic [ref=e2092]: Leadership
+                        - generic [ref=e2093]: Cloud
+                        - generic [ref=e2094]: API Design
+                      - generic [ref=e2096]:
+                        - img [ref=e2097]
+                        - text: 2 positions
+                    - button "Assign" [ref=e2102]:
+                      - img
+                      - text: Assign
+                  - generic [ref=e2104]:
+                    - generic [ref=e2106]:
+                      - img [ref=e2107]
+                      - generic [ref=e2110]: "6"
+                    - generic [ref=e2111]:
+                      - generic [ref=e2112]:
+                        - generic [ref=e2113]: Sarah Johnson
+                        - generic [ref=e2114]: sarah.johnson@email.com
+                      - generic [ref=e2115]:
+                        - generic [ref=e2116]: "Gaps:"
+                        - generic [ref=e2117]: Microservices
+                        - generic [ref=e2118]: System Design
+                        - generic [ref=e2119]: Leadership
+                        - generic [ref=e2120]: Cloud
+                        - generic [ref=e2121]: API Design
+                      - generic [ref=e2123]:
+                        - img [ref=e2124]
+                        - text: 2 positions
+                    - button "Assign" [ref=e2129]:
+                      - img
+                      - text: Assign
+                  - generic [ref=e2131]:
+                    - generic [ref=e2133]:
+                      - img [ref=e2134]
+                      - generic [ref=e2137]: "6"
+                    - generic [ref=e2138]:
+                      - generic [ref=e2139]:
+                        - generic [ref=e2140]: Sarah Campbell
+                        - generic [ref=e2141]: sarah.campbell@email.com
+                      - generic [ref=e2142]:
+                        - generic [ref=e2143]: "Gaps:"
+                        - generic [ref=e2144]: Microservices
+                        - generic [ref=e2145]: System Design
+                        - generic [ref=e2146]: Leadership
+                        - generic [ref=e2147]: Cloud
+                        - generic [ref=e2148]: API Design
+                      - generic [ref=e2150]:
+                        - img [ref=e2151]
+                        - text: 2 positions
+                    - button "Assign" [ref=e2156]:
+                      - img
+                      - text: Assign
+                  - generic [ref=e2158]:
+                    - generic [ref=e2160]:
+                      - img [ref=e2161]
+                      - generic [ref=e2164]: "6"
+                    - generic [ref=e2165]:
+                      - generic [ref=e2166]:
+                        - generic [ref=e2167]: CHARLES RAMIREZ
+                        - generic [ref=e2168]: charles.ramirez@email.com
+                      - generic [ref=e2169]:
+                        - generic [ref=e2170]: "Gaps:"
+                        - generic [ref=e2171]: Microservices
+                        - generic [ref=e2172]: System Design
+                        - generic [ref=e2173]: Leadership
+                        - generic [ref=e2174]: Cloud
+                        - generic [ref=e2175]: API Design
+                      - generic [ref=e2177]:
+                        - img [ref=e2178]
+                        - text: 2 positions
+                    - button "Assign" [ref=e2183]:
+                      - img
+                      - text: Assign
+                  - generic [ref=e2185]:
+                    - generic [ref=e2187]:
+                      - img [ref=e2188]
+                      - generic [ref=e2191]: "6"
+                    - generic [ref=e2192]:
+                      - generic [ref=e2193]:
+                        - generic [ref=e2194]: THOMAS LOPEZ
+                        - generic [ref=e2195]: thomas.lopez@email.com
+                      - generic [ref=e2196]:
+                        - generic [ref=e2197]: "Gaps:"
+                        - generic [ref=e2198]: Microservices
+                        - generic [ref=e2199]: System Design
+                        - generic [ref=e2200]: Leadership
+                        - generic [ref=e2201]: Cloud
+                        - generic [ref=e2202]: API Design
+                      - generic [ref=e2204]:
+                        - img [ref=e2205]
+                        - text: 2 positions
+                    - button "Assign" [ref=e2210]:
+                      - img
+                      - text: Assign
+                  - generic [ref=e2212]:
+                    - generic [ref=e2214]:
+                      - img [ref=e2215]
+                      - generic [ref=e2218]: "0"
+                    - generic [ref=e2219]:
+                      - generic [ref=e2220]:
+                        - generic [ref=e2221]: Rayen Fassatoui
+                        - generic [ref=e2222]: rayenft2001@gmail.com
+                      - generic [ref=e2223]:
+                        - generic [ref=e2224]: "Gaps:"
+                        - generic [ref=e2225]: Microservices
+                        - generic [ref=e2226]: System Design
+                        - generic [ref=e2227]: Leadership
+                        - generic [ref=e2228]: Cloud
+                        - generic [ref=e2229]: API Design
+                      - generic [ref=e2231]:
+                        - img [ref=e2232]
+                        - text: 8 positions
+                    - button "Assign" [ref=e2237]:
+                      - img
+                      - text: Assign
+                  - generic [ref=e2239]:
+                    - generic [ref=e2241]:
+                      - img [ref=e2242]
+                      - generic [ref=e2245]: "0"
+                    - generic [ref=e2246]:
+                      - generic [ref=e2247]:
+                        - generic [ref=e2248]: Ahmed Balti
+                        - generic [ref=e2249]: baltii.ahmed@gmail.com
+                      - generic [ref=e2250]:
+                        - generic [ref=e2251]: "Gaps:"
+                        - generic [ref=e2252]: Microservices
+                        - generic [ref=e2253]: System Design
+                        - generic [ref=e2254]: Leadership
+                        - generic [ref=e2255]: Cloud
+                        - generic [ref=e2256]: API Design
+                      - generic [ref=e2257]:
+                        - generic [ref=e2258]:
+                          - img [ref=e2259]
+                          - text: English, French
+                        - generic [ref=e2264]:
+                          - img [ref=e2265]
+                          - text: 13 positions
+                    - button "Assign" [ref=e2270]:
+                      - img
+                      - text: Assign
+                  - generic [ref=e2272]:
+                    - generic [ref=e2274]:
+                      - img [ref=e2275]
+                      - generic [ref=e2278]: "0"
+                    - generic [ref=e2279]:
+                      - generic [ref=e2280]:
+                        - generic [ref=e2281]: DONALD BAKER
+                        - generic [ref=e2282]: donald.baker@email.com
+                      - generic [ref=e2283]:
+                        - generic [ref=e2284]: "Gaps:"
+                        - generic [ref=e2285]: Microservices
+                        - generic [ref=e2286]: System Design
+                        - generic [ref=e2287]: Leadership
+                        - generic [ref=e2288]: Cloud
+                        - generic [ref=e2289]: API Design
+                      - generic [ref=e2291]:
+                        - img [ref=e2292]
+                        - text: 2 positions
+                    - button "Assign" [ref=e2297]:
+                      - img
+                      - text: Assign
+                  - generic [ref=e2299]:
+                    - generic [ref=e2301]:
+                      - img [ref=e2302]
+                      - generic [ref=e2305]: "0"
+                    - generic [ref=e2306]:
+                      - generic [ref=e2307]:
+                        - generic [ref=e2308]: KAREN DAVIS
+                        - generic [ref=e2309]: karen.davis@email.com
+                      - generic [ref=e2310]:
+                        - generic [ref=e2311]: "Gaps:"
+                        - generic [ref=e2312]: Microservices
+                        - generic [ref=e2313]: System Design
+                        - generic [ref=e2314]: Leadership
+                        - generic [ref=e2315]: Cloud
+                        - generic [ref=e2316]: API Design
+                      - generic [ref=e2318]:
+                        - img [ref=e2319]
+                        - text: 2 positions
+                    - button "Assign" [ref=e2324]:
+                      - img
+                      - text: Assign
+                  - generic [ref=e2326]:
+                    - generic [ref=e2328]:
+                      - img [ref=e2329]
+                      - generic [ref=e2332]: "0"
+                    - generic [ref=e2333]:
+                      - generic [ref=e2334]:
+                        - generic [ref=e2335]: KENNETH RAMIREZ
+                        - generic [ref=e2336]: kenneth.ramirez@email.com
+                      - generic [ref=e2337]:
+                        - generic [ref=e2338]: "Gaps:"
+                        - generic [ref=e2339]: Microservices
+                        - generic [ref=e2340]: System Design
+                        - generic [ref=e2341]: Leadership
+                        - generic [ref=e2342]: Cloud
+                        - generic [ref=e2343]: API Design
+                      - generic [ref=e2345]:
+                        - img [ref=e2346]
+                        - text: 2 positions
+                    - button "Assign" [ref=e2351]:
+                      - img
+                      - text: Assign
+                  - generic [ref=e2353]:
+                    - generic [ref=e2355]:
+                      - img [ref=e2356]
+                      - generic [ref=e2359]: "0"
+                    - generic [ref=e2360]:
+                      - generic [ref=e2361]:
+                        - generic [ref=e2362]: JESSICA BROWN
+                        - generic [ref=e2363]: jessica.brown@email.com
+                      - generic [ref=e2364]:
+                        - generic [ref=e2365]: "Gaps:"
+                        - generic [ref=e2366]: Microservices
+                        - generic [ref=e2367]: System Design
+                        - generic [ref=e2368]: Leadership
+                        - generic [ref=e2369]: Cloud
+                        - generic [ref=e2370]: API Design
+                      - generic [ref=e2372]:
+                        - img [ref=e2373]
+                        - text: 2 positions
+                    - button "Assign" [ref=e2378]:
+                      - img
+                      - text: Assign
+                  - generic [ref=e2380]:
+                    - generic [ref=e2382]:
+                      - img [ref=e2383]
+                      - generic [ref=e2386]: "0"
+                    - generic [ref=e2387]:
+                      - generic [ref=e2388]:
+                        - generic [ref=e2389]: Dorothy Anderson
+                        - generic [ref=e2390]: dorothy.anderson@email.com
+                      - generic [ref=e2391]:
+                        - generic [ref=e2392]: "Gaps:"
+                        - generic [ref=e2393]: Microservices
+                        - generic [ref=e2394]: System Design
+                        - generic [ref=e2395]: Leadership
+                        - generic [ref=e2396]: Cloud
+                        - generic [ref=e2397]: API Design
+                      - generic [ref=e2399]:
+                        - img [ref=e2400]
+                        - text: 2 positions
+                    - button "Assign" [ref=e2405]:
+                      - img
+                      - text: Assign
+                  - generic [ref=e2407]:
+                    - generic [ref=e2409]:
+                      - img [ref=e2410]
+                      - generic [ref=e2413]: "0"
+                    - generic [ref=e2414]:
+                      - generic [ref=e2415]:
+                        - generic [ref=e2416]: JOSEPH THOMAS
+                        - generic [ref=e2417]: joseph.thomas@email.com
+                      - generic [ref=e2418]:
+                        - generic [ref=e2419]: "Gaps:"
+                        - generic [ref=e2420]: Microservices
+                        - generic [ref=e2421]: System Design
+                        - generic [ref=e2422]: Leadership
+                        - generic [ref=e2423]: Cloud
+                        - generic [ref=e2424]: API Design
+                      - generic [ref=e2426]:
+                        - img [ref=e2427]
+                        - text: 2 positions
+                    - button "Assign" [ref=e2432]:
+                      - img
+                      - text: Assign
+                  - generic [ref=e2434]:
+                    - generic [ref=e2436]:
+                      - img [ref=e2437]
+                      - generic [ref=e2440]: "0"
+                    - generic [ref=e2441]:
+                      - generic [ref=e2442]:
+                        - generic [ref=e2443]: Dorothy Lee
+                        - generic [ref=e2444]: dorothy.lee@email.com
+                      - generic [ref=e2445]:
+                        - generic [ref=e2446]: "Gaps:"
+                        - generic [ref=e2447]: Microservices
+                        - generic [ref=e2448]: System Design
+                        - generic [ref=e2449]: Leadership
+                        - generic [ref=e2450]: Cloud
+                        - generic [ref=e2451]: API Design
+                      - generic [ref=e2453]:
+                        - img [ref=e2454]
+                        - text: 2 positions
+                    - button "Assign" [ref=e2459]:
+                      - img
+                      - text: Assign
+                  - generic [ref=e2461]:
+                    - generic [ref=e2463]:
+                      - img [ref=e2464]
+                      - generic [ref=e2467]: "0"
+                    - generic [ref=e2468]:
+                      - generic [ref=e2469]:
+                        - generic [ref=e2470]: Michelle Hill
+                        - generic [ref=e2471]: michelle.hill@email.com
+                      - generic [ref=e2472]:
+                        - generic [ref=e2473]: "Gaps:"
+                        - generic [ref=e2474]: Microservices
+                        - generic [ref=e2475]: System Design
+                        - generic [ref=e2476]: Leadership
+                        - generic [ref=e2477]: Cloud
+                        - generic [ref=e2478]: API Design
+                      - generic [ref=e2480]:
+                        - img [ref=e2481]
+                        - text: 2 positions
+                    - button "Assign" [ref=e2486]:
+                      - img
+                      - text: Assign
+                  - generic [ref=e2488]:
+                    - generic [ref=e2490]:
+                      - img [ref=e2491]
+                      - generic [ref=e2494]: "0"
+                    - generic [ref=e2495]:
+                      - generic [ref=e2496]:
+                        - generic [ref=e2497]: STEVEN ADAMS
+                        - generic [ref=e2498]: steven.adams@email.com
+                      - generic [ref=e2499]:
+                        - generic [ref=e2500]: "Gaps:"
+                        - generic [ref=e2501]: Microservices
+                        - generic [ref=e2502]: System Design
+                        - generic [ref=e2503]: Leadership
+                        - generic [ref=e2504]: Cloud
+                        - generic [ref=e2505]: API Design
+                      - generic [ref=e2507]:
+                        - img [ref=e2508]
+                        - text: 2 positions
+                    - button "Assign" [ref=e2513]:
+                      - img
+                      - text: Assign
+                  - generic [ref=e2515]:
+                    - generic [ref=e2517]:
+                      - img [ref=e2518]
+                      - generic [ref=e2521]: "0"
+                    - generic [ref=e2522]:
+                      - generic [ref=e2523]:
+                        - generic [ref=e2524]: Michelle Rodriguez
+                        - generic [ref=e2525]: michelle.rodriguez@email.com
+                      - generic [ref=e2526]:
+                        - generic [ref=e2527]: "Gaps:"
+                        - generic [ref=e2528]: Microservices
+                        - generic [ref=e2529]: System Design
+                        - generic [ref=e2530]: Leadership
+                        - generic [ref=e2531]: Cloud
+                        - generic [ref=e2532]: API Design
+                      - generic [ref=e2534]:
+                        - img [ref=e2535]
+                        - text: 2 positions
+                    - button "Assign" [ref=e2540]:
+                      - img
+                      - text: Assign
+                  - generic [ref=e2542]:
+                    - generic [ref=e2544]:
+                      - img [ref=e2545]
+                      - generic [ref=e2548]: "0"
+                    - generic [ref=e2549]:
+                      - generic [ref=e2550]:
+                        - generic [ref=e2551]: Robert Miller
+                        - generic [ref=e2552]: robert.miller@email.com
+                      - generic [ref=e2553]:
+                        - generic [ref=e2554]: "Gaps:"
+                        - generic [ref=e2555]: Microservices
+                        - generic [ref=e2556]: System Design
+                        - generic [ref=e2557]: Leadership
+                        - generic [ref=e2558]: Cloud
+                        - generic [ref=e2559]: API Design
+                      - generic [ref=e2561]:
+                        - img [ref=e2562]
+                        - text: 2 positions
+                    - button "Assign" [ref=e2567]:
+                      - img
+                      - text: Assign
+                  - generic [ref=e2569]:
+                    - generic [ref=e2571]:
+                      - img [ref=e2572]
+                      - generic [ref=e2575]: "0"
+                    - generic [ref=e2576]:
+                      - generic [ref=e2577]:
+                        - generic [ref=e2578]: Barbara Thomas
+                        - generic [ref=e2579]: barbara.thomas@email.com
+                      - generic [ref=e2580]:
+                        - generic [ref=e2581]: "Gaps:"
+                        - generic [ref=e2582]: Microservices
+                        - generic [ref=e2583]: System Design
+                        - generic [ref=e2584]: Leadership
+                        - generic [ref=e2585]: Cloud
+                        - generic [ref=e2586]: API Design
+                      - generic [ref=e2588]:
+                        - img [ref=e2589]
+                        - text: 2 positions
+                    - button "Assign" [ref=e2594]:
+                      - img
+                      - text: Assign
+                  - generic [ref=e2596]:
+                    - generic [ref=e2598]:
+                      - img [ref=e2599]
+                      - generic [ref=e2602]: "0"
+                    - generic [ref=e2603]:
+                      - generic [ref=e2604]:
+                        - generic [ref=e2605]: Margaret Clark
+                        - generic [ref=e2606]: margaret.clark@email.com
+                      - generic [ref=e2607]:
+                        - generic [ref=e2608]: "Gaps:"
+                        - generic [ref=e2609]: Microservices
+                        - generic [ref=e2610]: System Design
+                        - generic [ref=e2611]: Leadership
+                        - generic [ref=e2612]: Cloud
+                        - generic [ref=e2613]: API Design
+                      - generic [ref=e2615]:
+                        - img [ref=e2616]
+                        - text: 2 positions
+                    - button "Assign" [ref=e2621]:
+                      - img
+                      - text: Assign
+                  - generic [ref=e2623]:
+                    - generic [ref=e2625]:
+                      - img [ref=e2626]
+                      - generic [ref=e2629]: "0"
+                    - generic [ref=e2630]:
+                      - generic [ref=e2631]:
+                        - generic [ref=e2632]: DAVID HALL
+                        - generic [ref=e2633]: david.hall@email.com
+                      - generic [ref=e2634]:
+                        - generic [ref=e2635]: "Gaps:"
+                        - generic [ref=e2636]: Microservices
+                        - generic [ref=e2637]: System Design
+                        - generic [ref=e2638]: Leadership
+                        - generic [ref=e2639]: Cloud
+                        - generic [ref=e2640]: API Design
+                      - generic [ref=e2642]:
+                        - img [ref=e2643]
+                        - text: 2 positions
+                    - button "Assign" [ref=e2648]:
+                      - img
+                      - text: Assign
+                  - generic [ref=e2650]:
+                    - generic [ref=e2652]:
+                      - img [ref=e2653]
+                      - generic [ref=e2656]: "0"
+                    - generic [ref=e2657]:
+                      - generic [ref=e2658]:
+                        - generic [ref=e2659]: Barbara Clark
+                        - generic [ref=e2660]: barbara.clark@email.com
+                      - generic [ref=e2661]:
+                        - generic [ref=e2662]: "Gaps:"
+                        - generic [ref=e2663]: Microservices
+                        - generic [ref=e2664]: System Design
+                        - generic [ref=e2665]: Leadership
+                        - generic [ref=e2666]: Cloud
+                        - generic [ref=e2667]: API Design
+                      - generic [ref=e2669]:
+                        - img [ref=e2670]
+                        - text: 2 positions
+                    - button "Assign" [ref=e2675]:
+                      - img
+                      - text: Assign
+                  - generic [ref=e2677]:
+                    - generic [ref=e2679]:
+                      - img [ref=e2680]
+                      - generic [ref=e2683]: "0"
+                    - generic [ref=e2684]:
+                      - generic [ref=e2685]:
+                        - generic [ref=e2686]: STEVEN HARRIS
+                        - generic [ref=e2687]: steven.harris@email.com
+                      - generic [ref=e2688]:
+                        - generic [ref=e2689]: "Gaps:"
+                        - generic [ref=e2690]: Microservices
+                        - generic [ref=e2691]: System Design
+                        - generic [ref=e2692]: Leadership
+                        - generic [ref=e2693]: Cloud
+                        - generic [ref=e2694]: API Design
+                      - generic [ref=e2696]:
+                        - img [ref=e2697]
+                        - text: 2 positions
+                    - button "Assign" [ref=e2702]:
+                      - img
+                      - text: Assign
+                  - generic [ref=e2704]:
+                    - generic [ref=e2706]:
+                      - img [ref=e2707]
+                      - generic [ref=e2710]: "0"
+                    - generic [ref=e2711]:
+                      - generic [ref=e2712]:
+                        - generic [ref=e2713]: Steven Wilson
+                        - generic [ref=e2714]: steven.wilson@email.com
+                      - generic [ref=e2715]:
+                        - generic [ref=e2716]: "Gaps:"
+                        - generic [ref=e2717]: Microservices
+                        - generic [ref=e2718]: System Design
+                        - generic [ref=e2719]: Leadership
+                        - generic [ref=e2720]: Cloud
+                        - generic [ref=e2721]: API Design
+                      - generic [ref=e2723]:
+                        - img [ref=e2724]
+                        - text: 2 positions
+                    - button "Assign" [ref=e2729]:
+                      - img
+                      - text: Assign
+                  - generic [ref=e2731]:
+                    - generic [ref=e2733]:
+                      - img [ref=e2734]
+                      - generic [ref=e2737]: "0"
+                    - generic [ref=e2738]:
+                      - generic [ref=e2739]:
+                        - generic [ref=e2740]: Michelle Flores
+                        - generic [ref=e2741]: michelle.flores@email.com
+                      - generic [ref=e2742]:
+                        - generic [ref=e2743]: "Gaps:"
+                        - generic [ref=e2744]: Microservices
+                        - generic [ref=e2745]: System Design
+                        - generic [ref=e2746]: Leadership
+                        - generic [ref=e2747]: Cloud
+                        - generic [ref=e2748]: API Design
+                      - generic [ref=e2750]:
+                        - img [ref=e2751]
+                        - text: 2 positions
+                    - button "Assign" [ref=e2756]:
+                      - img
+                      - text: Assign
+                  - generic [ref=e2758]:
+                    - generic [ref=e2760]:
+                      - img [ref=e2761]
+                      - generic [ref=e2764]: "0"
+                    - generic [ref=e2765]:
+                      - generic [ref=e2766]:
+                        - generic [ref=e2767]: Margaret Smith
+                        - generic [ref=e2768]: margaret.smith@email.com
+                      - generic [ref=e2769]:
+                        - generic [ref=e2770]: "Gaps:"
+                        - generic [ref=e2771]: Microservices
+                        - generic [ref=e2772]: System Design
+                        - generic [ref=e2773]: Leadership
+                        - generic [ref=e2774]: Cloud
+                        - generic [ref=e2775]: API Design
+                      - generic [ref=e2777]:
+                        - img [ref=e2778]
+                        - text: 2 positions
+                    - button "Assign" [ref=e2783]:
+                      - img
+                      - text: Assign
+                  - generic [ref=e2785]:
+                    - generic [ref=e2787]:
+                      - img [ref=e2788]
+                      - generic [ref=e2791]: "0"
+                    - generic [ref=e2792]:
+                      - generic [ref=e2793]:
+                        - generic [ref=e2794]: Donald Baker
+                        - generic [ref=e2795]: donald.baker@email.com
+                      - generic [ref=e2796]:
+                        - generic [ref=e2797]: "Gaps:"
+                        - generic [ref=e2798]: Microservices
+                        - generic [ref=e2799]: System Design
+                        - generic [ref=e2800]: Leadership
+                        - generic [ref=e2801]: Cloud
+                        - generic [ref=e2802]: API Design
+                      - generic [ref=e2804]:
+                        - img [ref=e2805]
+                        - text: 2 positions
+                    - button "Assign" [ref=e2810]:
+                      - img
+                      - text: Assign
+                  - generic [ref=e2812]:
+                    - generic [ref=e2814]:
+                      - img [ref=e2815]
+                      - generic [ref=e2818]: "0"
+                    - generic [ref=e2819]:
+                      - generic [ref=e2820]:
+                        - generic [ref=e2821]: Karen Davis
+                        - generic [ref=e2822]: karen.davis@email.com
+                      - generic [ref=e2823]:
+                        - generic [ref=e2824]: "Gaps:"
+                        - generic [ref=e2825]: Microservices
+                        - generic [ref=e2826]: System Design
+                        - generic [ref=e2827]: Leadership
+                        - generic [ref=e2828]: Cloud
+                        - generic [ref=e2829]: API Design
+                      - generic [ref=e2831]:
+                        - img [ref=e2832]
+                        - text: 2 positions
+                    - button "Assign" [ref=e2837]:
+                      - img
+                      - text: Assign
+                  - generic [ref=e2839]:
+                    - generic [ref=e2841]:
+                      - img [ref=e2842]
+                      - generic [ref=e2845]: "0"
+                    - generic [ref=e2846]:
+                      - generic [ref=e2847]:
+                        - generic [ref=e2848]: KENNETH RAMIREZ
+                        - generic [ref=e2849]: kenneth.ramirez@email.com
+                      - generic [ref=e2850]:
+                        - generic [ref=e2851]: "Gaps:"
+                        - generic [ref=e2852]: Microservices
+                        - generic [ref=e2853]: System Design
+                        - generic [ref=e2854]: Leadership
+                        - generic [ref=e2855]: Cloud
+                        - generic [ref=e2856]: API Design
+                      - generic [ref=e2858]:
+                        - img [ref=e2859]
+                        - text: 2 positions
+                    - button "Assign" [ref=e2864]:
+                      - img
+                      - text: Assign
+                  - generic [ref=e2866]:
+                    - generic [ref=e2868]:
+                      - img [ref=e2869]
+                      - generic [ref=e2872]: "0"
+                    - generic [ref=e2873]:
+                      - generic [ref=e2874]:
+                        - generic [ref=e2875]: Dorothy Anderson
+                        - generic [ref=e2876]: dorothy.anderson@email.com
+                      - generic [ref=e2877]:
+                        - generic [ref=e2878]: "Gaps:"
+                        - generic [ref=e2879]: Microservices
+                        - generic [ref=e2880]: System Design
+                        - generic [ref=e2881]: Leadership
+                        - generic [ref=e2882]: Cloud
+                        - generic [ref=e2883]: API Design
+                      - generic [ref=e2885]:
+                        - img [ref=e2886]
+                        - text: 2 positions
+                    - button "Assign" [ref=e2891]:
+                      - img
+                      - text: Assign
+                  - generic [ref=e2893]:
+                    - generic [ref=e2895]:
+                      - img [ref=e2896]
+                      - generic [ref=e2899]: "0"
+                    - generic [ref=e2900]:
+                      - generic [ref=e2901]:
+                        - generic [ref=e2902]: Ahmed Ben Abdallah
+                        - generic [ref=e2903]: benabdallah.ahmed@esprit.tn
+                      - generic [ref=e2904]:
+                        - generic [ref=e2905]: "Gaps:"
+                        - generic [ref=e2906]: Microservices
+                        - generic [ref=e2907]: System Design
+                        - generic [ref=e2908]: Leadership
+                        - generic [ref=e2909]: Cloud
+                        - generic [ref=e2910]: API Design
+                      - generic [ref=e2911]:
+                        - generic [ref=e2912]:
+                          - img [ref=e2913]
+                          - text: Arabic, English, French, German
+                        - generic [ref=e2918]:
+                          - img [ref=e2919]
+                          - text: 3 positions
+                    - button "Assign" [ref=e2924]:
+                      - img
+                      - text: Assign
+                  - generic [ref=e2926]:
+                    - generic [ref=e2928]:
+                      - img [ref=e2929]
+                      - generic [ref=e2932]: "0"
+                    - generic [ref=e2933]:
+                      - generic [ref=e2934]:
+                        - generic [ref=e2935]: TBINI Mustapha Amine
+                        - generic [ref=e2936]: mustaphaamintbini@gmail.com
+                      - generic [ref=e2937]:
+                        - generic [ref=e2938]: "Gaps:"
+                        - generic [ref=e2939]: Microservices
+                        - generic [ref=e2940]: System Design
+                        - generic [ref=e2941]: Leadership
+                        - generic [ref=e2942]: Cloud
+                        - generic [ref=e2943]: API Design
+                      - generic [ref=e2944]:
+                        - generic [ref=e2945]:
+                          - img [ref=e2946]
+                          - text: Arabic, French, English
+                        - generic [ref=e2951]:
+                          - img [ref=e2952]
+                          - text: 4 positions
+                    - button "Assign" [ref=e2957]:
+                      - img
+                      - text: Assign
+                  - generic [ref=e2959]:
+                    - generic [ref=e2961]:
+                      - img [ref=e2962]
+                      - generic [ref=e2965]: "0"
+                    - generic [ref=e2966]:
+                      - generic [ref=e2968]: Unknown
+                      - generic [ref=e2969]:
+                        - generic [ref=e2970]: "Gaps:"
+                        - generic [ref=e2971]: Microservices
+                        - generic [ref=e2972]: System Design
+                        - generic [ref=e2973]: Leadership
+                        - generic [ref=e2974]: Cloud
+                        - generic [ref=e2975]: API Design
+                    - button "Assign" [ref=e2977]:
+                      - img
+                      - text: Assign
+                  - generic [ref=e2979]:
+                    - generic [ref=e2981]:
+                      - img [ref=e2982]
+                      - generic [ref=e2985]: "0"
+                    - generic [ref=e2986]:
+                      - generic [ref=e2987]:
+                        - generic [ref=e2988]: Nour Gabsi
+                        - generic [ref=e2989]: gabsinour20@gmail.com
+                      - generic [ref=e2990]:
+                        - generic [ref=e2991]: "Gaps:"
+                        - generic [ref=e2992]: Microservices
+                        - generic [ref=e2993]: System Design
+                        - generic [ref=e2994]: Leadership
+                        - generic [ref=e2995]: Cloud
+                        - generic [ref=e2996]: API Design
+                      - generic [ref=e2997]:
+                        - generic [ref=e2998]:
+                          - img [ref=e2999]
+                          - text: Français, Anglais, Espagnol
+                        - generic [ref=e3004]:
+                          - img [ref=e3005]
+                          - text: 5 positions
+                    - button "Assign" [ref=e3010]:
+                      - img
+                      - text: Assign
+  - button "Open AI analytics assistant" [ref=e150]:
+    - img
+  - region "Notifications alt+T"
+  - button "Open Next.js Dev Tools" [ref=e31] [cursor=pointer]:
+    - img [ref=e32]
+  - alert [ref=e35]

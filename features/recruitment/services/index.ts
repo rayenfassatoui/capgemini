@@ -25,6 +25,9 @@ export {
   getCandidate,
   updateCandidateStage,
   bulkUpdateCandidateStage,
+  assignManagerToCandidate,
+  assignHrToCandidate,
+  getCandidatesByStageAndAssignee,
 } from './candidates';
 
 export { generateScreeningWithAI, getScreening } from './screening';
@@ -121,3 +124,5 @@ export {
   checkDuplicateCv,
   scanPoolForDuplicates,
 } from './duplicate-detection';
+
+export { listUsersByRole } from './users';

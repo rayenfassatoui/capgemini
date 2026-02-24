@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { IconArrowLeft } from '@tabler/icons-react';
 
 import { JobDetailClient } from '@/features/recruitment/components/job-detail-client';
-import { getJobAction, getCandidatesByJobAction } from '@/features/recruitment/actions';
+import { getJobAction, getCandidatesByJobAction, listUsersByRoleAction } from '@/features/recruitment/actions';
 import { requireRole } from '@/lib/auth';
 
 export default async function JobDetailPage({
@@ -15,9 +15,10 @@ export default async function JobDetailPage({
   const { id } = await params;
 
   // Parallel data fetching
-  const [job, candidates] = await Promise.all([
+  const [job, candidates, managers] = await Promise.all([
     getJobAction(id),
     getCandidatesByJobAction(id),
+    listUsersByRoleAction('manager'),
   ]);
 
   if (!job) {
@@ -35,7 +36,7 @@ export default async function JobDetailPage({
         </Link>
       </div>
 
-      <JobDetailClient job={job} candidates={candidates} jobId={id} />
+      <JobDetailClient job={job} candidates={candidates} jobId={id} managers={managers} />
     </div>
   );
 }

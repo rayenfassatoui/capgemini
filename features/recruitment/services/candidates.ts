@@ -28,7 +28,7 @@ export async function assignCvToJob(cvId: string, jobId: string, userId: string)
       phone: cv.extractedPhone ?? null,
       cvId,
       jobId,
-      stage: 'new',
+      stage: 'ta_interview',
       assignedBy: userId,
     })
     .returning();
@@ -105,4 +105,56 @@ export async function bulkUpdateCandidateStage(
     .returning();
 
   return updated;
+}
+
+export async function assignManagerToCandidate(
+  candidateId: string,
+  managerId: string
+) {
+  const [updated] = await db
+    .update(candidates)
+    .set({
+      assignedManagerId: managerId,
+      stage: 'manager_interview',
+      updatedAt: new Date(),
+    })
+    .where(eq(candidates.id, candidateId))
+    .returning();
+
+  return updated;
+}
+
+export async function assignHrToCandidate(
+  candidateId: string,
+  hrId: string
+) {
+  const [updated] = await db
+    .update(candidates)
+    .set({
+      assignedHrId: hrId,
+      stage: 'hr_interview',
+      updatedAt: new Date(),
+    })
+    .where(eq(candidates.id, candidateId))
+    .returning();
+
+  return updated;
+}
+
+export async function getCandidatesByStageAndAssignee(
+  stages: CandidateStage[],
+  assigneeField: 'assignedManagerId' | 'assignedHrId',
+  assigneeId: string
+) {
+  if (stages.length === 0) return [];
+  return db
+    .select()
+    .from(candidates)
+    .where(
+      and(
+        inArray(candidates.stage, stages),
+        eq(candidates[assigneeField], assigneeId)
+      )
+    )
+    .orderBy(desc(candidates.createdAt));
 }

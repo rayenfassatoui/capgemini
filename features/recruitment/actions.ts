@@ -641,3 +641,55 @@ export async function getInterviewCalendarAction(startDate: string, endDate: str
   const { getInterviewCalendar } = await import('./services/interviews');
   return getInterviewCalendar(session.user.id, startDate, endDate);
 }
+
+// ==================== USER LIST ACTIONS ====================
+
+export async function listUsersByRoleAction(role: string) {
+  await requireRole(['ta', 'manager', 'hr', 'admin']);
+  const services = await getServices();
+  return services.listUsersByRole(role);
+}
+
+// ==================== CANDIDATE ASSIGNMENT ACTIONS ====================
+
+export async function assignManagerToCandidateAction(
+  candidateId: string,
+  managerId: string
+) {
+  try {
+    await requireRole(['ta', 'admin']);
+    const services = await getServices();
+    const result = await services.assignManagerToCandidate(candidateId, managerId);
+    revalidatePath('/ta/jobs');
+    revalidatePath('/manager/candidates');
+    return result;
+  } catch (error) {
+    handleActionError(error);
+  }
+}
+
+export async function assignHrToCandidateAction(
+  candidateId: string,
+  hrId: string
+) {
+  try {
+    await requireRole(['manager', 'admin']);
+    const services = await getServices();
+    const result = await services.assignHrToCandidate(candidateId, hrId);
+    revalidatePath('/manager/candidates');
+    revalidatePath('/hr/candidates');
+    return result;
+  } catch (error) {
+    handleActionError(error);
+  }
+}
+
+export async function getCandidatesByStageAndAssigneeAction(
+  stages: CandidateStage[],
+  assigneeField: 'assignedManagerId' | 'assignedHrId',
+  assigneeId: string
+) {
+  await requireRole(['ta', 'manager', 'hr', 'admin']);
+  const services = await getServices();
+  return services.getCandidatesByStageAndAssignee(stages, assigneeField, assigneeId);
+}

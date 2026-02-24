@@ -70,6 +70,7 @@ import {
   saveInterviewReportAction,
   updateCandidateStageAction,
   updateInterviewQuestionsAction,
+  assignManagerToCandidateAction,
 } from '@/features/recruitment/actions';
 
 import { MatchCvsDialog, InlineCvMatching } from '@/features/recruitment/components/match-cvs-dialog';
@@ -129,10 +130,18 @@ interface Screening {
 
 // ---------- Component ----------
 
+interface UserListItem {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+}
+
 interface JobDetailClientProps {
   job: Job;
   candidates: Candidate[];
   jobId: string;
+  managers: UserListItem[];
 }
 
 const ACTIVE_CANDIDATE_STAGES: CandidateStage[] = [
@@ -149,6 +158,7 @@ export function JobDetailClient({
   job,
   candidates: initialCandidates,
   jobId,
+  managers,
 }: JobDetailClientProps) {
   const [candidates, setCandidates] = React.useState<Candidate[]>(initialCandidates);
   const [jobStatus, setJobStatus] = React.useState(job.status);
@@ -182,6 +192,8 @@ export function JobDetailClient({
   const [reportScore, setReportScore] = React.useState<number>(0);
   const [reportDecision, setReportDecision] = React.useState<InterviewDecision>('pending');
   const [reportOverall, setReportOverall] = React.useState('');
+  const [selectedManagerIds, setSelectedManagerIds] = React.useState<Record<string, string>>({});
+  const [assigningManager, setAssigningManager] = React.useState<string | null>(null);
 
   // ---------- Helpers ----------
 
@@ -373,6 +385,23 @@ export function JobDetailClient({
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to close job';
       toast.error(message);
+    }
+  };
+
+  const handleAssignManager = async (candidateId: string) => {
+    const managerId = selectedManagerIds[candidateId];
+    if (!managerId) {
+      toast.error('Please select a manager first');
+      return;
+    }
+    try {
+      setAssigningManager(candidateId);
+      await assignManagerToCandidateAction(candidateId, managerId);
+      toast.success('Candidate assigned to manager');
+    } catch (error) {
+      toast.error('Failed to assign manager');
+    } finally {
+      setAssigningManager(null);
     }
   };
 
@@ -579,6 +608,29 @@ export function JobDetailClient({
                            </Button>
                         </div>
                       </>
+                    )}
+
+                    {candidate.stage === 'ta_accepted' && (
+                      <div className="w-full space-y-2">
+                        <select
+                          className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                          value={selectedManagerIds[candidate.id] || ''}
+                          onChange={(e) => setSelectedManagerIds(prev => ({ ...prev, [candidate.id]: e.target.value }))}
+                        >
+                          <option value="" disabled>Select a Manager</option>
+                          {managers.map(m => (
+                            <option key={m.id} value={m.id}>{m.name} ({m.email})</option>
+                          ))}
+                        </select>
+                        <Button
+                          size="sm"
+                          className="w-full bg-purple-600 hover:bg-purple-700 text-white"
+                          disabled={!selectedManagerIds[candidate.id] || assigningManager === candidate.id}
+                          onClick={() => handleAssignManager(candidate.id)}
+                        >
+                          {assigningManager === candidate.id ? 'Assigning...' : 'Assign to Manager'}
+                        </Button>
+                      </div>
                     )}
                   </CardFooter>
                 </Card>

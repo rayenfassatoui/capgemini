@@ -64,6 +64,16 @@ export const assignCvToJobSchema = z.object({
   jobId: z.string().uuid(),
 });
 
+export const assignManagerToCandidateSchema = z.object({
+  candidateId: z.string().uuid(),
+  managerId: z.string().min(1),
+});
+
+export const assignHrToCandidateSchema = z.object({
+  candidateId: z.string().uuid(),
+  hrId: z.string().min(1),
+});
+
 // ---------- Screening Schemas ----------
 
 export const screeningSchema = z.object({

@@ -161,6 +161,10 @@ export const candidates = pgTable('candidates', {
   assignedBy: text('assigned_by')
     .notNull()
     .references(() => users.id, { onDelete: 'cascade' }),
+  assignedManagerId: text('assigned_manager_id')
+    .references(() => users.id, { onDelete: 'set null' }),
+  assignedHrId: text('assigned_hr_id')
+    .references(() => users.id, { onDelete: 'set null' }),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
@@ -373,7 +377,9 @@ export const usersRelations = relations(users, ({ many }) => ({
   sessions: many(sessions),
   accounts: many(accounts),
   jobs: many(jobs),
-  candidates: many(candidates),
+  assignedCandidates: many(candidates, { relationName: 'assignedByUser' }),
+  managedCandidates: many(candidates, { relationName: 'assignedManager' }),
+  hrCandidates: many(candidates, { relationName: 'assignedHr' }),
   interviewGuides: many(interviewGuides),
   interviews: many(interviews),
   interviewReports: many(interviewReports),
@@ -409,7 +415,9 @@ export const cvPoolRelations = relations(cvPool, ({ one, many }) => ({
 export const candidatesRelations = relations(candidates, ({ one, many }) => ({
   cv: one(cvPool, { fields: [candidates.cvId], references: [cvPool.id] }),
   job: one(jobs, { fields: [candidates.jobId], references: [jobs.id] }),
-  assignedByUser: one(users, { fields: [candidates.assignedBy], references: [users.id] }),
+  assignedByUser: one(users, { fields: [candidates.assignedBy], references: [users.id], relationName: 'assignedByUser' }),
+  assignedManager: one(users, { fields: [candidates.assignedManagerId], references: [users.id], relationName: 'assignedManager' }),
+  assignedHr: one(users, { fields: [candidates.assignedHrId], references: [users.id], relationName: 'assignedHr' }),
   screenings: many(screenings),
   interviewGuides: many(interviewGuides),
   interviews: many(interviews),

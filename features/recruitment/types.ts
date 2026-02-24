@@ -55,6 +55,23 @@ export interface AssignCvToJobInput {
   jobId: string;
 }
 
+export interface AssignManagerToCandidateInput {
+  candidateId: string;
+  managerId: string;
+}
+
+export interface AssignHrToCandidateInput {
+  candidateId: string;
+  hrId: string;
+}
+
+export interface UserListItem {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+}
+
 export interface ScreeningResultData {
   score: number;
   mustMatchScore: number;
