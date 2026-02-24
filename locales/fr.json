@@ -24,7 +24,8 @@
     "export": "Exporter",
     "users": "Utilisateurs",
     "roleViews": "Vues par role",
-    "statistics": "Statistiques"
+    "statistics": "Statistiques",
+    "calendar": "Calendrier"
   },
   "dashboard": {
     "title": "Centre de Commande Recrutement",
@@ -113,6 +114,34 @@
     "atRisk": "A risque",
     "breached": "Depasse",
     "daysInStage": "jours dans l'etape"
+  },
+  "calendar": {
+    "title": "Calendrier des Entretiens",
+    "today": "Aujourd'hui",
+    "noInterviews": "Aucun entretien prevu",
+    "selectDate": "Selectionnez une date"
+  },
+  "notifications": {
+    "title": "Notifications",
+    "markAllRead": "Tout marquer comme lu",
+    "noNotifications": "Aucune notification",
+    "justNow": "a l'instant"
+  },
+  "notes": {
+    "title": "Notes du candidat",
+    "addNote": "Ajouter une note",
+    "noNotes": "Aucune note",
+    "placeholder": "Ecrire une note..."
+  },
+  "onboarding": {
+    "title": "Checklist d'integration",
+    "complete": "Termine",
+    "incomplete": "Non termine",
+    "addTask": "Ajouter une tache"
+  },
+  "activityLog": {
+    "title": "Journal d'activite",
+    "noActivity": "Aucune activite enregistree"
   },
   "settings": {
     "theme": "Theme",

@@ -14,7 +14,7 @@ export {
   searchCvPool,
 } from './cv-pool';
 
-export { createJob, listJobs, getJob, closeJob } from './jobs';
+export { createJob, listJobs, getJob, closeJob, saveJobAsTemplate, listJobTemplates, createJobFromTemplate } from './jobs';
 
 export { matchCvsToJob, matchCvsToJobWithFilters } from './cv-matching';
 
@@ -24,6 +24,7 @@ export {
   getCandidatesByStage,
   getCandidate,
   updateCandidateStage,
+  bulkUpdateCandidateStage,
 } from './candidates';
 
 export { generateScreeningWithAI, getScreening } from './screening';
@@ -86,3 +87,37 @@ export {
   generateCandidateEmail,
   predictPipelineScore,
 } from './ai-features';
+
+export {
+  createNotification,
+  getNotifications,
+  getUnreadCount,
+  markNotificationRead,
+  markAllNotificationsRead,
+  notifyStageChange,
+  notifyInterviewScheduled,
+} from './notifications';
+
+export {
+  addCandidateNote,
+  getCandidateNotes,
+  deleteCandidateNote,
+} from './candidate-notes';
+
+export {
+  logActivity,
+  getActivityLog,
+  getActivityByEntity,
+} from './activity-log';
+
+export {
+  createOnboardingChecklist,
+  getOnboardingChecklist,
+  toggleOnboardingTask,
+  addOnboardingTask,
+} from './onboarding';
+
+export {
+  checkDuplicateCv,
+  scanPoolForDuplicates,
+} from './duplicate-detection';

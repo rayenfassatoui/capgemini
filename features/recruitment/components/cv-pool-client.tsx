@@ -653,7 +653,11 @@ export function CvPoolClient({ initialData, stats }: CvPoolClientProps) {
                       </div>
                     </TableCell>
                     <TableCell className="text-xs text-muted-foreground">
-                      {new Date(cv.createdAt).toLocaleDateString()}
+                      {new Date(cv.createdAt).toLocaleDateString('en-GB', {
+                        day: '2-digit',
+                        month: 'short',
+                        year: 'numeric',
+                      })}
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1">

@@ -109,6 +109,7 @@ export const jobs = pgTable('jobs', {
   seniority: text('seniority').notNull(),
   businessUnit: text('business_unit'),
   status: text('status').notNull().default('open'),
+  isTemplate: boolean('is_template').default(false).notNull(),
   createdBy: text('created_by')
     .notNull()
     .references(() => users.id, { onDelete: 'cascade' }),
@@ -302,6 +303,70 @@ export const emailLogs = pgTable('email_logs', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
+/**
+ * Notifications: bell-icon alerts for users.
+ */
+export const notifications = pgTable('notifications', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: text('user_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  type: text('type').notNull(),
+  title: text('title').notNull(),
+  message: text('message').notNull(),
+  entityType: text('entity_type'),
+  entityId: text('entity_id'),
+  read: boolean('read').default(false).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+/**
+ * Candidate notes: comments left by TA/managers/HR on candidates.
+ */
+export const candidateNotes = pgTable('candidate_notes', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  candidateId: uuid('candidate_id')
+    .notNull()
+    .references(() => candidates.id, { onDelete: 'cascade' }),
+  userId: text('user_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  content: text('content').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+/**
+ * Activity log: audit trail of every action in the system.
+ */
+export const activityLogs = pgTable('activity_logs', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: text('user_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  action: text('action').notNull(),
+  entityType: text('entity_type').notNull(),
+  entityId: text('entity_id'),
+  details: text('details'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+/**
+ * Onboarding tasks: checklist items for hired candidates.
+ */
+export const onboardingTasks = pgTable('onboarding_tasks', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  candidateId: uuid('candidate_id')
+    .notNull()
+    .references(() => candidates.id, { onDelete: 'cascade' }),
+  title: text('title').notNull(),
+  description: text('description'),
+  completed: boolean('completed').default(false).notNull(),
+  completedBy: text('completed_by').references(() => users.id, { onDelete: 'set null' }),
+  completedAt: timestamp('completed_at'),
+  sortOrder: integer('sort_order').default(0).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
 // ============ RELATIONS ============
 
 export const usersRelations = relations(users, ({ many }) => ({
@@ -315,6 +380,9 @@ export const usersRelations = relations(users, ({ many }) => ({
   uploadedCvs: many(cvPool),
   emailLogs: many(emailLogs),
   chatConversations: many(chatConversations),
+  notifications: many(notifications),
+  candidateNotes: many(candidateNotes),
+  activityLogs: many(activityLogs),
 }));
 
 export const sessionsRelations = relations(sessions, ({ one }) => ({
@@ -346,6 +414,8 @@ export const candidatesRelations = relations(candidates, ({ one, many }) => ({
   interviewGuides: many(interviewGuides),
   interviews: many(interviews),
   interviewReports: many(interviewReports),
+  notes: many(candidateNotes),
+  onboardingTasks: many(onboardingTasks),
 }));
 
 export const screeningsRelations = relations(screenings, ({ one }) => ({
@@ -384,4 +454,22 @@ export const chatConversationsRelations = relations(chatConversations, ({ one, m
 
 export const chatMessagesRelations = relations(chatMessages, ({ one }) => ({
   conversation: one(chatConversations, { fields: [chatMessages.conversationId], references: [chatConversations.id] }),
+}));
+
+export const notificationsRelations = relations(notifications, ({ one }) => ({
+  user: one(users, { fields: [notifications.userId], references: [users.id] }),
+}));
+
+export const candidateNotesRelations = relations(candidateNotes, ({ one }) => ({
+  candidate: one(candidates, { fields: [candidateNotes.candidateId], references: [candidates.id] }),
+  user: one(users, { fields: [candidateNotes.userId], references: [users.id] }),
+}));
+
+export const activityLogsRelations = relations(activityLogs, ({ one }) => ({
+  user: one(users, { fields: [activityLogs.userId], references: [users.id] }),
+}));
+
+export const onboardingTasksRelations = relations(onboardingTasks, ({ one }) => ({
+  candidate: one(candidates, { fields: [onboardingTasks.candidateId], references: [candidates.id] }),
+  completedByUser: one(users, { fields: [onboardingTasks.completedBy], references: [users.id] }),
 }));

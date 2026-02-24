@@ -1,4 +1,4 @@
-import { and, eq } from 'drizzle-orm';
+import { and, eq, gte, lte } from 'drizzle-orm';
 import { db } from '@/lib/db';
 import { interviews } from '@/db/schema';
 import { scheduleInterviewSchema } from '../schemas';
@@ -10,6 +10,7 @@ import type {
 } from '../types';
 import { getCandidate, updateCandidateStage } from './candidates';
 import { getJob } from './jobs';
+import { logActivity } from './activity-log';
 
 export async function scheduleInterview(
   input: ScheduleInterviewInput,
@@ -39,6 +40,17 @@ export async function scheduleInterview(
     hr: 'hr_interview',
   };
   await updateCandidateStage(validated.candidateId, stageMap[validated.stage]);
+
+  // Activity log
+  const candidate = await getCandidate(validated.candidateId);
+  const job = await getJob(validated.jobId);
+  await logActivity(
+    userId,
+    'interview_scheduled',
+    'interview',
+    interview.id,
+    `${validated.stage.toUpperCase()} interview for ${candidate?.fullName ?? 'Unknown'} (${job?.title ?? 'Unknown'}) on ${validated.scheduledDate} at ${validated.scheduledTime}`
+  ).catch(() => {});
 
   return interview;
 }
@@ -151,4 +163,45 @@ export async function rescheduleInterview(
     .returning();
 
   return updated;
+}
+
+export async function getInterviewCalendar(
+  userId: string,
+  startDate: string,
+  endDate: string
+) {
+  const rows = await db
+    .select({
+      interviewId: interviews.id,
+      candidateId: interviews.candidateId,
+      jobId: interviews.jobId,
+      stage: interviews.stage,
+      scheduledDate: interviews.scheduledDate,
+      scheduledTime: interviews.scheduledTime,
+      meetLink: interviews.meetLink,
+      status: interviews.status,
+    })
+    .from(interviews)
+    .where(
+      and(
+        eq(interviews.interviewerId, userId),
+        gte(interviews.scheduledDate, startDate),
+        lte(interviews.scheduledDate, endDate)
+      )
+    )
+    .orderBy(interviews.scheduledDate, interviews.scheduledTime);
+
+  const enriched = [];
+  for (const row of rows) {
+    const candidate = await getCandidate(row.candidateId);
+    const job = await getJob(row.jobId);
+    enriched.push({
+      ...row,
+      candidateName: candidate?.fullName ?? 'Unknown',
+      candidateEmail: candidate?.email ?? '',
+      jobTitle: job?.title ?? 'Unknown',
+    });
+  }
+
+  return enriched;
 }

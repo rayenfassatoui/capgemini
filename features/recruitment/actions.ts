@@ -60,6 +60,11 @@ export async function uploadCvAction(input: UploadCvInput) {
       });
       // Also store rawText on the CV
       await services.updateCvRawText(cv.id, rawText);
+
+      // Check for duplicates after extraction
+      const duplicates = await services.checkDuplicateCv(cv.id, session.user.id);
+      revalidatePath('/ta/cv-pool');
+      return { ...cv, duplicates };
     }
 
     revalidatePath('/ta/cv-pool');
@@ -483,4 +488,156 @@ export async function askAiStatisticsAction(question: string) {
   } catch (error) {
     handleActionError(error);
   }
+}
+
+// ==================== NOTIFICATION ACTIONS ====================
+
+export async function getNotificationsAction() {
+  const session = await requireRole(['ta', 'manager', 'hr', 'admin']);
+  const services = await getServices();
+  return services.getNotifications(session.user.id);
+}
+
+export async function getUnreadNotificationCountAction() {
+  const session = await requireRole(['ta', 'manager', 'hr', 'admin']);
+  const services = await getServices();
+  return services.getUnreadCount(session.user.id);
+}
+
+export async function markNotificationReadAction(notificationId: string) {
+  const session = await requireRole(['ta', 'manager', 'hr', 'admin']);
+  const services = await getServices();
+  return services.markNotificationRead(notificationId, session.user.id);
+}
+
+export async function markAllNotificationsReadAction() {
+  const session = await requireRole(['ta', 'manager', 'hr', 'admin']);
+  const services = await getServices();
+  await services.markAllNotificationsRead(session.user.id);
+}
+
+// ==================== CANDIDATE NOTE ACTIONS ====================
+
+export async function addCandidateNoteAction(candidateId: string, content: string) {
+  try {
+    const session = await requireRole(['ta', 'manager', 'hr', 'admin']);
+    const services = await getServices();
+    const note = await services.addCandidateNote(candidateId, session.user.id, content);
+    revalidatePath('/ta/jobs');
+    revalidatePath('/manager/candidates');
+    revalidatePath('/hr/candidates');
+    return note;
+  } catch (error) {
+    handleActionError(error);
+  }
+}
+
+export async function getCandidateNotesAction(candidateId: string) {
+  await requireRole(['ta', 'manager', 'hr', 'admin']);
+  const services = await getServices();
+  return services.getCandidateNotes(candidateId);
+}
+
+export async function deleteCandidateNoteAction(noteId: string) {
+  try {
+    const session = await requireRole(['ta', 'manager', 'hr', 'admin']);
+    const services = await getServices();
+    return services.deleteCandidateNote(noteId, session.user.id);
+  } catch (error) {
+    handleActionError(error);
+  }
+}
+
+// ==================== ACTIVITY LOG ACTIONS ====================
+
+export async function getActivityLogAction(limit?: number) {
+  await requireRole(['ta', 'manager', 'hr', 'admin']);
+  const services = await getServices();
+  return services.getActivityLog(limit);
+}
+
+export async function getActivityByEntityAction(entityType: string, entityId: string) {
+  await requireRole(['ta', 'manager', 'hr', 'admin']);
+  const services = await getServices();
+  return services.getActivityByEntity(entityType, entityId);
+}
+
+// ==================== ONBOARDING ACTIONS ====================
+
+export async function getOnboardingChecklistAction(candidateId: string) {
+  await requireRole(['ta', 'hr', 'admin']);
+  const services = await getServices();
+  return services.getOnboardingChecklist(candidateId);
+}
+
+export async function createOnboardingChecklistAction(candidateId: string) {
+  await requireRole(['ta', 'hr', 'admin']);
+  const services = await getServices();
+  return services.createOnboardingChecklist(candidateId);
+}
+
+export async function toggleOnboardingTaskAction(taskId: string, completed: boolean) {
+  const session = await requireRole(['ta', 'hr', 'admin']);
+  const services = await getServices();
+  return services.toggleOnboardingTask(taskId, completed, session.user.id);
+}
+
+export async function addOnboardingTaskAction(candidateId: string, title: string, description?: string) {
+  await requireRole(['ta', 'hr', 'admin']);
+  const services = await getServices();
+  return services.addOnboardingTask(candidateId, title, description);
+}
+
+// ==================== JOB TEMPLATE ACTIONS ====================
+
+export async function saveJobAsTemplateAction(jobId: string) {
+  await requireRole(['ta', 'admin']);
+  const services = await getServices();
+  const result = await services.saveJobAsTemplate(jobId);
+  revalidatePath('/ta/jobs');
+  return result;
+}
+
+export async function listJobTemplatesAction() {
+  await requireRole(['ta', 'admin']);
+  const services = await getServices();
+  return services.listJobTemplates();
+}
+
+export async function createJobFromTemplateAction(
+  templateId: string,
+  overrides?: { title?: string; description?: string }
+) {
+  const session = await requireRole(['ta', 'admin']);
+  const services = await getServices();
+  const job = await services.createJobFromTemplate(templateId, session.user.id, overrides);
+  revalidatePath('/ta/jobs');
+  return job;
+}
+
+// ==================== BULK STAGE UPDATE ACTIONS ====================
+
+export async function bulkUpdateCandidateStageAction(
+  candidateIds: string[],
+  newStage: CandidateStage
+) {
+  try {
+    await requireRole(['ta', 'manager', 'hr', 'admin']);
+    const services = await getServices();
+    const result = await services.bulkUpdateCandidateStage(candidateIds, newStage);
+    revalidatePath('/ta/jobs');
+    revalidatePath('/manager/candidates');
+    revalidatePath('/hr/candidates');
+    return result;
+  } catch (error) {
+    handleActionError(error);
+  }
+}
+
+// ==================== INTERVIEW CALENDAR ACTIONS ====================
+
+export async function getInterviewCalendarAction(startDate: string, endDate: string) {
+  const session = await requireRole(['ta', 'manager', 'hr', 'admin']);
+  const { getInterviewCalendar } = await import('./services/interviews');
+  return getInterviewCalendar(session.user.id, startDate, endDate);
 }

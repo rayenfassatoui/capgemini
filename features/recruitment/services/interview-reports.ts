@@ -3,8 +3,11 @@ import { db } from '@/lib/db';
 import { interviewReports } from '@/db/schema';
 import { interviewReportSchema } from '../schemas';
 import type { CandidateStage, InterviewReportInput, InterviewStage } from '../types';
-import { updateCandidateStage } from './candidates';
+import { getCandidate, updateCandidateStage } from './candidates';
+import { getJob } from './jobs';
 import { markInterviewCompleted } from './interviews';
+import { logActivity } from './activity-log';
+import { createOnboardingChecklist } from './onboarding';
 
 export async function saveInterviewReport(
   input: InterviewReportInput,
@@ -29,6 +32,17 @@ export async function saveInterviewReport(
 
   await markInterviewCompleted(validated.interviewId);
 
+  // Activity log
+  const candidate = await getCandidate(validated.candidateId);
+  const candidateName = candidate?.fullName ?? 'Unknown';
+  await logActivity(
+    userId,
+    'interview_report_saved',
+    'interview',
+    validated.interviewId,
+    `Report for ${candidateName} (${validated.stage}) - Score: ${validated.score}, Decision: ${validated.decision}`
+  ).catch(() => {});
+
   if (validated.decision === 'accepted') {
     const acceptedStageMap: Record<InterviewStage, CandidateStage> = {
       ta: 'ta_accepted',
@@ -48,6 +62,18 @@ export async function saveInterviewReport(
     const nextStage = nextStageMap[validated.stage];
     if (nextStage) {
       await updateCandidateStage(validated.candidateId, nextStage);
+
+      // Auto-create onboarding checklist when candidate is hired
+      if (nextStage === 'hired') {
+        await createOnboardingChecklist(validated.candidateId).catch(() => {});
+        await logActivity(
+          userId,
+          'candidate_hired',
+          'candidate',
+          validated.candidateId,
+          `${candidateName} has been hired - onboarding checklist created`
+        ).catch(() => {});
+      }
     }
   } else if (validated.decision === 'rejected') {
     const rejectedStageMap: Record<InterviewStage, CandidateStage> = {

@@ -91,3 +91,18 @@ export async function updateCandidateStage(
 
   return updated;
 }
+
+export async function bulkUpdateCandidateStage(
+  candidateIds: string[],
+  newStage: CandidateStage
+) {
+  if (candidateIds.length === 0) return [];
+
+  const updated = await db
+    .update(candidates)
+    .set({ stage: newStage, updatedAt: new Date() })
+    .where(inArray(candidates.id, candidateIds))
+    .returning();
+
+  return updated;
+}

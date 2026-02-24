@@ -10,6 +10,7 @@ import {
   IconChevronDown,
   IconFileText,
   IconRefresh,
+  IconCopy,
 } from '@tabler/icons-react';
 import { Button } from '@/components/ui/button';
 import { useUploadQueue, type UploadItemStatus } from './upload-provider';
@@ -129,6 +130,12 @@ export function UploadProgressWidget() {
                   {item.error && (
                     <span className="truncate text-[10px] text-destructive">
                       {item.error}
+                    </span>
+                  )}
+                  {item.status === 'success' && item.duplicates && item.duplicates.length > 0 && (
+                    <span className="flex items-center gap-0.5 text-[10px] text-amber-600 dark:text-amber-400">
+                      <IconCopy className="h-2.5 w-2.5 shrink-0" />
+                      {item.duplicates.length} duplicate{item.duplicates.length > 1 ? 's' : ''} found
                     </span>
                   )}
                   {item.status === 'uploading' && (

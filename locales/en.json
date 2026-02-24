@@ -24,7 +24,8 @@
     "export": "Export",
     "users": "Users",
     "roleViews": "Role Views",
-    "statistics": "Statistics"
+    "statistics": "Statistics",
+    "calendar": "Calendar"
   },
   "dashboard": {
     "title": "Recruitment Command Center",
@@ -113,6 +114,34 @@
     "atRisk": "At Risk",
     "breached": "Breached",
     "daysInStage": "days in stage"
+  },
+  "calendar": {
+    "title": "Interview Calendar",
+    "today": "Today",
+    "noInterviews": "No interviews scheduled",
+    "selectDate": "Select a date"
+  },
+  "notifications": {
+    "title": "Notifications",
+    "markAllRead": "Mark all read",
+    "noNotifications": "No notifications",
+    "justNow": "just now"
+  },
+  "notes": {
+    "title": "Candidate Notes",
+    "addNote": "Add Note",
+    "noNotes": "No notes yet",
+    "placeholder": "Write a note..."
+  },
+  "onboarding": {
+    "title": "Onboarding Checklist",
+    "complete": "Complete",
+    "incomplete": "Incomplete",
+    "addTask": "Add Task"
+  },
+  "activityLog": {
+    "title": "Activity Log",
+    "noActivity": "No activity recorded yet"
   },
   "settings": {
     "theme": "Theme",

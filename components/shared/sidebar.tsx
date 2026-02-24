@@ -20,6 +20,7 @@ import {
   IconSun,
   IconMoon,
   IconLanguage,
+  IconCalendar,
 } from '@tabler/icons-react';
 import type { UserRole } from '@/features/recruitment/types';
 
@@ -34,6 +35,7 @@ const NAV_ITEMS: Record<UserRole, NavItem[]> = {
     { labelKey: 'nav.dashboard', href: '/ta/dashboard', icon: IconLayoutDashboard },
     { labelKey: 'nav.cvPool', href: '/ta/cv-pool', icon: IconFileText },
     { labelKey: 'nav.jobs', href: '/ta/jobs', icon: IconBriefcase },
+    { labelKey: 'nav.calendar', href: '/ta/calendar', icon: IconCalendar },
     { labelKey: 'nav.statistics', href: '/ta/statistique', icon: IconChartBar },
   ],
   manager: [

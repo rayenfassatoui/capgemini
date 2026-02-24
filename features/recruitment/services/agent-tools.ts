@@ -925,6 +925,325 @@ export const TOOL_DEFINITIONS: AgentToolDefinition[] = [
     allowedRoles: ['ta', 'manager', 'hr', 'admin'],
     mutating: false,
   },
+
+  // ==================== NOTIFICATIONS ====================
+  {
+    name: 'get_notifications',
+    description:
+      'Get the current user\'s notifications (latest 20). Each includes type, title, message, read status, and timestamp.',
+    parameters: { type: 'object', properties: {}, required: [] },
+    allowedRoles: [],
+    mutating: false,
+  },
+  {
+    name: 'mark_notification_read',
+    description: 'Mark a specific notification as read.',
+    parameters: {
+      type: 'object',
+      properties: {
+        notificationId: {
+          type: 'string',
+          description: 'UUID of the notification',
+        },
+      },
+      required: ['notificationId'],
+    },
+    allowedRoles: [],
+    mutating: true,
+  },
+  {
+    name: 'mark_all_notifications_read',
+    description: 'Mark all of the current user\'s unread notifications as read.',
+    parameters: { type: 'object', properties: {}, required: [] },
+    allowedRoles: [],
+    mutating: true,
+  },
+
+  // ==================== CANDIDATE NOTES ====================
+  {
+    name: 'add_candidate_note',
+    description:
+      'Add a text note to a candidate\'s profile. Notes are visible to all team members working on that candidate.',
+    parameters: {
+      type: 'object',
+      properties: {
+        candidateId: {
+          type: 'string',
+          description: 'UUID of the candidate',
+        },
+        content: {
+          type: 'string',
+          description: 'Note text content',
+        },
+      },
+      required: ['candidateId', 'content'],
+    },
+    allowedRoles: ['ta', 'manager', 'hr', 'admin'],
+    mutating: true,
+  },
+  {
+    name: 'get_candidate_notes',
+    description:
+      'Get all notes for a candidate, with author name and timestamp.',
+    parameters: {
+      type: 'object',
+      properties: {
+        candidateId: {
+          type: 'string',
+          description: 'UUID of the candidate',
+        },
+      },
+      required: ['candidateId'],
+    },
+    allowedRoles: ['ta', 'manager', 'hr', 'admin'],
+    mutating: false,
+  },
+
+  // ==================== ACTIVITY LOG ====================
+  {
+    name: 'get_activity_log',
+    description:
+      'Get the global activity log showing recent actions across the platform (stage changes, interviews, reports, etc.).',
+    parameters: {
+      type: 'object',
+      properties: {
+        limit: {
+          type: 'string',
+          description: 'Maximum number of entries to return (default 50)',
+        },
+      },
+      required: [],
+    },
+    allowedRoles: ['ta', 'manager', 'hr', 'admin'],
+    mutating: false,
+  },
+  {
+    name: 'get_activity_by_entity',
+    description:
+      'Get activity log entries for a specific entity (candidate, job, interview).',
+    parameters: {
+      type: 'object',
+      properties: {
+        entityType: {
+          type: 'string',
+          description: 'Type of entity',
+          enum: ['candidate', 'job', 'interview'],
+        },
+        entityId: {
+          type: 'string',
+          description: 'UUID of the entity',
+        },
+      },
+      required: ['entityType', 'entityId'],
+    },
+    allowedRoles: ['ta', 'manager', 'hr', 'admin'],
+    mutating: false,
+  },
+
+  // ==================== ONBOARDING CHECKLIST ====================
+  {
+    name: 'get_onboarding_checklist',
+    description:
+      'Get the onboarding checklist for a hired candidate. Creates default tasks if none exist.',
+    parameters: {
+      type: 'object',
+      properties: {
+        candidateId: {
+          type: 'string',
+          description: 'UUID of the candidate (must be at "hired" stage)',
+        },
+      },
+      required: ['candidateId'],
+    },
+    allowedRoles: ['ta', 'hr', 'admin'],
+    mutating: false,
+  },
+  {
+    name: 'toggle_onboarding_task',
+    description:
+      'Mark an onboarding task as completed or uncompleted.',
+    parameters: {
+      type: 'object',
+      properties: {
+        taskId: {
+          type: 'string',
+          description: 'UUID of the onboarding task',
+        },
+        completed: {
+          type: 'string',
+          description: 'true or false',
+        },
+      },
+      required: ['taskId', 'completed'],
+    },
+    allowedRoles: ['ta', 'hr', 'admin'],
+    mutating: true,
+  },
+  {
+    name: 'add_onboarding_task',
+    description:
+      'Add a custom onboarding task to a candidate\'s checklist.',
+    parameters: {
+      type: 'object',
+      properties: {
+        candidateId: {
+          type: 'string',
+          description: 'UUID of the candidate',
+        },
+        title: {
+          type: 'string',
+          description: 'Task title',
+        },
+        description: {
+          type: 'string',
+          description: 'Task description (optional)',
+        },
+      },
+      required: ['candidateId', 'title'],
+    },
+    allowedRoles: ['ta', 'hr', 'admin'],
+    mutating: true,
+  },
+
+  // ==================== JOB TEMPLATES ====================
+  {
+    name: 'save_job_as_template',
+    description:
+      'Mark an existing job as a template so it can be reused to create new jobs.',
+    parameters: {
+      type: 'object',
+      properties: {
+        jobId: {
+          type: 'string',
+          description: 'UUID of the job to save as template',
+        },
+      },
+      required: ['jobId'],
+    },
+    allowedRoles: ['ta', 'admin'],
+    mutating: true,
+  },
+  {
+    name: 'list_job_templates',
+    description:
+      'List all saved job templates. Returns id, title, description, mustHave, niceToHave, seniority.',
+    parameters: { type: 'object', properties: {}, required: [] },
+    allowedRoles: ['ta', 'admin'],
+    mutating: false,
+  },
+  {
+    name: 'create_job_from_template',
+    description:
+      'Create a new job from an existing template. Optionally override the title and description.',
+    parameters: {
+      type: 'object',
+      properties: {
+        templateId: {
+          type: 'string',
+          description: 'UUID of the template job',
+        },
+        title: {
+          type: 'string',
+          description: 'Override title (optional)',
+        },
+        description: {
+          type: 'string',
+          description: 'Override description (optional)',
+        },
+      },
+      required: ['templateId'],
+    },
+    allowedRoles: ['ta', 'admin'],
+    mutating: true,
+  },
+
+  // ==================== BULK STAGE UPDATE ====================
+  {
+    name: 'bulk_update_candidate_stage',
+    description:
+      'Move multiple candidates to a new pipeline stage in one operation. Provide an array of candidate IDs and the target stage.',
+    parameters: {
+      type: 'object',
+      properties: {
+        candidateIds: {
+          type: 'array',
+          description: 'Array of candidate UUIDs',
+          items: { type: 'string' },
+        },
+        newStage: {
+          type: 'string',
+          description: 'Target stage',
+          enum: [
+            'new',
+            'ta_screening',
+            'ta_interview',
+            'ta_accepted',
+            'ta_rejected',
+            'manager_interview',
+            'manager_accepted',
+            'manager_rejected',
+            'hr_interview',
+            'hr_accepted',
+            'hr_rejected',
+            'hired',
+          ],
+        },
+      },
+      required: ['candidateIds', 'newStage'],
+    },
+    allowedRoles: ['ta', 'manager', 'hr', 'admin'],
+    mutating: true,
+  },
+
+  // ==================== INTERVIEW CALENDAR ====================
+  {
+    name: 'get_interview_calendar',
+    description:
+      'Get all interviews within a date range for calendar display. Returns interviews grouped by date with candidate name, job title, time, meet link, and status.',
+    parameters: {
+      type: 'object',
+      properties: {
+        startDate: {
+          type: 'string',
+          description: 'Start date in YYYY-MM-DD format',
+        },
+        endDate: {
+          type: 'string',
+          description: 'End date in YYYY-MM-DD format',
+        },
+      },
+      required: ['startDate', 'endDate'],
+    },
+    allowedRoles: ['ta', 'manager', 'hr', 'admin'],
+    mutating: false,
+  },
+
+  // ==================== DUPLICATE CV DETECTION ====================
+  {
+    name: 'check_duplicate_cv',
+    description:
+      'Check if a specific CV has potential duplicates in the pool by comparing email, name similarity, and phone number.',
+    parameters: {
+      type: 'object',
+      properties: {
+        cvId: {
+          type: 'string',
+          description: 'UUID of the CV to check for duplicates',
+        },
+      },
+      required: ['cvId'],
+    },
+    allowedRoles: ['ta', 'admin'],
+    mutating: false,
+  },
+  {
+    name: 'scan_pool_duplicates',
+    description:
+      'Scan the entire CV pool for duplicate entries. Returns groups of CVs that appear to be the same person based on email, name similarity, and phone number.',
+    parameters: { type: 'object', properties: {}, required: [] },
+    allowedRoles: ['ta', 'admin'],
+    mutating: false,
+  },
 ];
 
 // ---- Tool executor map ----
@@ -1142,6 +1461,10 @@ export async function executeAgentTool(
         });
         await services.updateCvRawText(cv.id, rawText);
 
+        // Step 5: Check for duplicates
+        const { checkDuplicateCv } = await import('./duplicate-detection');
+        const duplicates = await checkDuplicateCv(cv.id, ctx.userId);
+
         result = {
           cvId: cv.id,
           filename: attachment.filename,
@@ -1151,6 +1474,10 @@ export async function executeAgentTool(
           extractedLanguages: extraction.extractedLanguages,
           extractedSummary: extraction.extractedSummary,
           message: 'CV uploaded and parsed successfully',
+          duplicateWarning: duplicates.length > 0
+            ? `WARNING: ${duplicates.length} potential duplicate(s) found`
+            : null,
+          duplicates: duplicates.length > 0 ? duplicates : undefined,
         };
         break;
       }
@@ -1620,6 +1947,186 @@ export async function executeAgentTool(
         result = sanitizeForJson(
           await services.predictPipelineScore(candidateId, jobId)
         );
+        break;
+      }
+
+      // ---- Notifications ----
+      case 'get_notifications': {
+        const notifs = await services.getNotifications(ctx.userId);
+        result = truncateArray(
+          notifs.map((n) => sanitizeForJson(n)),
+          20
+        );
+        break;
+      }
+      case 'mark_notification_read': {
+        const updated = await services.markNotificationRead(
+          args.notificationId as string,
+          ctx.userId
+        );
+        result = sanitizeForJson(updated);
+        break;
+      }
+      case 'mark_all_notifications_read': {
+        await services.markAllNotificationsRead(ctx.userId);
+        result = { message: 'All notifications marked as read' };
+        break;
+      }
+
+      // ---- Candidate Notes ----
+      case 'add_candidate_note': {
+        const candidateId = await resolveId(args.candidateId, 'candidateId');
+        const note = await services.addCandidateNote(
+          candidateId,
+          ctx.userId,
+          args.content as string
+        );
+        result = sanitizeForJson(note);
+        break;
+      }
+      case 'get_candidate_notes': {
+        const candidateId = await resolveId(args.candidateId, 'candidateId');
+        const notes = await services.getCandidateNotes(candidateId);
+        result = truncateArray(
+          notes.map((n) => sanitizeForJson(n)),
+          30
+        );
+        break;
+      }
+
+      // ---- Activity Log ----
+      case 'get_activity_log': {
+        const limit = Number(args.limit ?? 50);
+        const entries = await services.getActivityLog(limit);
+        result = truncateArray(
+          entries.map((e) => sanitizeForJson(e)),
+          50
+        );
+        break;
+      }
+      case 'get_activity_by_entity': {
+        const entries = await services.getActivityByEntity(
+          args.entityType as string,
+          args.entityId as string
+        );
+        result = truncateArray(
+          entries.map((e) => sanitizeForJson(e)),
+          30
+        );
+        break;
+      }
+
+      // ---- Onboarding Checklist ----
+      case 'get_onboarding_checklist': {
+        const candidateId = await resolveId(args.candidateId, 'candidateId');
+        const tasks = await services.createOnboardingChecklist(candidateId);
+        result = truncateArray(
+          tasks.map((t) => sanitizeForJson(t)),
+          20
+        );
+        break;
+      }
+      case 'toggle_onboarding_task': {
+        const completed = String(args.completed).toLowerCase() === 'true';
+        const task = await services.toggleOnboardingTask(
+          args.taskId as string,
+          completed,
+          ctx.userId
+        );
+        result = sanitizeForJson(task);
+        break;
+      }
+      case 'add_onboarding_task': {
+        const candidateId = await resolveId(args.candidateId, 'candidateId');
+        const task = await services.addOnboardingTask(
+          candidateId,
+          args.title as string,
+          (args.description as string) ?? undefined
+        );
+        result = sanitizeForJson(task);
+        break;
+      }
+
+      // ---- Job Templates ----
+      case 'save_job_as_template': {
+        const jobId = await resolveId(args.jobId, 'jobId');
+        result = sanitizeForJson(await services.saveJobAsTemplate(jobId));
+        break;
+      }
+      case 'list_job_templates': {
+        const templates = await services.listJobTemplates();
+        result = truncateArray(
+          templates.map((t) => sanitizeForJson(t)),
+          20
+        );
+        break;
+      }
+      case 'create_job_from_template': {
+        const templateId = await resolveId(args.templateId as string, 'jobId');
+        const job = await services.createJobFromTemplate(
+          templateId,
+          ctx.userId,
+          {
+            title: (args.title as string) ?? undefined,
+            description: (args.description as string) ?? undefined,
+          }
+        );
+        result = sanitizeForJson(job);
+        break;
+      }
+
+      // ---- Bulk Stage Update ----
+      case 'bulk_update_candidate_stage': {
+        const rawIds = args.candidateIds as string[];
+        const resolvedIds: string[] = [];
+        for (const id of rawIds) {
+          resolvedIds.push(await resolveId(id, 'candidateId'));
+        }
+        const updated = await services.bulkUpdateCandidateStage(
+          resolvedIds,
+          args.newStage as CandidateStage
+        );
+        result = {
+          updatedCount: updated.length,
+          candidates: truncateArray(
+            updated.map((c) => sanitizeForJson(c)),
+            20
+          ),
+        };
+        break;
+      }
+
+      // ---- Interview Calendar ----
+      case 'get_interview_calendar': {
+        const { getInterviewCalendar } = await import('./interviews');
+        const events = await getInterviewCalendar(
+          ctx.userId,
+          args.startDate as string,
+          args.endDate as string
+        );
+        result = truncateArray(
+          events.map((e) => sanitizeForJson(e)),
+          50
+        );
+        break;
+      }
+
+      // ---- Duplicate CV Detection ----
+      case 'check_duplicate_cv': {
+        const cvId = await resolveId(args.cvId, 'cvId');
+        const { checkDuplicateCv } = await import('./duplicate-detection');
+        const duplicates = await checkDuplicateCv(cvId, ctx.userId);
+        result = duplicates.length > 0
+          ? { found: true, count: duplicates.length, duplicates: sanitizeForJson(duplicates) }
+          : { found: false, message: 'No duplicates found for this CV' };
+        break;
+      }
+      case 'scan_pool_duplicates': {
+        const { scanPoolForDuplicates } = await import('./duplicate-detection');
+        const groups = await scanPoolForDuplicates(ctx.userId);
+        result = groups.length > 0
+          ? { found: true, groupCount: groups.length, groups: sanitizeForJson(groups) }
+          : { found: false, message: 'No duplicate CVs found in the pool' };
         break;
       }
 

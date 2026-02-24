@@ -17,6 +17,15 @@ import { uploadCvAction } from '../actions';
 
 export type UploadItemStatus = 'queued' | 'uploading' | 'success' | 'error';
 
+export interface DuplicateInfo {
+  cvId: string;
+  filename: string;
+  extractedName: string | null;
+  extractedEmail: string | null;
+  matchReasons: string[];
+  confidence: 'high' | 'medium' | 'low';
+}
+
 export interface UploadItem {
   id: string;
   filename: string;
@@ -25,6 +34,7 @@ export interface UploadItem {
   error?: string;
   retryCount: number;
   file: File;
+  duplicates?: DuplicateInfo[];
 }
 
 interface UploadContextValue {
@@ -146,12 +156,44 @@ export function UploadProvider({ children }: { children: ReactNode }) {
             reader.readAsDataURL(current.file);
           });
 
-          await uploadCvAction({
+          const result = await uploadCvAction({
             filename: current.file.name,
             contentType: current.file.type,
             size: current.file.size,
             rawBytes: base64,
           });
+
+          // Capture duplicates from the result
+          const duplicates = (result as Record<string, unknown>)?.duplicates as DuplicateInfo[] | undefined;
+          if (duplicates && duplicates.length > 0) {
+            setItems((prev) =>
+              prev.map((i) =>
+                i.id === current.id
+                  ? { ...i, duplicates }
+                  : i
+              )
+            );
+
+            const highConf = duplicates.filter(
+              (d) => d.confidence === 'high'
+            );
+            const dupNames = duplicates
+              .slice(0, 3)
+              .map((d) => d.extractedName || d.filename)
+              .join(', ');
+
+            if (highConf.length > 0) {
+              toast.warning(
+                `Duplicate detected: "${current.file.name}" matches ${dupNames}`,
+                { duration: 8000 }
+              );
+            } else {
+              toast.info(
+                `Possible duplicate: "${current.file.name}" is similar to ${dupNames}`,
+                { duration: 6000 }
+              );
+            }
+          }
 
           succeeded = true;
           break;

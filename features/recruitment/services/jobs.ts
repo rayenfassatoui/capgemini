@@ -96,3 +96,43 @@ export async function closeJob(jobId: string, userId: string, role: UserRole) {
 
   return updatedJob;
 }
+
+// ── Job Templates ────────────────────────────────────────────
+
+export async function saveJobAsTemplate(jobId: string) {
+  const [updated] = await db
+    .update(jobs)
+    .set({ isTemplate: true, updatedAt: new Date() })
+    .where(eq(jobs.id, jobId))
+    .returning();
+  return updated;
+}
+
+export async function listJobTemplates() {
+  return db
+    .select()
+    .from(jobs)
+    .where(eq(jobs.isTemplate, true))
+    .orderBy(desc(jobs.createdAt));
+}
+
+export async function createJobFromTemplate(templateId: string, userId: string, overrides?: { title?: string; description?: string }) {
+  const template = await getJob(templateId);
+  if (!template) throw new Error('Template not found');
+
+  const [job] = await db
+    .insert(jobs)
+    .values({
+      title: overrides?.title ?? `${template.title} (Copy)`,
+      description: overrides?.description ?? template.description,
+      mustHave: template.mustHave,
+      niceToHave: template.niceToHave,
+      seniority: template.seniority,
+      businessUnit: template.businessUnit,
+      createdBy: userId,
+      isTemplate: false,
+    })
+    .returning();
+
+  return job;
+}
