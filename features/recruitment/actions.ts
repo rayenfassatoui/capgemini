@@ -707,3 +707,15 @@ export async function getRecruitmentAnalyticsAction() {
   const services = await getServices();
   return services.getRecruitmentAnalytics();
 }
+
+export async function getEmailLogsAction(limit = 100) {
+  await requireRole(['admin']);
+  const services = await getServices();
+  return services.getEmailLogs(limit);
+}
+
+export async function getHiredCandidatesOnboardingAction() {
+  await requireRole(['admin']);
+  const services = await getServices();
+  return services.getHiredCandidatesOnboarding();
+}

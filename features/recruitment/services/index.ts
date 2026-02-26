@@ -127,5 +127,5 @@ export {
 
 export { listUsersByRole } from './users';
 
-export { getSystemOverview, getRecruitmentAnalytics } from './admin';
-export type { SystemOverview, RecruitmentAnalytics } from './admin';
+export { getSystemOverview, getRecruitmentAnalytics, getEmailLogs, getHiredCandidatesOnboarding } from './admin';
+export type { SystemOverview, RecruitmentAnalytics, EmailLogEntry, OnboardingOverviewEntry } from './admin';

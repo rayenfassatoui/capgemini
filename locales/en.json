@@ -28,6 +28,8 @@
     "calendar": "Calendar",
     "activity": "Activity Log",
     "analytics": "Analytics",
+    "emails": "Email Logs",
+    "onboarding": "Onboarding",
     "settings": "Settings"
   },
   "dashboard": {

@@ -7,6 +7,8 @@ import {
   cvPool,
   interviews,
   activityLogs,
+  emailLogs,
+  onboardingTasks,
 } from '@/db/schema';
 import type { CandidateStage } from '../types';
 
@@ -219,4 +221,88 @@ export async function getRecruitmentAnalytics(): Promise<RecruitmentAnalytics> {
     averageTimeToHire: null, // Would need hired_at timestamp to compute
     topRecruiters,
   };
+}
+
+// ---------- Email Logs ----------
+
+export interface EmailLogEntry {
+  id: string;
+  toEmail: string;
+  toName: string | null;
+  subject: string;
+  status: string;
+  createdAt: Date;
+  sentByName: string;
+  sentByEmail: string;
+}
+
+export async function getEmailLogs(limit = 100): Promise<EmailLogEntry[]> {
+  return db
+    .select({
+      id: emailLogs.id,
+      toEmail: emailLogs.toEmail,
+      toName: emailLogs.toName,
+      subject: emailLogs.subject,
+      status: emailLogs.status,
+      createdAt: emailLogs.createdAt,
+      sentByName: users.name,
+      sentByEmail: users.email,
+    })
+    .from(emailLogs)
+    .innerJoin(users, eq(emailLogs.sentBy, users.id))
+    .orderBy(desc(emailLogs.createdAt))
+    .limit(limit);
+}
+
+// ---------- Onboarding Overview ----------
+
+export interface OnboardingOverviewEntry {
+  candidateId: string;
+  candidateName: string;
+  candidateEmail: string;
+  jobTitle: string;
+  totalTasks: number;
+  completedTasks: number;
+  hiredAt: Date;
+}
+
+export async function getHiredCandidatesOnboarding(): Promise<OnboardingOverviewEntry[]> {
+  const hiredCandidates = await db
+    .select({
+      candidateId: candidates.id,
+      candidateName: candidates.fullName,
+      candidateEmail: candidates.email,
+      jobTitle: jobs.title,
+      hiredAt: candidates.updatedAt,
+    })
+    .from(candidates)
+    .innerJoin(jobs, eq(candidates.jobId, jobs.id))
+    .where(eq(candidates.stage, 'hired'))
+    .orderBy(desc(candidates.updatedAt));
+
+  if (hiredCandidates.length === 0) return [];
+
+  const allTasks = await db
+    .select({
+      candidateId: onboardingTasks.candidateId,
+      completed: onboardingTasks.completed,
+    })
+    .from(onboardingTasks);
+
+  const tasksByCand = new Map<string, { total: number; completed: number }>();
+  for (const task of allTasks) {
+    const entry = tasksByCand.get(task.candidateId) ?? { total: 0, completed: 0 };
+    entry.total++;
+    if (task.completed) entry.completed++;
+    tasksByCand.set(task.candidateId, entry);
+  }
+
+  return hiredCandidates.map((c) => {
+    const tasks = tasksByCand.get(c.candidateId) ?? { total: 0, completed: 0 };
+    return {
+      ...c,
+      totalTasks: tasks.total,
+      completedTasks: tasks.completed,
+    };
+  });
 }

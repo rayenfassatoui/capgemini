@@ -23,6 +23,8 @@ import {
   IconCalendar,
   IconActivity,
   IconSettings,
+  IconMail,
+  IconUserCheck,
 } from '@tabler/icons-react';
 import type { UserRole } from '@/features/recruitment/types';
 
@@ -54,6 +56,8 @@ const NAV_ITEMS: Record<UserRole, NavItem[]> = {
     { labelKey: 'nav.users', href: '/admin', icon: IconUserShield },
     { labelKey: 'nav.activity', href: '/admin/activity', icon: IconActivity },
     { labelKey: 'nav.analytics', href: '/admin/analytics', icon: IconChartBar },
+    { labelKey: 'nav.emails', href: '/admin/emails', icon: IconMail },
+    { labelKey: 'nav.onboarding', href: '/admin/onboarding', icon: IconUserCheck },
     { labelKey: 'nav.settings', href: '/admin/settings', icon: IconSettings },
   ],
 };

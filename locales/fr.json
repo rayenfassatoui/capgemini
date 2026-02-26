@@ -28,6 +28,8 @@
     "calendar": "Calendrier",
     "activity": "Journal d'activite",
     "analytics": "Analytiques",
+    "emails": "Emails envoyes",
+    "onboarding": "Integration",
     "settings": "Parametres"
   },
   "dashboard": {
