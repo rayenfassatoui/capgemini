@@ -693,3 +693,17 @@ export async function getCandidatesByStageAndAssigneeAction(
   const services = await getServices();
   return services.getCandidatesByStageAndAssignee(stages, assigneeField, assigneeId);
 }
+
+// ==================== ADMIN ACTIONS ====================
+
+export async function getSystemOverviewAction() {
+  await requireRole(['admin']);
+  const services = await getServices();
+  return services.getSystemOverview();
+}
+
+export async function getRecruitmentAnalyticsAction() {
+  await requireRole(['admin']);
+  const services = await getServices();
+  return services.getRecruitmentAnalytics();
+}

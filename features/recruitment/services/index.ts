@@ -126,3 +126,6 @@ export {
 } from './duplicate-detection';
 
 export { listUsersByRole } from './users';
+
+export { getSystemOverview, getRecruitmentAnalytics } from './admin';
+export type { SystemOverview, RecruitmentAnalytics } from './admin';

@@ -25,7 +25,10 @@
     "users": "Utilisateurs",
     "roleViews": "Vues par role",
     "statistics": "Statistiques",
-    "calendar": "Calendrier"
+    "calendar": "Calendrier",
+    "activity": "Journal d'activite",
+    "analytics": "Analytiques",
+    "settings": "Parametres"
   },
   "dashboard": {
     "title": "Centre de Commande Recrutement",

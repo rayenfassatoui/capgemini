@@ -25,7 +25,10 @@
     "users": "Users",
     "roleViews": "Role Views",
     "statistics": "Statistics",
-    "calendar": "Calendar"
+    "calendar": "Calendar",
+    "activity": "Activity Log",
+    "analytics": "Analytics",
+    "settings": "Settings"
   },
   "dashboard": {
     "title": "Recruitment Command Center",

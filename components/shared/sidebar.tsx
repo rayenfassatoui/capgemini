@@ -21,6 +21,8 @@ import {
   IconMoon,
   IconLanguage,
   IconCalendar,
+  IconActivity,
+  IconSettings,
 } from '@tabler/icons-react';
 import type { UserRole } from '@/features/recruitment/types';
 
@@ -48,7 +50,11 @@ const NAV_ITEMS: Record<UserRole, NavItem[]> = {
     { labelKey: 'nav.export', href: '/hr/export', icon: IconFileSpreadsheet },
   ],
   admin: [
+    { labelKey: 'nav.dashboard', href: '/admin/dashboard', icon: IconLayoutDashboard },
     { labelKey: 'nav.users', href: '/admin', icon: IconUserShield },
+    { labelKey: 'nav.activity', href: '/admin/activity', icon: IconActivity },
+    { labelKey: 'nav.analytics', href: '/admin/analytics', icon: IconChartBar },
+    { labelKey: 'nav.settings', href: '/admin/settings', icon: IconSettings },
   ],
 };
 

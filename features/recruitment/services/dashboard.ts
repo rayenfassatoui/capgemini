@@ -1,4 +1,4 @@
-import { and, count, eq } from 'drizzle-orm';
+import { and, count, eq, type SQL } from 'drizzle-orm';
 import { db } from '@/lib/db';
 import { candidates, interviews, jobs } from '@/db/schema';
 import type { CandidateStage, DashboardStats, TodayInterview } from '../types';
@@ -6,15 +6,25 @@ import { getTodayInterviews } from './interviews';
 
 export async function getDashboardStats(
   userId: string,
-  _role: 'ta' | 'manager' | 'hr' | 'admin'
+  role: 'ta' | 'manager' | 'hr' | 'admin'
 ): Promise<DashboardStats> {
   const today = new Date().toISOString().split('T')[0];
+
+  // Build assignee filter: managers see only their assigned candidates,
+  // HR sees only their assigned candidates, TA/admin see all.
+  const assigneeFilter: SQL | undefined =
+    role === 'manager'
+      ? eq(candidates.assignedManagerId, userId)
+      : role === 'hr'
+        ? eq(candidates.assignedHrId, userId)
+        : undefined;
 
   const [{ value: totalJobs }] = await db.select({ value: count() }).from(jobs);
 
   const [{ value: totalCandidates }] = await db
     .select({ value: count() })
-    .from(candidates);
+    .from(candidates)
+    .where(assigneeFilter);
 
   const [{ value: totalInterviewsToday }] = await db
     .select({ value: count() })
@@ -26,11 +36,12 @@ export async function getDashboardStats(
   const [{ value: pendingScreenings }] = await db
     .select({ value: count() })
     .from(candidates)
-    .where(eq(candidates.stage, 'new'));
+    .where(assigneeFilter ? and(eq(candidates.stage, 'new'), assigneeFilter) : eq(candidates.stage, 'new'));
 
   const allCandidates = await db
     .select({ stage: candidates.stage })
-    .from(candidates);
+    .from(candidates)
+    .where(assigneeFilter);
 
   const stageBreakdown: Record<CandidateStage, number> = {
     new: 0,
