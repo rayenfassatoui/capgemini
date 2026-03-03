@@ -4,16 +4,15 @@ import {
   Bar,
   BarChart,
   CartesianGrid,
-  ResponsiveContainer,
-  Tooltip,
   XAxis,
   YAxis,
   Cell,
+  LabelList,
 } from "recharts";
 import { GlassCard } from "./glass-card";
 import { CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { RecruitmentAnalytics } from "@/features/recruitment/services/admin";
-import { useTheme } from "next-themes";
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 
 const STAGE_LABELS: Record<string, string> = {
   new: "New",
@@ -27,31 +26,23 @@ const STAGE_LABELS: Record<string, string> = {
   hired: "Hired",
 };
 
-const COLORS = [
-  "#94a3b8", // new - slate-400
-  "#60a5fa", // screening - blue-400
-  "#3b82f6", // ta interview - blue-500
-  "#2563eb", // ta accepted - blue-600
-  "#818cf8", // mgr interview - indigo-400
-  "#6366f1", // mgr accepted - indigo-500
-  "#a78bfa", // hr interview - violet-400
-  "#8b5cf6", // hr accepted - violet-500
-  "#10b981", // hired - emerald-500
-];
+const chartConfig = {
+  value: {
+    label: "Candidates",
+  },
+};
 
 export function PipelineFunnelChart({ analytics }: { analytics: RecruitmentAnalytics }) {
-  const { theme } = useTheme();
-  
   const data = [
-    { name: STAGE_LABELS.new, value: analytics.pipelineFunnel.new, fill: COLORS[0] },
-    { name: STAGE_LABELS.ta_screening, value: analytics.pipelineFunnel.ta_screening, fill: COLORS[1] },
-    { name: STAGE_LABELS.ta_interview, value: analytics.pipelineFunnel.ta_interview, fill: COLORS[2] },
-    { name: STAGE_LABELS.ta_accepted, value: analytics.pipelineFunnel.ta_accepted, fill: COLORS[3] },
-    { name: STAGE_LABELS.manager_interview, value: analytics.pipelineFunnel.manager_interview, fill: COLORS[4] },
-    { name: STAGE_LABELS.manager_accepted, value: analytics.pipelineFunnel.manager_accepted, fill: COLORS[5] },
-    { name: STAGE_LABELS.hr_interview, value: analytics.pipelineFunnel.hr_interview, fill: COLORS[6] },
-    { name: STAGE_LABELS.hr_accepted, value: analytics.pipelineFunnel.hr_accepted, fill: COLORS[7] },
-    { name: STAGE_LABELS.hired, value: analytics.pipelineFunnel.hired, fill: COLORS[8] },
+    { name: STAGE_LABELS.new, value: analytics.pipelineFunnel.new, fill: "hsl(var(--chart-1))" },
+    { name: STAGE_LABELS.ta_screening, value: analytics.pipelineFunnel.ta_screening, fill: "hsl(var(--chart-2))" },
+    { name: STAGE_LABELS.ta_interview, value: analytics.pipelineFunnel.ta_interview, fill: "hsl(var(--chart-3))" },
+    { name: STAGE_LABELS.ta_accepted, value: analytics.pipelineFunnel.ta_accepted, fill: "hsl(var(--chart-4))" },
+    { name: STAGE_LABELS.manager_interview, value: analytics.pipelineFunnel.manager_interview, fill: "hsl(var(--chart-5))" },
+    { name: STAGE_LABELS.manager_accepted, value: analytics.pipelineFunnel.manager_accepted, fill: "hsl(var(--chart-1))" },
+    { name: STAGE_LABELS.hr_interview, value: analytics.pipelineFunnel.hr_interview, fill: "hsl(var(--chart-2))" },
+    { name: STAGE_LABELS.hr_accepted, value: analytics.pipelineFunnel.hr_accepted, fill: "hsl(var(--chart-3))" },
+    { name: STAGE_LABELS.hired, value: analytics.pipelineFunnel.hired, fill: "hsl(var(--chart-4))" },
   ];
 
   return (
@@ -61,39 +52,38 @@ export function PipelineFunnelChart({ analytics }: { analytics: RecruitmentAnaly
         <CardDescription>Candidate progression through stages</CardDescription>
       </CardHeader>
       <CardContent className="h-[350px]">
-        <ResponsiveContainer width="100%" height="100%">
+        <ChartContainer config={chartConfig} className="h-full w-full">
           <BarChart
             layout="vertical"
             data={data}
-            margin={{ top: 20, right: 30, left: 40, bottom: 5 }}
+            margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
           >
-            <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke={theme === 'dark' ? '#333' : '#e5e7eb'} />
+            <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} />
             <XAxis type="number" hide />
             <YAxis 
               dataKey="name" 
               type="category" 
-              width={100} 
-              tick={{ fill: theme === 'dark' ? '#9ca3af' : '#4b5563', fontSize: 12 }}
+              width={110}
               axisLine={false}
               tickLine={false}
+              tickMargin={10}
             />
-            <Tooltip
-              cursor={{ fill: theme === 'dark' ? '#ffffff10' : '#00000005' }}
-              contentStyle={{
-                backgroundColor: theme === 'dark' ? '#1e293b' : '#ffffff',
-                borderColor: theme === 'dark' ? '#334155' : '#e2e8f0',
-                borderRadius: '8px',
-                boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
-              }}
-              itemStyle={{ color: theme === 'dark' ? '#f8fafc' : '#0f172a' }}
+            <ChartTooltip
+              cursor={{ fill: "var(--accent)" }}
+              content={<ChartTooltipContent hideLabel />}
             />
-            <Bar dataKey="value" radius={[0, 4, 4, 0]} barSize={24}>
+            <Bar dataKey="value" radius={[0, 6, 6, 0]} barSize={28}>
               {data.map((entry, index) => (
-                <Cell key={`cell-${index}`} fill={entry.fill} />
+                <Cell key={`cell-${index}`} fill={entry.fill} className="hover:opacity-80 transition-opacity" />
               ))}
+              <LabelList 
+                dataKey="value" 
+                position="right" 
+                className="fill-foreground text-xs font-semibold"
+              />
             </Bar>
           </BarChart>
-        </ResponsiveContainer>
+        </ChartContainer>
       </CardContent>
     </GlassCard>
   );
