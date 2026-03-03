@@ -103,7 +103,7 @@ function SidebarContent({
   const roleLabel = ROLE_LABELS[role] ?? 'Talent Acquisition';
 
   return (
-    <div className="flex h-full w-full flex-col bg-white dark:bg-gray-950">
+    <div className="flex h-full w-full flex-col overflow-hidden bg-white dark:bg-gray-950">
       {/* Header */}
       <div className={cn(
         "flex items-center h-16 border-b border-gray-200 dark:border-gray-800 transition-all duration-300",
@@ -125,7 +125,7 @@ function SidebarContent({
       </div>
 
       {/* User Profile */}
-      <div className="p-4">
+      <div className="shrink-0 p-4">
         <div className={cn(
           "flex items-center gap-3 rounded-lg bg-gray-50/50 p-2 transition-all dark:bg-gray-900/50",
           isCollapsed ? "justify-center bg-transparent p-0" : ""
@@ -148,7 +148,7 @@ function SidebarContent({
       </div>
 
       {/* Navigation */}
-      <ScrollArea className="flex-1 px-3">
+      <ScrollArea className="min-h-0 flex-1 px-3">
         <nav className="space-y-1">
           {navItems.map((item) => {
             const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
@@ -246,7 +246,7 @@ function SidebarContent({
       </ScrollArea>
 
       {/* Footer / Settings */}
-      <div className="border-t border-gray-200 p-3 dark:border-gray-800">
+      <div className="shrink-0 border-t border-gray-200 p-3 dark:border-gray-800">
         <div className={cn("space-y-1", isCollapsed ? "flex flex-col items-center" : "")}>
            {/* Theme Toggle */}
            <TooltipProvider delay={0}>
