@@ -1,10 +1,10 @@
 import { requireRole } from '@/lib/auth';
-import { getActivityLogAction } from '@/features/recruitment/actions';
+import { getActivityLogEnrichedAction } from '@/features/recruitment/actions';
 import { AdminActivityClient } from '@/features/recruitment/components/admin-activity-client';
 
 export default async function AdminActivityPage() {
   await requireRole(['admin']);
-  const activityLog = await getActivityLogAction(100).catch(() => []);
+  const activityLog = await getActivityLogEnrichedAction(100).catch(() => []);
 
   return (
     <div className="space-y-6">

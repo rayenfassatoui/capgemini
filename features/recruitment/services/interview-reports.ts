@@ -8,6 +8,7 @@ import { getJob } from './jobs';
 import { markInterviewCompleted } from './interviews';
 import { logActivity } from './activity-log';
 import { createOnboardingChecklist } from './onboarding';
+import { generateCandidateAcceptExcel } from './export';
 
 export async function saveInterviewReport(
   input: InterviewReportInput,
@@ -53,6 +54,17 @@ export async function saveInterviewReport(
       validated.candidateId,
       acceptedStageMap[validated.stage]
     );
+
+    // Generate acceptance Excel with CV + formation + report data
+    generateCandidateAcceptExcel(validated.candidateId, validated.stage).then(() => {
+      logActivity(
+        userId,
+        'accept_excel_generated',
+        'candidate',
+        validated.candidateId,
+        `Accept Excel generated for ${candidateName} at ${validated.stage} stage`
+      ).catch(() => {});
+    }).catch(() => {});
 
     const nextStageMap: Record<InterviewStage, CandidateStage | null> = {
       ta: 'manager_interview',

@@ -719,3 +719,50 @@ export async function getHiredCandidatesOnboardingAction() {
   const services = await getServices();
   return services.getHiredCandidatesOnboarding();
 }
+
+// ==================== ADMIN ENRICHED DATA ACTIONS ====================
+
+export async function getActivityLogEnrichedAction(limit?: number) {
+  await requireRole(['admin']);
+  const services = await getServices();
+  return services.getActivityLogEnriched(limit);
+}
+
+export async function getHiredCandidatesOnboardingDetailedAction() {
+  await requireRole(['admin']);
+  const services = await getServices();
+  return services.getHiredCandidatesOnboardingDetailed();
+}
+
+// ==================== ADMIN EXCEL EXPORT ACTIONS ====================
+
+export async function exportEmailLogsExcelAction() {
+  await requireRole(['admin']);
+  const services = await getServices();
+  const buffer = await services.exportEmailLogsToExcel();
+  return Buffer.from(buffer).toString('base64');
+}
+
+export async function exportActivityLogExcelAction() {
+  await requireRole(['admin']);
+  const services = await getServices();
+  const buffer = await services.exportActivityLogToExcel();
+  return Buffer.from(buffer).toString('base64');
+}
+
+export async function exportOnboardingExcelAction() {
+  await requireRole(['admin']);
+  const services = await getServices();
+  const buffer = await services.exportOnboardingToExcel();
+  return Buffer.from(buffer).toString('base64');
+}
+
+export async function generateCandidateAcceptExcelAction(
+  candidateId: string,
+  stage: 'ta' | 'manager' | 'hr'
+) {
+  await requireRole(['ta', 'manager', 'hr', 'admin']);
+  const services = await getServices();
+  const buffer = await services.generateCandidateAcceptExcel(candidateId, stage);
+  return Buffer.from(buffer).toString('base64');
+}

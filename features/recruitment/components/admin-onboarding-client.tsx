@@ -1,8 +1,17 @@
 "use client";
 
+import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   Table,
   TableBody,
@@ -11,14 +20,29 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { IconUserCheck, IconChecklist } from "@tabler/icons-react";
-import type { OnboardingOverviewEntry } from "@/features/recruitment/services/admin";
+import {
+  IconUserCheck,
+  IconChecklist,
+  IconFileSpreadsheet,
+  IconEye,
+  IconBriefcase,
+  IconSchool,
+  IconListCheck,
+  IconMail,
+  IconPhone,
+} from "@tabler/icons-react";
+import { toast } from "sonner";
+import type { OnboardingDetailedEntry } from "@/features/recruitment/services/admin";
+import { exportOnboardingExcelAction } from "@/features/recruitment/actions";
 
 interface AdminOnboardingClientProps {
-  candidates: OnboardingOverviewEntry[];
+  candidates: OnboardingDetailedEntry[];
 }
 
 export function AdminOnboardingClient({ candidates }: AdminOnboardingClientProps) {
+  const [selectedCandidate, setSelectedCandidate] = useState<OnboardingDetailedEntry | null>(null);
+  const [isExporting, setIsExporting] = useState(false);
+
   const totalHired = candidates.length;
   const fullyOnboarded = candidates.filter(
     (c) => c.totalTasks > 0 && c.completedTasks === c.totalTasks
@@ -27,6 +51,53 @@ export function AdminOnboardingClient({ candidates }: AdminOnboardingClientProps
     (c) => c.totalTasks === 0
   ).length;
   const inProgress = totalHired - fullyOnboarded - pendingOnboarding;
+
+  const handleExport = async () => {
+    try {
+      setIsExporting(true);
+      toast.info("Generating Excel report...");
+
+      const base64 = await exportOnboardingExcelAction();
+      const byteCharacters = atob(base64);
+      const byteNumbers = new Array(byteCharacters.length);
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+      }
+      const byteArray = new Uint8Array(byteNumbers);
+      const blob = new Blob([byteArray], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `onboarding-${new Date().toISOString().split('T')[0]}.xlsx`;
+      a.click();
+      URL.revokeObjectURL(url);
+
+      toast.success("Excel report downloaded successfully");
+    } catch (error) {
+      console.error("Export failed:", error);
+      toast.error("Failed to generate Excel report");
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const getStageColor = (stage: string) => {
+    const s = (stage || "").toLowerCase();
+    if (s.includes("accepted") || s.includes("hired")) return "bg-emerald-500/10 text-emerald-600 border-emerald-500/20 dark:text-emerald-400";
+    if (s.includes("rejected")) return "bg-red-500/10 text-red-600 border-red-500/20 dark:text-red-400";
+    if (s.includes("interview")) return "bg-blue-500/10 text-blue-600 border-blue-500/20 dark:text-blue-400";
+    return "bg-gray-500/10 text-gray-600 border-gray-500/20 dark:text-gray-400";
+  };
+
+  const getValue = (obj: Record<string, string>, keys: string[]) => {
+    if (!obj) return "";
+    for (const key of keys) {
+      if (obj[key]) return obj[key];
+      const found = Object.keys(obj).find(k => k.toLowerCase() === key.toLowerCase());
+      if (found && obj[found]) return obj[found];
+    }
+    return "";
+  };
 
   return (
     <div className="space-y-6">
@@ -84,11 +155,23 @@ export function AdminOnboardingClient({ candidates }: AdminOnboardingClientProps
 
       {/* Candidates Table */}
       <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Hired Candidates</CardTitle>
-          <CardDescription>
-            Onboarding progress for all hired candidates
-          </CardDescription>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <div className="space-y-1">
+            <CardTitle className="text-base">Hired Candidates</CardTitle>
+            <CardDescription>
+              Onboarding progress for all hired candidates
+            </CardDescription>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8 gap-2"
+            onClick={handleExport}
+            disabled={isExporting}
+          >
+            <IconFileSpreadsheet className="h-4 w-4" />
+            {isExporting ? "Exporting..." : "Export Excel"}
+          </Button>
         </CardHeader>
         <CardContent>
           {candidates.length === 0 ? (
@@ -104,15 +187,17 @@ export function AdminOnboardingClient({ candidates }: AdminOnboardingClientProps
                 <TableHeader>
                   <TableRow>
                     <TableHead className="w-[200px]">Candidate</TableHead>
+                    <TableHead className="w-[120px]">Stage</TableHead>
                     <TableHead className="w-[180px]">Job</TableHead>
-                    <TableHead className="w-[200px]">Progress</TableHead>
+                    <TableHead className="w-[180px]">Progress</TableHead>
                     <TableHead className="w-[100px] text-center">
                       Tasks
                     </TableHead>
                     <TableHead className="w-[100px]">Status</TableHead>
-                    <TableHead className="w-[140px] text-right">
+                    <TableHead className="w-[120px] text-right">
                       Hired Date
                     </TableHead>
+                    <TableHead className="w-[80px] text-right">Action</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -136,6 +221,14 @@ export function AdminOnboardingClient({ candidates }: AdminOnboardingClientProps
                               {c.candidateEmail}
                             </span>
                           </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            variant="outline"
+                            className={getStageColor(c.candidateStage)}
+                          >
+                            {c.candidateStage || "Unknown"}
+                          </Badge>
                         </TableCell>
                         <TableCell>
                           <span className="text-sm text-muted-foreground">
@@ -190,6 +283,17 @@ export function AdminOnboardingClient({ candidates }: AdminOnboardingClientProps
                             {new Date(c.hiredAt).toLocaleDateString()}
                           </span>
                         </TableCell>
+                        <TableCell className="text-right">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-8 w-8 p-0"
+                            onClick={() => setSelectedCandidate(c)}
+                          >
+                            <IconEye className="h-4 w-4" />
+                            <span className="sr-only">Details</span>
+                          </Button>
+                        </TableCell>
                       </TableRow>
                     );
                   })}
@@ -199,6 +303,191 @@ export function AdminOnboardingClient({ candidates }: AdminOnboardingClientProps
           )}
         </CardContent>
       </Card>
+
+      <Dialog open={!!selectedCandidate} onOpenChange={(open) => !open && setSelectedCandidate(null)}>
+        <DialogContent className="max-w-3xl max-h-[85vh] p-0 overflow-hidden flex flex-col">
+          {selectedCandidate && (
+            <>
+              <DialogHeader className="p-6 pb-2 shrink-0">
+                <div className="flex items-center justify-between">
+                  <DialogTitle className="text-xl flex items-center gap-2">
+                    <span className="font-bold">{selectedCandidate.candidateName}</span>
+                    <Badge variant="outline" className={getStageColor(selectedCandidate.candidateStage)}>
+                      {selectedCandidate.candidateStage}
+                    </Badge>
+                  </DialogTitle>
+                </div>
+                <div className="flex flex-wrap items-center gap-4 mt-2 text-sm text-muted-foreground">
+                  <div className="flex items-center gap-1.5">
+                    <IconBriefcase className="h-4 w-4" />
+                    <span>{selectedCandidate.jobTitle}</span>
+                  </div>
+                  {selectedCandidate.candidateEmail && (
+                    <div className="flex items-center gap-1.5">
+                      <IconMail className="h-4 w-4" />
+                      <span>{selectedCandidate.candidateEmail}</span>
+                    </div>
+                  )}
+                  {selectedCandidate.candidatePhone && (
+                    <div className="flex items-center gap-1.5">
+                      <IconPhone className="h-4 w-4" />
+                      <span>{selectedCandidate.candidatePhone}</span>
+                    </div>
+                  )}
+                </div>
+              </DialogHeader>
+
+              <div className="flex-1 p-6 pt-2 overflow-y-auto">
+                <div className="space-y-6">
+                  {/* Onboarding Tasks */}
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2 mb-2">
+                      <IconListCheck className="h-5 w-5 text-primary" />
+                      <h3 className="font-semibold text-base">Onboarding Checklist</h3>
+                    </div>
+                    {selectedCandidate.tasks && selectedCandidate.tasks.length > 0 ? (
+                      <div className="grid gap-2">
+                        {selectedCandidate.tasks.map((task, idx) => (
+                          <div
+                            key={idx}
+                            className="flex items-start gap-3 p-3 rounded-lg border bg-card/50"
+                          >
+                            <div className={`mt-0.5 h-5 w-5 rounded-full border flex items-center justify-center shrink-0 ${task.completed ? "bg-primary border-primary text-primary-foreground" : "border-muted-foreground/30"}`}>
+                              {task.completed && <IconUserCheck className="h-3 w-3" />}
+                            </div>
+                            <div className="space-y-1">
+                              <p className={`text-sm font-medium ${task.completed ? "line-through text-muted-foreground" : ""}`}>
+                                {task.title}
+                              </p>
+                              {task.description && (
+                                <p className="text-xs text-muted-foreground">
+                                  {task.description}
+                                </p>
+                              )}
+                              {task.completed && task.completedAt && (
+                                <p className="text-[10px] text-emerald-600 font-medium">
+                                  Completed {new Date(task.completedAt).toLocaleDateString()}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-muted-foreground italic">No onboarding tasks assigned yet.</p>
+                    )}
+                  </div>
+
+                  <Separator />
+
+                  {/* CV Summary */}
+                  {selectedCandidate.cvSummary && (
+                    <div className="space-y-2">
+                      <h3 className="font-semibold text-base">Professional Summary</h3>
+                      <p className="text-sm text-muted-foreground leading-relaxed">
+                        {selectedCandidate.cvSummary}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Skills & Languages */}
+                  {(selectedCandidate.cvSkills?.length > 0 || selectedCandidate.cvLanguages?.length > 0) && (
+                    <>
+                      <Separator />
+                      <div className="grid sm:grid-cols-2 gap-6">
+                        {selectedCandidate.cvSkills?.length > 0 && (
+                          <div className="space-y-2">
+                            <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wider">Skills</h3>
+                            <div className="flex flex-wrap gap-1.5">
+                              {selectedCandidate.cvSkills.map((skill: string, i: number) => (
+                                <Badge key={i} variant="secondary" className="font-normal">
+                                  {skill}
+                                </Badge>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        {selectedCandidate.cvLanguages?.length > 0 && (
+                          <div className="space-y-2">
+                            <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wider">Languages</h3>
+                            <div className="flex flex-wrap gap-1.5">
+                              {selectedCandidate.cvLanguages.map((lang: string, i: number) => (
+                                <Badge key={i} variant="outline" className="font-normal">
+                                  {lang}
+                                </Badge>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </>
+                  )}
+
+                  {/* Experience */}
+                  {selectedCandidate.cvExperiences && selectedCandidate.cvExperiences.length > 0 && (
+                    <>
+                      <Separator />
+                      <div className="space-y-3">
+                        <div className="flex items-center gap-2">
+                          <IconBriefcase className="h-5 w-5 text-primary" />
+                          <h3 className="font-semibold text-base">Experience</h3>
+                        </div>
+                        <div className="space-y-4">
+                          {selectedCandidate.cvExperiences.map((exp: Record<string, string>, i: number) => {
+                            const title = getValue(exp, ['title', 'role', 'position']);
+                            const company = getValue(exp, ['company', 'organization', 'employer']);
+                            const duration = getValue(exp, ['duration', 'date', 'dates', 'period']);
+                            
+                            return (
+                              <div key={i} className="space-y-1">
+                                <div className="flex justify-between items-start">
+                                  <h4 className="font-medium text-sm">{title || "Unknown Role"}</h4>
+                                  <span className="text-xs text-muted-foreground whitespace-nowrap ml-2">{duration}</span>
+                                </div>
+                                <p className="text-sm text-muted-foreground">{company || "Unknown Company"}</p>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </>
+                  )}
+
+                  {/* Education */}
+                  {selectedCandidate.cvEducation && selectedCandidate.cvEducation.length > 0 && (
+                    <>
+                      <Separator />
+                      <div className="space-y-3">
+                        <div className="flex items-center gap-2">
+                          <IconSchool className="h-5 w-5 text-primary" />
+                          <h3 className="font-semibold text-base">Education</h3>
+                        </div>
+                        <div className="space-y-4">
+                          {selectedCandidate.cvEducation.map((edu: Record<string, string>, i: number) => {
+                            const degree = getValue(edu, ['degree', 'qualification', 'major']);
+                            const school = getValue(edu, ['institution', 'school', 'university', 'college']);
+                            const year = getValue(edu, ['year', 'date', 'dates', 'duration']);
+
+                            return (
+                              <div key={i} className="space-y-1">
+                                <div className="flex justify-between items-start">
+                                  <h4 className="font-medium text-sm">{school || "Unknown Institution"}</h4>
+                                  <span className="text-xs text-muted-foreground whitespace-nowrap ml-2">{year}</span>
+                                </div>
+                                <p className="text-sm text-muted-foreground">{degree}</p>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

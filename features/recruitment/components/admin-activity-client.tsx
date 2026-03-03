@@ -4,6 +4,7 @@ import { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import {
   Table,
   TableBody,
@@ -19,7 +20,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { IconSearch, IconFilter } from "@tabler/icons-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { IconSearch, IconFilter, IconFileSpreadsheet, IconEye } from "@tabler/icons-react";
+import { toast } from "sonner";
+import { exportActivityLogExcelAction } from "@/features/recruitment/actions";
 
 interface ActivityEntry {
   id: string;
@@ -31,6 +42,7 @@ interface ActivityEntry {
   createdAt: Date | null;
   userName: string;
   userEmail: string;
+  candidateStage: string | null;
 }
 
 interface AdminActivityClientProps {
@@ -53,9 +65,26 @@ function getActionColor(action: string): string {
   return "bg-gray-500/10 text-gray-600 border-gray-500/20 dark:text-gray-400";
 }
 
+const STAGE_COLORS: Record<string, string> = {
+  accepted: "bg-green-500/10 text-green-600 border-green-500/20 dark:text-green-400",
+  rejected: "bg-red-500/10 text-red-600 border-red-500/20 dark:text-red-400",
+  interview: "bg-blue-500/10 text-blue-600 border-blue-500/20 dark:text-blue-400",
+  hired: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20 dark:text-emerald-400",
+};
+
+function getStageColor(stage: string | null): string {
+  if (!stage) return "bg-gray-500/10 text-gray-600 border-gray-500/20 dark:text-gray-400";
+  const lower = stage.toLowerCase();
+  for (const [key, color] of Object.entries(STAGE_COLORS)) {
+    if (lower.includes(key)) return color;
+  }
+  return "bg-gray-500/10 text-gray-600 border-gray-500/20 dark:text-gray-400";
+}
+
 export function AdminActivityClient({ activityLog }: AdminActivityClientProps) {
   const [search, setSearch] = useState("");
   const [entityFilter, setEntityFilter] = useState("all");
+  const [isExporting, setIsExporting] = useState(false);
 
   const entityTypes = useMemo(() => {
     const types = new Set(activityLog.map((a) => a.entityType));
@@ -78,12 +107,48 @@ export function AdminActivityClient({ activityLog }: AdminActivityClientProps) {
     });
   }, [activityLog, search, entityFilter]);
 
+  const handleExport = async () => {
+    try {
+      setIsExporting(true);
+      const base64 = await exportActivityLogExcelAction();
+      const byteCharacters = atob(base64);
+      const byteNumbers = new Array(byteCharacters.length);
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+      }
+      const byteArray = new Uint8Array(byteNumbers);
+      const blob = new Blob([byteArray], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `activity-log-${new Date().toISOString().split('T')[0]}.xlsx`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success("Activity log exported successfully");
+    } catch (error) {
+      console.error("Export failed:", error);
+      toast.error("Failed to export activity log");
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   return (
     <Card>
       <CardHeader>
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <CardTitle className="text-base">All Activity ({filtered.length})</CardTitle>
           <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-9 gap-2"
+              onClick={handleExport}
+              disabled={isExporting}
+            >
+              <IconFileSpreadsheet className="h-4 w-4" />
+              {isExporting ? "Exporting..." : "Export Excel"}
+            </Button>
             <div className="relative">
               <IconSearch className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
@@ -123,8 +188,10 @@ export function AdminActivityClient({ activityLog }: AdminActivityClientProps) {
                   <TableHead className="w-[180px]">User</TableHead>
                   <TableHead className="w-[140px]">Action</TableHead>
                   <TableHead className="w-[100px]">Entity</TableHead>
+                  <TableHead className="w-[120px]">Stage</TableHead>
                   <TableHead>Details</TableHead>
                   <TableHead className="w-[160px] text-right">Timestamp</TableHead>
+                  <TableHead className="w-[50px]"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -147,6 +214,15 @@ export function AdminActivityClient({ activityLog }: AdminActivityClientProps) {
                       </span>
                     </TableCell>
                     <TableCell>
+                      {entry.candidateStage ? (
+                        <Badge variant="outline" className={getStageColor(entry.candidateStage)}>
+                          {entry.candidateStage}
+                        </Badge>
+                      ) : (
+                        <span className="text-muted-foreground text-sm">-</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
                       <span className="text-sm text-muted-foreground line-clamp-1">
                         {entry.details || "-"}
                       </span>
@@ -157,6 +233,79 @@ export function AdminActivityClient({ activityLog }: AdminActivityClientProps) {
                           ? new Date(entry.createdAt).toLocaleString()
                           : "Unknown"}
                       </span>
+                    </TableCell>
+                    <TableCell>
+                      <Dialog>
+                        <DialogTrigger render={
+                          <Button variant="outline" size="sm" className="h-8 w-8 p-0">
+                            <IconEye className="h-4 w-4" />
+                          </Button>
+                        } />
+                        <DialogContent>
+                          <DialogHeader>
+                            <DialogTitle>Activity Details</DialogTitle>
+                            <DialogDescription>
+                              Complete information about this activity log entry.
+                            </DialogDescription>
+                          </DialogHeader>
+                          <div className="grid gap-4 py-4">
+                            <div className="grid grid-cols-4 items-center gap-4">
+                              <span className="font-medium text-sm text-right">User</span>
+                              <div className="col-span-3 flex flex-col">
+                                <span className="text-sm font-medium">{entry.userName}</span>
+                                <span className="text-xs text-muted-foreground">{entry.userEmail}</span>
+                              </div>
+                            </div>
+                            <div className="grid grid-cols-4 items-center gap-4">
+                              <span className="font-medium text-sm text-right">Action</span>
+                              <div className="col-span-3">
+                                <Badge variant="outline" className={getActionColor(entry.action)}>
+                                  {entry.action}
+                                </Badge>
+                              </div>
+                            </div>
+                            <div className="grid grid-cols-4 items-center gap-4">
+                              <span className="font-medium text-sm text-right">Entity</span>
+                              <div className="col-span-3 flex flex-col">
+                                <span className="text-sm capitalize">{entry.entityType}</span>
+                                {entry.entityId && (
+                                  <span className="text-xs text-muted-foreground font-mono">
+                                    ID: {entry.entityId}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                            {entry.candidateStage && (
+                              <div className="grid grid-cols-4 items-center gap-4">
+                                <span className="font-medium text-sm text-right">Stage</span>
+                                <div className="col-span-3">
+                                  <Badge variant="outline" className={getStageColor(entry.candidateStage)}>
+                                    {entry.candidateStage}
+                                  </Badge>
+                                </div>
+                              </div>
+                            )}
+                            <div className="grid grid-cols-4 gap-4">
+                              <span className="font-medium text-sm text-right pt-1">Details</span>
+                              <div className="col-span-3">
+                                <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+                                  {entry.details || "No additional details provided."}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="grid grid-cols-4 items-center gap-4">
+                              <span className="font-medium text-sm text-right">Timestamp</span>
+                              <div className="col-span-3">
+                                <span className="text-sm text-muted-foreground tabular-nums">
+                                  {entry.createdAt
+                                    ? new Date(entry.createdAt).toLocaleString()
+                                    : "Unknown"}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        </DialogContent>
+                      </Dialog>
                     </TableCell>
                   </TableRow>
                 ))}

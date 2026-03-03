@@ -44,6 +44,52 @@ export const definitions: AgentToolDefinition[] = [
     allowedRoles: ['admin'],
     mutating: false,
   },
+  {
+    name: 'get_onboarding_detailed',
+    description:
+      'Get detailed onboarding data for all hired candidates including full CV data (skills, languages, education, experiences, summary), onboarding task details, and candidate stage.',
+    parameters: { type: 'object', properties: {}, required: [] },
+    allowedRoles: ['admin'],
+    mutating: false,
+  },
+  {
+    name: 'export_email_logs',
+    description:
+      'Export all email logs to an Excel file. Returns base64-encoded .xlsx data.',
+    parameters: { type: 'object', properties: {}, required: [] },
+    allowedRoles: ['admin'],
+    mutating: false,
+  },
+  {
+    name: 'export_onboarding',
+    description:
+      'Export onboarding data (overview, CV data, tasks) to an Excel file with multiple sheets. Returns base64-encoded .xlsx data.',
+    parameters: { type: 'object', properties: {}, required: [] },
+    allowedRoles: ['admin'],
+    mutating: false,
+  },
+  {
+    name: 'generate_candidate_accept_excel',
+    description:
+      'Generate a comprehensive Excel report for an accepted candidate including candidate info, CV/formation data, interview reports, and Q&A details. Returns base64-encoded .xlsx data.',
+    parameters: {
+      type: 'object',
+      properties: {
+        candidateId: {
+          type: 'string',
+          description: 'UUID of the candidate',
+        },
+        stage: {
+          type: 'string',
+          description: 'Interview stage that accepted the candidate',
+          enum: ['ta', 'manager', 'hr'],
+        },
+      },
+      required: ['candidateId', 'stage'],
+    },
+    allowedRoles: ['ta', 'manager', 'hr', 'admin'],
+    mutating: false,
+  },
 ];
 
 // ---- Executors ----
@@ -76,5 +122,34 @@ export const executors: Record<string, ToolHandler> = {
       entries.map((e) => sanitizeForJson(e)),
       30
     );
+  },
+
+  get_onboarding_detailed: async (_args, { sanitizeForJson, truncateArray }) => {
+    const { getHiredCandidatesOnboardingDetailed } = await import('../admin');
+    const entries = await getHiredCandidatesOnboardingDetailed();
+    return truncateArray(
+      entries.map((e) => sanitizeForJson(e)),
+      20
+    );
+  },
+
+  export_email_logs: async () => {
+    const { exportEmailLogsToExcel } = await import('../export');
+    const buffer = await exportEmailLogsToExcel();
+    return { base64: Buffer.from(buffer).toString('base64'), filename: 'email-logs.xlsx' };
+  },
+
+  export_onboarding: async () => {
+    const { exportOnboardingToExcel } = await import('../export');
+    const buffer = await exportOnboardingToExcel();
+    return { base64: Buffer.from(buffer).toString('base64'), filename: 'onboarding.xlsx' };
+  },
+
+  generate_candidate_accept_excel: async (args, { resolveId }) => {
+    const { generateCandidateAcceptExcel } = await import('../export');
+    const candidateId = await resolveId(args.candidateId, 'candidateId');
+    const stage = args.stage as 'ta' | 'manager' | 'hr';
+    const buffer = await generateCandidateAcceptExcel(candidateId, stage);
+    return { base64: Buffer.from(buffer).toString('base64'), filename: `candidate-accept-${stage}.xlsx` };
   },
 };

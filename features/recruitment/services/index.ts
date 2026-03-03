@@ -65,6 +65,10 @@ export {
   exportCvPoolToExcel,
   exportSingleCvToExcel,
   exportMultipleCvsAsZip,
+  exportEmailLogsToExcel,
+  exportActivityLogToExcel,
+  exportOnboardingToExcel,
+  generateCandidateAcceptExcel,
 } from './export';
 
 export { getDashboardStats, getTodayInterviewSchedule } from './dashboard';
@@ -111,6 +115,7 @@ export {
   logActivity,
   getActivityLog,
   getActivityByEntity,
+  getActivityLogEnriched,
 } from './activity-log';
 
 export {
@@ -127,5 +132,6 @@ export {
 
 export { listUsersByRole } from './users';
 
-export { getSystemOverview, getRecruitmentAnalytics, getEmailLogs, getHiredCandidatesOnboarding } from './admin';
-export type { SystemOverview, RecruitmentAnalytics, EmailLogEntry, OnboardingOverviewEntry } from './admin';
+export { getSystemOverview, getRecruitmentAnalytics, getEmailLogs, getHiredCandidatesOnboarding, getHiredCandidatesOnboardingDetailed } from './admin';
+export type { SystemOverview, RecruitmentAnalytics, EmailLogEntry, OnboardingOverviewEntry, OnboardingDetailedEntry } from './admin';
+export type { EnrichedActivityEntry } from './activity-log';

@@ -1,10 +1,10 @@
 import { requireRole } from '@/lib/auth';
-import { getHiredCandidatesOnboardingAction } from '@/features/recruitment/actions';
+import { getHiredCandidatesOnboardingDetailedAction } from '@/features/recruitment/actions';
 import { AdminOnboardingClient } from '@/features/recruitment/components/admin-onboarding-client';
 
 export default async function AdminOnboardingPage() {
   await requireRole(['admin']);
-  const candidates = await getHiredCandidatesOnboardingAction().catch(() => []);
+  const candidates = await getHiredCandidatesOnboardingDetailedAction().catch(() => []);
 
   return (
     <div className="space-y-6">

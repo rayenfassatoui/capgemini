@@ -104,6 +104,31 @@ export const definitions: AgentToolDefinition[] = [
     allowedRoles: ['ta', 'hr', 'admin'],
     mutating: true,
   },
+  {
+    name: 'get_activity_log_enriched',
+    description:
+      'Get the enriched activity log with candidate stage information resolved for each entry.',
+    parameters: {
+      type: 'object',
+      properties: {
+        limit: {
+          type: 'string',
+          description: 'Maximum number of entries to return (default 50)',
+        },
+      },
+      required: [],
+    },
+    allowedRoles: ['admin'],
+    mutating: false,
+  },
+  {
+    name: 'export_activity_log',
+    description:
+      'Export the activity log to an Excel file. Returns base64-encoded .xlsx data.',
+    parameters: { type: 'object', properties: {}, required: [] },
+    allowedRoles: ['admin'],
+    mutating: false,
+  },
 ];
 
 // ---- Executors ----
@@ -156,5 +181,21 @@ export const executors: Record<string, ToolHandler> = {
       (args.description as string) ?? undefined
     );
     return sanitizeForJson(task);
+  },
+
+  get_activity_log_enriched: async (args, { sanitizeForJson, truncateArray }) => {
+    const { getActivityLogEnriched } = await import('../activity-log');
+    const limit = Number(args.limit ?? 50);
+    const entries = await getActivityLogEnriched(limit);
+    return truncateArray(
+      entries.map((e) => sanitizeForJson(e)),
+      50
+    );
+  },
+
+  export_activity_log: async () => {
+    const { exportActivityLogToExcel } = await import('../export');
+    const buffer = await exportActivityLogToExcel();
+    return { base64: Buffer.from(buffer).toString('base64'), filename: 'activity-log.xlsx' };
   },
 };

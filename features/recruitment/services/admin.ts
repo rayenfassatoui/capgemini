@@ -1,4 +1,4 @@
-import { count, eq, desc, sql, and, gte } from 'drizzle-orm';
+import { count, eq, desc, sql, and, gte, inArray } from 'drizzle-orm';
 import { db } from '@/lib/db';
 import {
   users,
@@ -230,6 +230,9 @@ export interface EmailLogEntry {
   toEmail: string;
   toName: string | null;
   subject: string;
+  body: string | null;
+  interviewId: string | null;
+  candidateStage: string | null;
   status: string;
   createdAt: Date;
   sentByName: string;
@@ -237,21 +240,40 @@ export interface EmailLogEntry {
 }
 
 export async function getEmailLogs(limit = 100): Promise<EmailLogEntry[]> {
-  return db
+  const rows = await db
     .select({
       id: emailLogs.id,
       toEmail: emailLogs.toEmail,
       toName: emailLogs.toName,
       subject: emailLogs.subject,
+      body: emailLogs.body,
+      interviewId: emailLogs.interviewId,
       status: emailLogs.status,
       createdAt: emailLogs.createdAt,
       sentByName: users.name,
       sentByEmail: users.email,
+      candidateStage: candidates.stage,
     })
     .from(emailLogs)
     .innerJoin(users, eq(emailLogs.sentBy, users.id))
+    .leftJoin(interviews, eq(emailLogs.interviewId, interviews.id))
+    .leftJoin(candidates, eq(interviews.candidateId, candidates.id))
     .orderBy(desc(emailLogs.createdAt))
     .limit(limit);
+
+  return rows.map((r) => ({
+    id: r.id,
+    toEmail: r.toEmail,
+    toName: r.toName,
+    subject: r.subject,
+    body: r.body ?? null,
+    interviewId: r.interviewId ?? null,
+    candidateStage: r.candidateStage ?? null,
+    status: r.status,
+    createdAt: r.createdAt,
+    sentByName: r.sentByName,
+    sentByEmail: r.sentByEmail,
+  }));
 }
 
 // ---------- Onboarding Overview ----------
@@ -303,6 +325,119 @@ export async function getHiredCandidatesOnboarding(): Promise<OnboardingOverview
       ...c,
       totalTasks: tasks.total,
       completedTasks: tasks.completed,
+    };
+  });
+}
+
+// ---------- Enriched Onboarding (with CV data, stage, task details) ----------
+
+export interface OnboardingDetailedEntry {
+  candidateId: string;
+  candidateName: string;
+  candidateEmail: string;
+  candidatePhone: string | null;
+  candidateStage: string;
+  jobTitle: string;
+  totalTasks: number;
+  completedTasks: number;
+  hiredAt: Date;
+  // CV data
+  cvSkills: string[];
+  cvLanguages: string[];
+  cvEducation: Array<Record<string, string>>;
+  cvExperiences: Array<Record<string, string>>;
+  cvSummary: string | null;
+  // Task details
+  tasks: Array<{
+    id: string;
+    title: string;
+    description: string | null;
+    completed: boolean;
+    completedAt: Date | null;
+  }>;
+}
+
+export async function getHiredCandidatesOnboardingDetailed(): Promise<OnboardingDetailedEntry[]> {
+  const hiredCandidates = await db
+    .select({
+      candidateId: candidates.id,
+      candidateName: candidates.fullName,
+      candidateEmail: candidates.email,
+      candidatePhone: candidates.phone,
+      candidateStage: candidates.stage,
+      cvId: candidates.cvId,
+      jobTitle: jobs.title,
+      hiredAt: candidates.updatedAt,
+    })
+    .from(candidates)
+    .innerJoin(jobs, eq(candidates.jobId, jobs.id))
+    .where(eq(candidates.stage, 'hired'))
+    .orderBy(desc(candidates.updatedAt));
+
+  if (hiredCandidates.length === 0) return [];
+
+  // Batch fetch CV data
+  const cvIds = hiredCandidates.map((c) => c.cvId);
+  const cvRows = await db
+    .select({
+      id: cvPool.id,
+      extractedSkills: cvPool.extractedSkills,
+      extractedLanguages: cvPool.extractedLanguages,
+      extractedEducation: cvPool.extractedEducation,
+      extractedExperiences: cvPool.extractedExperiences,
+      extractedSummary: cvPool.extractedSummary,
+    })
+    .from(cvPool)
+    .where(inArray(cvPool.id, cvIds));
+
+  const cvMap = new Map(cvRows.map((cv) => [cv.id, cv]));
+
+  // Batch fetch all onboarding tasks
+  const candidateIds = hiredCandidates.map((c) => c.candidateId);
+  const allTasks = await db
+    .select({
+      id: onboardingTasks.id,
+      candidateId: onboardingTasks.candidateId,
+      title: onboardingTasks.title,
+      description: onboardingTasks.description,
+      completed: onboardingTasks.completed,
+      completedAt: onboardingTasks.completedAt,
+    })
+    .from(onboardingTasks)
+    .where(inArray(onboardingTasks.candidateId, candidateIds));
+
+  const tasksByCand = new Map<string, typeof allTasks>();
+  for (const task of allTasks) {
+    const arr = tasksByCand.get(task.candidateId) ?? [];
+    arr.push(task);
+    tasksByCand.set(task.candidateId, arr);
+  }
+
+  return hiredCandidates.map((c) => {
+    const cv = cvMap.get(c.cvId);
+    const tasks = tasksByCand.get(c.candidateId) ?? [];
+    return {
+      candidateId: c.candidateId,
+      candidateName: c.candidateName,
+      candidateEmail: c.candidateEmail,
+      candidatePhone: c.candidatePhone,
+      candidateStage: c.candidateStage,
+      jobTitle: c.jobTitle,
+      totalTasks: tasks.length,
+      completedTasks: tasks.filter((t) => t.completed).length,
+      hiredAt: c.hiredAt,
+      cvSkills: (cv?.extractedSkills ?? []) as string[],
+      cvLanguages: (cv?.extractedLanguages ?? []) as string[],
+      cvEducation: (cv?.extractedEducation ?? []) as Array<Record<string, string>>,
+      cvExperiences: (cv?.extractedExperiences ?? []) as Array<Record<string, string>>,
+      cvSummary: cv?.extractedSummary ?? null,
+      tasks: tasks.map((t) => ({
+        id: t.id,
+        title: t.title,
+        description: t.description,
+        completed: t.completed,
+        completedAt: t.completedAt,
+      })),
     };
   });
 }
