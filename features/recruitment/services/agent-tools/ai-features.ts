@@ -122,6 +122,75 @@ export const definitions: AgentToolDefinition[] = [
     allowedRoles: ['ta', 'manager', 'hr', 'admin'],
     mutating: false,
   },
+  {
+    name: 'ai_summarize_candidate',
+    description:
+      'Generate an executive summary of a candidate including key strengths, risks, fit score, and recommended next actions. Useful for hiring committee reviews or quick candidate overviews.',
+    parameters: {
+      type: 'object',
+      properties: {
+        candidateId: {
+          type: 'string',
+          description: 'UUID of the candidate to summarize',
+        },
+        jobId: {
+          type: 'string',
+          description:
+            'UUID of the job to evaluate fit against (optional — if omitted, gives a general summary)',
+        },
+      },
+      required: ['candidateId'],
+    },
+    allowedRoles: ['ta', 'manager', 'hr', 'admin'],
+    mutating: false,
+  },
+  {
+    name: 'ai_talent_insights',
+    description:
+      'Analyze the entire talent pool to identify skill trends, skill gaps between supply and demand, pipeline health, and strategic recommendations. No parameters needed — analyzes all data.',
+    parameters: {
+      type: 'object',
+      properties: {},
+      required: [],
+    },
+    allowedRoles: ['ta', 'hr', 'admin'],
+    mutating: false,
+  },
+  {
+    name: 'ai_followup_questions',
+    description:
+      'After an interview report is submitted, generate targeted follow-up questions that probe deeper into areas of concern or interest based on the candidate\'s answers. Great for preparing the next interview stage.',
+    parameters: {
+      type: 'object',
+      properties: {
+        interviewId: {
+          type: 'string',
+          description:
+            'UUID of the interview (must have a completed report with candidate answers)',
+        },
+      },
+      required: ['interviewId'],
+    },
+    allowedRoles: ['ta', 'manager', 'hr', 'admin'],
+    mutating: false,
+  },
+  {
+    name: 'ai_optimize_job_requirements',
+    description:
+      'Analyze a job description and its screening performance data to suggest improvements. Returns clarity/competitiveness/inclusivity scores, specific suggestions, optimized requirements, and market insights.',
+    parameters: {
+      type: 'object',
+      properties: {
+        jobId: {
+          type: 'string',
+          description: 'UUID of the job to analyze and optimize',
+        },
+      },
+      required: ['jobId'],
+    },
+    allowedRoles: ['ta', 'admin'],
+    mutating: false,
+  },
 ];
 
 // ---- Executors ----
@@ -174,6 +243,34 @@ export const executors: Record<string, ToolHandler> = {
     const jobId = await resolveId(args.jobId, 'jobId');
     return sanitizeForJson(
       await services.predictPipelineScore(candidateId, jobId)
+    );
+  },
+
+  ai_summarize_candidate: async (args, { services, resolveId, sanitizeForJson }) => {
+    const candidateId = await resolveId(args.candidateId, 'candidateId');
+    const jobId = args.jobId ? await resolveId(args.jobId, 'jobId') : undefined;
+    return sanitizeForJson(
+      await services.summarizeCandidate(candidateId, jobId)
+    );
+  },
+
+  ai_talent_insights: async (_args, { services, sanitizeForJson }) => {
+    return sanitizeForJson(
+      await services.analyzeTalentInsights()
+    );
+  },
+
+  ai_followup_questions: async (args, { services, resolveId, sanitizeForJson }) => {
+    const interviewId = await resolveId(args.interviewId, 'interviewId');
+    return sanitizeForJson(
+      await services.generateFollowupQuestions(interviewId)
+    );
+  },
+
+  ai_optimize_job_requirements: async (args, { services, resolveId, sanitizeForJson }) => {
+    const jobId = await resolveId(args.jobId, 'jobId');
+    return sanitizeForJson(
+      await services.optimizeJobRequirements(jobId)
     );
   },
 };

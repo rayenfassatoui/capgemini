@@ -35,10 +35,12 @@ export interface Conversation {
 export type ChatView = 'chat' | 'history';
 
 export const SUGGESTIONS = [
-  'List all open jobs',
+  'Summarize top candidate for the latest job',
+  'Analyze our talent pool insights',
+  'Optimize requirements for an open job',
   'Show me the candidate pipeline',
   'Match CVs to the latest job',
-  'Create a Senior React Developer job',
+  'Generate follow-up interview questions',
 ];
 
 export function formatToolName(name: string): string {

@@ -150,7 +150,7 @@ describe('POST /api/chat/statistics — route layer', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    process.env.OPENROUTER_KEY = 'test-api-key';
+    process.env.OPENROUTER_API_KEY = 'test-api-key';
     mockGetSession.mockResolvedValue(DEFAULT_SESSION);
     mockGetToolsForRole.mockReturnValue([]);
     globalThis.fetch = vi.fn();
@@ -158,7 +158,7 @@ describe('POST /api/chat/statistics — route layer', () => {
 
   afterEach(() => {
     globalThis.fetch = originalFetch;
-    delete process.env.OPENROUTER_KEY;
+    delete process.env.OPENROUTER_API_KEY;
   });
 
   // ---- Auth & validation ----
@@ -189,8 +189,8 @@ describe('POST /api/chat/statistics — route layer', () => {
     expect(res.status).toBe(400);
   });
 
-  it('returns 503 when OPENROUTER_KEY is not configured', async () => {
-    delete process.env.OPENROUTER_KEY;
+  it('returns 503 when OPENROUTER_API_KEY is not configured', async () => {
+    delete process.env.OPENROUTER_API_KEY;
 
     const res = await POST(makePostRequest({
       messages: [{ role: 'user', content: 'hi' }],

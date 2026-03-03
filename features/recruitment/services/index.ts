@@ -93,6 +93,10 @@ export {
   generateJobDescription,
   generateCandidateEmail,
   predictPipelineScore,
+  summarizeCandidate,
+  analyzeTalentInsights,
+  generateFollowupQuestions,
+  optimizeJobRequirements,
 } from './ai-features';
 
 export {
