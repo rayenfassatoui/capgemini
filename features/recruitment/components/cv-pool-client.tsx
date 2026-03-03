@@ -617,9 +617,9 @@ export function CvPoolClient({ initialData, stats }: CvPoolClientProps) {
                     </TableCell>
                     <TableCell>
                       <div className="flex flex-wrap gap-1">
-                        {cv.extractedSkills?.slice(0, 3).map((skill) => (
+                        {cv.extractedSkills?.slice(0, 3).map((skill, idx) => (
                           <Badge
-                            key={skill}
+                            key={`${skill}-${idx}`}
                             variant="secondary"
                             className="text-[10px]"
                           >
@@ -767,8 +767,8 @@ export function CvPoolClient({ initialData, stats }: CvPoolClientProps) {
                 <div>
                   <h4 className="text-sm font-semibold mb-2">Skills</h4>
                   <div className="flex flex-wrap gap-1.5">
-                    {reviewData.extractedSkills.map((skill) => (
-                      <Badge key={skill} variant="secondary" className="text-xs">
+                    {reviewData.extractedSkills.map((skill, idx) => (
+                      <Badge key={`${skill}-${idx}`} variant="secondary" className="text-xs">
                         {skill}
                       </Badge>
                     ))}

@@ -27,26 +27,6 @@ export function DashboardShell({ children, role, userName }: DashboardShellProps
       }
     };
     
-    // Initial check
-    if (window.innerWidth < 1024) {
-      setTimeout(() => setIsCollapsed(true), 0);
-    }
-
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
-  useEffect(() => {
-    const handleResize = () => {
-      if (window.innerWidth < 1024) {
-        setIsCollapsed(true);
-      }
-    };
-    
-    // Initial check
-    if (window.innerWidth < 1024) {
-      setIsCollapsed(true);
-    }
-
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);

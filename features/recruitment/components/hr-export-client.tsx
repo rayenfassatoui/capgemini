@@ -104,7 +104,7 @@ export function HRExportClient() {
                       </span>
                     </h2>
                     <p className="text-muted-foreground leading-relaxed">
-                      Download a detailed Excel report containing all candidates who have moved to the "Accepted" stage. Includes contact info, interview scores, and decision history.
+                      Download a detailed Excel report containing all candidates who have moved to the &ldquo;Accepted&rdquo; stage. Includes contact info, interview scores, and decision history.
                     </p>
                   </div>
 

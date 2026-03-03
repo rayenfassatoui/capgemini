@@ -4,10 +4,14 @@ import { AdminUsersClient } from '@/features/recruitment/components/admin-users-
 export default async function AdminPage() {
   await requireRole(['admin']);
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">User Management</h1>
-        <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Manage user accounts and roles</p>
+    <div className="space-y-8">
+      <div className="space-y-1">
+        <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
+          User Management
+        </h1>
+        <p className="text-muted-foreground mt-1">
+          Manage user accounts and roles
+        </p>
       </div>
       <AdminUsersClient />
     </div>

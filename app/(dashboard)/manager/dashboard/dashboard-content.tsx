@@ -5,9 +5,7 @@ import {
   IconUsers, 
   IconCalendarEvent, 
   IconClock, 
-  IconBriefcase, 
-  IconCheck, 
-  IconX 
+  IconBriefcase,
 } from '@tabler/icons-react';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -20,7 +18,7 @@ import {
   TableHeader, 
   TableRow 
 } from '@/components/ui/table';
-import { Button, buttonVariants } from '@/components/ui/button';
+import { buttonVariants } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import type { TodayInterview } from '@/features/recruitment/types';
 
@@ -108,7 +106,7 @@ export function DashboardContent({ stats, todayInterviews }: DashboardContentPro
             Dashboard
           </h1>
           <p className="text-muted-foreground mt-2 text-lg">
-            Welcome back, Manager. Here's what needs your attention.
+            Welcome back, Manager. Here&apos;s what needs your attention.
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -125,7 +123,7 @@ export function DashboardContent({ stats, todayInterviews }: DashboardContentPro
         variants={containerVariants}
         className="grid gap-6 md:grid-cols-3"
       >
-        {statCards.map((stat, i) => (
+        {statCards.map((stat) => (
           <motion.div key={stat.title} variants={itemVariants}>
             <Card className={`relative overflow-hidden border ${stat.border} bg-background/60 backdrop-blur-xl hover:shadow-lg transition-all duration-300 group`}>
               <div className={`absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 bg-gradient-to-br ${stat.bg.replace('bg-', 'from-').replace('/10', '/5')} to-transparent pointer-events-none`} />
@@ -151,7 +149,7 @@ export function DashboardContent({ stats, todayInterviews }: DashboardContentPro
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle className="text-xl">Today's Schedule</CardTitle>
+                <CardTitle className="text-xl">Today&apos;s Schedule</CardTitle>
                 <CardDescription>
                   Your interview schedule for {new Date().toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
                 </CardDescription>
@@ -168,7 +166,7 @@ export function DashboardContent({ stats, todayInterviews }: DashboardContentPro
                   <IconCalendarEvent className="h-8 w-8 opacity-50" />
                 </div>
                 <h3 className="font-medium text-lg">No interviews scheduled</h3>
-                <p className="max-w-xs mx-auto mt-2">You're all caught up for today. Check the candidates list to schedule new interviews.</p>
+                <p className="max-w-xs mx-auto mt-2">You&apos;re all caught up for today. Check the candidates list to schedule new interviews.</p>
                 <Link 
                   href="/manager/candidates" 
                   className={cn(buttonVariants({ variant: "outline" }), "mt-6")}

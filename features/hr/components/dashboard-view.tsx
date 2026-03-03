@@ -80,7 +80,7 @@ export function DashboardView({ stats, interviews, toReviewCount, acceptedCount 
           <CardHeader className="bg-muted/30">
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle className="text-xl">Today's Interview Schedule</CardTitle>
+                <CardTitle className="text-xl">Today&apos;s Interview Schedule</CardTitle>
                 <CardDescription>Upcoming interviews scheduled for today.</CardDescription>
               </div>
               <Badge variant="outline" className="px-3 py-1">

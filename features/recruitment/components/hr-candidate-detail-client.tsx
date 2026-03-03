@@ -420,7 +420,7 @@ export function HRCandidateDetailClient({
                 <div className="space-y-4">
                   <div className="p-4 rounded-lg border border-dashed bg-muted/50">
                     <p className="text-sm text-muted-foreground">
-                      Review the candidate's history in the "Prior Reports" tab. You can also reach the candidate by phone at{' '}
+                      Review the candidate&apos;s history in the &ldquo;Prior Reports&rdquo; tab. You can also reach the candidate by phone at{' '}
                       {candidate.phone ? (
                         <strong>{candidate.phone}</strong>
                       ) : (

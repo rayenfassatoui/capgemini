@@ -5,10 +5,12 @@ export default async function AdminSettingsPage() {
   await requireRole(['admin']);
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Platform Settings</h1>
-        <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+    <div className="space-y-8">
+      <div className="space-y-1">
+        <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
+          Platform Settings
+        </h1>
+        <p className="text-muted-foreground mt-1">
           Configure system-wide settings and preferences
         </p>
       </div>

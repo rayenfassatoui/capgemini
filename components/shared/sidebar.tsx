@@ -3,7 +3,7 @@
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { useTheme } from 'next-themes';
-import { CapgeminiLogo } from '@/components/shared/icons';
+import { CapgeminiLogo, CapgeminiIcons } from '@/components/shared/icons';
 import { SignOutButton } from '@/features/recruitment/components/sign-out-button';
 import { Badge } from '@/components/ui/badge';
 import { useI18n } from '@/components/shared/i18n-provider';
@@ -120,7 +120,7 @@ function SidebarContent({
         </div>
         
         {isCollapsed && (
-           <CapgeminiLogo className="h-8 w-auto shrink-0" />
+           <CapgeminiIcons className="h-8 w-8 shrink-0" />
         )}
       </div>
 
@@ -157,7 +157,7 @@ function SidebarContent({
             return (
               <TooltipProvider key={item.href} delay={0}>
                 <Tooltip>
-                  <TooltipTrigger>
+                  <TooltipTrigger render={<span className="block w-full" />}>
                     <Link
                       href={item.href}
                       className={cn(
@@ -208,7 +208,7 @@ function SidebarContent({
                   return (
                     <TooltipProvider key={item.href} delay={0}>
                       <Tooltip>
-                        <TooltipTrigger>
+                        <TooltipTrigger render={<span className="block w-full" />}>
                           <Link
                             href={item.href}
                             className={cn(
@@ -251,7 +251,7 @@ function SidebarContent({
            {/* Theme Toggle */}
            <TooltipProvider delay={0}>
               <Tooltip>
-                <TooltipTrigger>
+                <TooltipTrigger render={<span className="block" />}>
                   <Button
                     variant="ghost"
                     size={isCollapsed ? "icon" : "sm"}
@@ -272,7 +272,7 @@ function SidebarContent({
             {/* Language Toggle */}
             <TooltipProvider delay={0}>
               <Tooltip>
-                <TooltipTrigger>
+                <TooltipTrigger render={<span className="block" />}>
                   <Button
                     variant="ghost"
                     size={isCollapsed ? "icon" : "sm"}
@@ -291,11 +291,18 @@ function SidebarContent({
             </TooltipProvider>
             
             <div className="pt-2">
-               <SignOutButton />
+              <TooltipProvider delay={0}>
+                <Tooltip>
+                  <TooltipTrigger render={<span className="block" />}>
+                    <SignOutButton isCollapsed={isCollapsed} />
+                  </TooltipTrigger>
+                  {isCollapsed && <TooltipContent side="right">Sign Out</TooltipContent>}
+                </Tooltip>
+              </TooltipProvider>
             </div>
         </div>
       </div>
-      
+
       {/* Collapse Toggle (Desktop Only) */}
       {!isMobile && toggleCollapse && (
         <div className="hidden lg:flex border-t border-gray-200 p-2 dark:border-gray-800 justify-end">

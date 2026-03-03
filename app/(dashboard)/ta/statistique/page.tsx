@@ -37,10 +37,20 @@ export default async function StatistiquePage() {
       : null;
 
   return (
-    <StatisticsCharts
-      cvStats={cvStats}
-      jobsStats={jobsStats}
-      insights={insights}
-    />
+    <div className="space-y-8">
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
+          Statistics
+        </h1>
+        <p className="text-muted-foreground mt-1">
+          Recruitment analytics and insights
+        </p>
+      </div>
+      <StatisticsCharts
+        cvStats={cvStats}
+        jobsStats={jobsStats}
+        insights={insights}
+      />
+    </div>
   );
 }
