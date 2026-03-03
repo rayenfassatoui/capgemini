@@ -1,6 +1,6 @@
 import { and, desc, eq, inArray } from 'drizzle-orm';
 import { db } from '@/lib/db';
-import { candidates, cvPool, interviews } from '@/db/schema';
+import { candidates, cvPool, interviews, jobs } from '@/db/schema';
 import type { CandidateStage } from '../types';
 import { getJob } from './jobs';
 
@@ -148,8 +148,17 @@ export async function getCandidatesByStageAndAssignee(
 ) {
   if (stages.length === 0) return [];
   return db
-    .select()
+    .select({
+      id: candidates.id,
+      fullName: candidates.fullName,
+      email: candidates.email,
+      stage: candidates.stage,
+      createdAt: candidates.createdAt,
+      jobId: candidates.jobId,
+      jobTitle: jobs.title,
+    })
     .from(candidates)
+    .innerJoin(jobs, eq(candidates.jobId, jobs.id))
     .where(
       and(
         inArray(candidates.stage, stages),
@@ -158,3 +167,4 @@ export async function getCandidatesByStageAndAssignee(
     )
     .orderBy(desc(candidates.createdAt));
 }
+

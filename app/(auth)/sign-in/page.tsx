@@ -3,18 +3,13 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { motion } from 'framer-motion';
 import { authClient } from '@/lib/auth-client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import {
-  Field,
-  FieldContent,
-  FieldError,
-  FieldGroup,
-  FieldLabel,
-} from '@/components/ui/field';
-import { IconLoader } from '@tabler/icons-react';
+import { Label } from '@/components/ui/label';
+import { IconLoader, IconBrandGoogle } from '@tabler/icons-react';
+import { cn } from '@/lib/utils';
 
 export default function SignInPage() {
   const router = useRouter();
@@ -53,65 +48,106 @@ export default function SignInPage() {
   }
 
   return (
-    <Card className="border-gray-200 dark:border-gray-800">
-      <CardHeader className="text-center">
-        <CardTitle className="text-xl font-semibold text-gray-900 dark:text-white">
-          Sign in to your account
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <FieldGroup>
-            <Field>
-              <FieldLabel>Email</FieldLabel>
-              <FieldContent>
-                <Input
-                  type="email"
-                  placeholder="you@capgemini.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  autoComplete="email"
-                />
-              </FieldContent>
-            </Field>
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+      className="w-full"
+    >
+      <div className="flex flex-col space-y-2 text-center mb-8">
+        <h1 className="text-2xl font-semibold tracking-tight">
+          Welcome back
+        </h1>
+        <p className="text-sm text-muted-foreground">
+          Enter your credentials to access your account
+        </p>
+      </div>
 
-            <Field>
-              <FieldLabel>Password</FieldLabel>
-              <FieldContent>
-                <Input
-                  type="password"
-                  placeholder="Enter your password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  autoComplete="current-password"
-                  minLength={8}
-                />
-              </FieldContent>
-            </Field>
-          </FieldGroup>
-
-          {error && <FieldError>{error}</FieldError>}
-
-          <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? (
-              <IconLoader className="mr-2 h-4 w-4 animate-spin" />
-            ) : null}
-            Sign In
-          </Button>
-
-          <p className="text-center text-sm text-gray-600 dark:text-gray-400">
-            No account?{' '}
-            <Link
-              href="/sign-up"
-              className="font-medium text-gray-900 underline underline-offset-4 hover:text-gray-700 dark:text-white dark:hover:text-gray-300"
-            >
-              Create one
-            </Link>
-          </p>
+      <div className={cn("grid gap-6")}>
+        <form onSubmit={handleSubmit}>
+          <div className="grid gap-4">
+            <div className="grid gap-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                placeholder="name@capgemini.com"
+                type="email"
+                autoCapitalize="none"
+                autoComplete="email"
+                autoCorrect="off"
+                disabled={loading}
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+            </div>
+            <div className="grid gap-2">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="password">Password</Label>
+                <Link
+                  href="/forgot-password"
+                  className="text-sm font-medium text-primary hover:underline"
+                >
+                  Forgot password?
+                </Link>
+              </div>
+              <Input
+                id="password"
+                placeholder="••••••••"
+                type="password"
+                autoComplete="current-password"
+                disabled={loading}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                minLength={8}
+              />
+            </div>
+            
+            {error && (
+              <div className="rounded-md bg-destructive/15 p-3 text-sm text-destructive dark:bg-destructive/10">
+                {error}
+              </div>
+            )}
+            
+            <Button type="submit" disabled={loading} className="w-full">
+              {loading && (
+                <IconLoader className="mr-2 h-4 w-4 animate-spin" />
+              )}
+              Sign In
+            </Button>
+          </div>
         </form>
-      </CardContent>
-    </Card>
+        
+        <div className="relative">
+          <div className="absolute inset-0 flex items-center">
+            <span className="w-full border-t" />
+          </div>
+          <div className="relative flex justify-center text-xs uppercase">
+            <span className="bg-background px-2 text-muted-foreground">
+              Or continue with
+            </span>
+          </div>
+        </div>
+
+        <div className="grid gap-2">
+           {/* Placeholder for future Google Auth - keeping consistent with modern SaaS patterns */}
+           <Button variant="outline" type="button" disabled={loading} onClick={() => {}}>
+            <IconBrandGoogle className="mr-2 h-4 w-4" />
+            Google
+          </Button>
+        </div>
+
+        <p className="px-8 text-center text-sm text-muted-foreground">
+          Don&apos;t have an account?{" "}
+          <Link
+            href="/sign-up"
+            className="underline underline-offset-4 hover:text-primary"
+          >
+            Sign up
+          </Link>
+        </p>
+      </div>
+    </motion.div>
   );
 }

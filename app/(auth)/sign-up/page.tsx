@@ -3,18 +3,13 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { motion } from 'framer-motion';
 import { authClient } from '@/lib/auth-client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import {
-  Field,
-  FieldContent,
-  FieldError,
-  FieldGroup,
-  FieldLabel,
-} from '@/components/ui/field';
-import { IconLoader } from '@tabler/icons-react';
+import { Label } from '@/components/ui/label';
+import { IconLoader, IconBrandGoogle } from '@tabler/icons-react';
+import { cn } from '@/lib/utils';
 
 export default function SignUpPage() {
   const router = useRouter();
@@ -55,79 +50,130 @@ export default function SignUpPage() {
   }
 
   return (
-    <Card className="border-gray-200 dark:border-gray-800">
-      <CardHeader className="text-center">
-        <CardTitle className="text-xl font-semibold text-gray-900 dark:text-white">
-          Create your account
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <FieldGroup>
-            <Field>
-              <FieldLabel>Full Name</FieldLabel>
-              <FieldContent>
-                <Input
-                  type="text"
-                  placeholder="Jean Dupont"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  required
-                  autoComplete="name"
-                />
-              </FieldContent>
-            </Field>
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+      className="w-full"
+    >
+      <div className="flex flex-col space-y-2 text-center mb-8">
+        <h1 className="text-2xl font-semibold tracking-tight">
+          Create an account
+        </h1>
+        <p className="text-sm text-muted-foreground">
+          Enter your email below to create your account
+        </p>
+      </div>
 
-            <Field>
-              <FieldLabel>Email</FieldLabel>
-              <FieldContent>
-                <Input
-                  type="email"
-                  placeholder="you@capgemini.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  autoComplete="email"
-                />
-              </FieldContent>
-            </Field>
+      <div className={cn("grid gap-6")}>
+        <form onSubmit={handleSubmit}>
+          <div className="grid gap-4">
+            <div className="grid gap-2">
+              <Label htmlFor="name">Full Name</Label>
+              <Input
+                id="name"
+                placeholder="John Doe"
+                type="text"
+                autoCapitalize="words"
+                autoComplete="name"
+                autoCorrect="off"
+                disabled={loading}
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                required
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                placeholder="name@capgemini.com"
+                type="email"
+                autoCapitalize="none"
+                autoComplete="email"
+                autoCorrect="off"
+                disabled={loading}
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="password">Password</Label>
+              <Input
+                id="password"
+                placeholder="••••••••"
+                type="password"
+                autoComplete="new-password"
+                disabled={loading}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                minLength={8}
+              />
+            </div>
 
-            <Field>
-              <FieldLabel>Password</FieldLabel>
-              <FieldContent>
-                <Input
-                  type="password"
-                  placeholder="Min. 8 characters"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  autoComplete="new-password"
-                  minLength={8}
-                />
-              </FieldContent>
-            </Field>
-          </FieldGroup>
+            {error && (
+              <div className="rounded-md bg-destructive/15 p-3 text-sm text-destructive dark:bg-destructive/10">
+                {error}
+              </div>
+            )}
 
-          {error && <FieldError>{error}</FieldError>}
-
-          <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? (
-              <IconLoader className="mr-2 h-4 w-4 animate-spin" />
-            ) : null}
-            Create Account
-          </Button>
-
-          <p className="text-center text-sm text-gray-600 dark:text-gray-400">
-            Already have an account?{' '}
-            <Link
-              href="/sign-in"
-              className="font-medium text-gray-900 underline underline-offset-4 hover:text-gray-700 dark:text-white dark:hover:text-gray-300"
-            >
-              Sign in
-            </Link>
-          </p>
+            <Button type="submit" disabled={loading} className="w-full">
+              {loading && (
+                <IconLoader className="mr-2 h-4 w-4 animate-spin" />
+              )}
+              Create Account
+            </Button>
+          </div>
         </form>
-      </CardContent>
-    </Card>
+
+        <div className="relative">
+          <div className="absolute inset-0 flex items-center">
+            <span className="w-full border-t" />
+          </div>
+          <div className="relative flex justify-center text-xs uppercase">
+            <span className="bg-background px-2 text-muted-foreground">
+              Or continue with
+            </span>
+          </div>
+        </div>
+
+        <div className="grid gap-2">
+           <Button variant="outline" type="button" disabled={loading} onClick={() => {}}>
+            <IconBrandGoogle className="mr-2 h-4 w-4" />
+            Google
+          </Button>
+        </div>
+
+        <p className="px-8 text-center text-sm text-muted-foreground">
+          By clicking continue, you agree to our{" "}
+          <Link
+            href="/terms"
+            className="underline underline-offset-4 hover:text-primary"
+          >
+            Terms of Service
+          </Link>{" "}
+          and{" "}
+          <Link
+            href="/privacy"
+            className="underline underline-offset-4 hover:text-primary"
+          >
+            Privacy Policy
+          </Link>
+          .
+        </p>
+
+        <p className="px-8 text-center text-sm text-muted-foreground">
+          Already have an account?{" "}
+          <Link
+            href="/sign-in"
+            className="underline underline-offset-4 hover:text-primary"
+          >
+            Sign in
+          </Link>
+        </p>
+      </div>
+    </motion.div>
   );
 }

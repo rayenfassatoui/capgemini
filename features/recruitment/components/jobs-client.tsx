@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import { toast } from 'sonner';
 import {
@@ -11,9 +12,12 @@ import {
   IconSearch,
   IconBuilding,
   IconCalendar,
+  IconUsers,
+  IconTrendingUp,
+  IconChartBar
 } from '@tabler/icons-react';
 
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
@@ -37,9 +41,9 @@ import {
 
 import { createJobAction } from '@/features/recruitment/actions';
 import type { JobsStats } from '@/features/recruitment/types';
+import { cn } from '@/lib/utils';
 
 // Define the Job type locally based on the expected return shape
-// In a real app we might import this from schema/types if available
 interface Job {
   id: string;
   title: string;
@@ -58,6 +62,21 @@ interface JobsClientProps {
   initialJobs: Job[];
   stats: JobsStats;
 }
+
+const container = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.1,
+    },
+  },
+};
+
+const item = {
+  hidden: { opacity: 0, y: 20 },
+  show: { opacity: 1, y: 0 },
+};
 
 export default function JobsClient({ initialJobs, stats }: JobsClientProps) {
   const [jobs, setJobs] = useState<Job[]>(initialJobs);
@@ -146,11 +165,6 @@ export default function JobsClient({ initialJobs, stats }: JobsClientProps) {
         businessUnit: businessUnit || null,
       });
 
-      // The action revalidates the path, but we can also update local state for immediate feedback
-      // Note: The action returns the created job object
-      // We might need to refresh the page or rely on revalidatePath
-      // For this client component, assuming revalidatePath works, we might just close
-      // But to be safe and responsive, let's update local list if the object is returned
       if (newJob) {
         setJobs((prev) => [newJob as unknown as Job, ...prev]);
         toast.success('Job created successfully');
@@ -193,317 +207,401 @@ export default function JobsClient({ initialJobs, stats }: JobsClientProps) {
     job.businessUnit?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  // Extract top stats for cards
+  const topStatus = stats.byStatus.sort((a, b) => b.count - a.count)[0];
+  const topSeniority = stats.bySeniority.sort((a, b) => b.count - a.count)[0];
+  const topSkill = stats.topSkillsDemand.sort((a, b) => b.count - a.count)[0];
+
   return (
-    <div className="space-y-6">
-      {/* Statistics */}
-      <div className="grid gap-4 md:grid-cols-4">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Total Jobs</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.totalJobs}</div>
-          </CardContent>
-        </Card>
+    <div className="space-y-8 p-1">
+      {/* Header */}
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="flex flex-col md:flex-row md:items-end justify-between gap-4"
+      >
+        <div>
+          <h1 className="text-4xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-400">
+            Job Management
+          </h1>
+          <p className="text-muted-foreground mt-2 text-lg">
+            Create and manage recruitment pipelines
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+           <Dialog open={isOpen} onOpenChange={setIsOpen}>
+            <DialogTrigger>
+              <div className={cn(buttonVariants(), "rounded-full px-6 shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all cursor-pointer")}>
+                <IconPlus className="mr-2 h-4 w-4" />
+                Create New Job
+              </div>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>Create New Job Position</DialogTitle>
+              </DialogHeader>
+              <div className="grid gap-6 py-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="title">Job Title *</Label>
+                  <Input
+                    id="title"
+                    placeholder="e.g. Senior Frontend Engineer"
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                  />
+                </div>
 
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">By Status</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-wrap gap-1.5">
-              {stats.byStatus.map((item) => (
-                <Badge
-                  key={item.status}
-                  variant={item.status === 'open' ? 'default' : 'secondary'}
-                  className="text-xs capitalize"
-                >
-                  {item.status} ({item.count})
-                </Badge>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="seniority">Seniority *</Label>
+                    <Input
+                      id="seniority"
+                      placeholder="e.g. Senior, Lead"
+                      value={seniority}
+                      onChange={(e) => setSeniority(e.target.value)}
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="bu">Business Unit</Label>
+                    <Input
+                      id="bu"
+                      placeholder="e.g. Financial Services"
+                      value={businessUnit}
+                      onChange={(e) => setBusinessUnit(e.target.value)}
+                    />
+                  </div>
+                </div>
 
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">By Seniority</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-wrap gap-1.5">
-              {stats.bySeniority.slice(0, 5).map((item) => (
-                <Badge key={item.seniority} variant="outline" className="text-xs">
-                  {item.seniority} ({item.count})
-                </Badge>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+                <div className="grid gap-2">
+                  <Label htmlFor="description">Description *</Label>
+                  <Textarea
+                    id="description"
+                    placeholder="Job responsibilities and requirements..."
+                    className="min-h-[100px]"
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                  />
+                </div>
 
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Top Skills Demand</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-wrap gap-1.5">
-              {stats.topSkillsDemand.slice(0, 5).map((item) => (
-                <Badge key={item.skill} variant="secondary" className="text-xs">
-                  {item.skill} ({item.count})
-                </Badge>
-              ))}
-              {stats.topSkillsDemand.length === 0 && (
-                <p className="text-xs text-muted-foreground">No skills yet</p>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+                <div className="grid gap-2">
+                  <Label>Must-Have Skills * (Press Enter)</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="Type skill and press Enter..."
+                      value={mustHaveInput}
+                      onChange={(e) => setMustHaveInput(e.target.value)}
+                      onKeyDown={handleMustHaveKeyDown}
+                      className="flex-1"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      onClick={addMustHaveSkill}
+                      disabled={!mustHaveInput.trim()}
+                    >
+                      <IconPlus className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {mustHaveSkills.map((skill) => (
+                      <Badge key={skill} variant="secondary" className="gap-1 pl-2.5">
+                        {skill}
+                        <button
+                          onClick={() => removeMustHaveSkill(skill)}
+                          className="ml-1 ring-offset-background rounded-full outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 hover:bg-muted"
+                        >
+                          <IconX className="h-3 w-3 text-muted-foreground hover:text-foreground" />
+                          <span className="sr-only">Remove {skill}</span>
+                        </button>
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
 
-      <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
-        <div className="relative w-full sm:w-72">
-          <IconSearch className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <div className="grid gap-2">
+                  <Label>Nice-to-Have Skills</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="Type skill and press Enter..."
+                      value={niceToHaveInput}
+                      onChange={(e) => setNiceToHaveInput(e.target.value)}
+                      onKeyDown={handleNiceToHaveKeyDown}
+                      className="flex-1"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      onClick={addNiceToHaveSkill}
+                      disabled={!niceToHaveInput.trim()}
+                    >
+                      <IconPlus className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {niceToHaveSkills.map((skill) => (
+                      <Badge key={skill} variant="outline" className="gap-1 pl-2.5">
+                        {skill}
+                        <button
+                          onClick={() => removeNiceToHaveSkill(skill)}
+                          className="ml-1 ring-offset-background rounded-full outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 hover:bg-muted"
+                        >
+                          <IconX className="h-3 w-3 text-muted-foreground hover:text-foreground" />
+                          <span className="sr-only">Remove {skill}</span>
+                        </button>
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setIsOpen(false)} disabled={isSubmitting}>
+                  Cancel
+                </Button>
+                <Button onClick={handleCreateJob} disabled={isSubmitting}>
+                  {isSubmitting ? 'Creating...' : 'Create Job'}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </div>
+      </motion.div>
+
+      {/* Stat Cards */}
+      <motion.div
+        variants={container}
+        initial="hidden"
+        animate="show"
+        className="grid gap-6 md:grid-cols-2 lg:grid-cols-4"
+      >
+        <StatCard
+          title="Total Jobs"
+          value={stats.totalJobs}
+          icon={IconBriefcase}
+          trend="Active positions"
+          color="blue"
+        />
+        <StatCard
+          title="Most Active Status"
+          value={topStatus ? topStatus.status : 'None'}
+          icon={IconChartBar}
+          trend={topStatus ? `${topStatus.count} jobs` : 'No data'}
+          color="green"
+        />
+        <StatCard
+          title="Top Seniority"
+          value={topSeniority ? topSeniority.seniority : 'None'}
+          icon={IconUsers}
+          trend={topSeniority ? `${topSeniority.count} positions` : 'No data'}
+          color="purple"
+        />
+        <StatCard
+          title="Top Skill Demand"
+          value={topSkill ? topSkill.skill : 'None'}
+          icon={IconTrendingUp}
+          trend={topSkill ? `${topSkill.count} mentions` : 'No data'}
+          color="amber"
+        />
+      </motion.div>
+
+      {/* Search Bar */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.3 }}
+        className="relative"
+      >
+        <div className="relative max-w-md">
+          <IconSearch className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Search jobs..."
-            className="pl-9 bg-background"
+            placeholder="Search by title, seniority, or unit..."
+            className="pl-10 bg-white/50 dark:bg-zinc-900/50 backdrop-blur-sm border-white/20 dark:border-white/10 focus-visible:ring-primary/20 transition-all hover:bg-white/60 dark:hover:bg-zinc-900/60"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
+      </motion.div>
 
-        <Dialog open={isOpen} onOpenChange={setIsOpen}>
-          <DialogTrigger
-            render={
-              <Button>
-                <IconPlus className="mr-2 h-4 w-4" />
-                Create Job
-              </Button>
-            }
-          />
-          <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Create New Job Position</DialogTitle>
-            </DialogHeader>
-            <div className="grid gap-6 py-4">
-              <div className="grid gap-2">
-                <Label htmlFor="title">Job Title *</Label>
-                <Input
-                  id="title"
-                  placeholder="e.g. Senior Frontend Engineer"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="seniority">Seniority *</Label>
-                  <Input
-                    id="seniority"
-                    placeholder="e.g. Senior, Lead"
-                    value={seniority}
-                    onChange={(e) => setSeniority(e.target.value)}
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="bu">Business Unit</Label>
-                  <Input
-                    id="bu"
-                    placeholder="e.g. Financial Services"
-                    value={businessUnit}
-                    onChange={(e) => setBusinessUnit(e.target.value)}
-                  />
-                </div>
-              </div>
-
-              <div className="grid gap-2">
-                <Label htmlFor="description">Description *</Label>
-                <Textarea
-                  id="description"
-                  placeholder="Job responsibilities and requirements..."
-                  className="min-h-[100px]"
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                />
-              </div>
-
-              <div className="grid gap-2">
-                <Label>Must-Have Skills * (Press Enter or click + to add)</Label>
-                <div className="flex gap-2">
-                  <Input
-                    placeholder="Type skill and press Enter..."
-                    value={mustHaveInput}
-                    onChange={(e) => setMustHaveInput(e.target.value)}
-                    onKeyDown={handleMustHaveKeyDown}
-                    className="flex-1"
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="icon"
-                    onClick={addMustHaveSkill}
-                    disabled={!mustHaveInput.trim()}
-                  >
-                    <IconPlus className="h-4 w-4" />
-                  </Button>
-                </div>
-                <div className="flex flex-wrap gap-2 mt-2">
-                  {mustHaveSkills.map((skill) => (
-                    <Badge key={skill} variant="secondary" className="gap-1 pl-2.5">
-                      {skill}
-                      <button
-                        onClick={() => removeMustHaveSkill(skill)}
-                        className="ml-1 ring-offset-background rounded-full outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 hover:bg-muted"
-                      >
-                        <IconX className="h-3 w-3 text-muted-foreground hover:text-foreground" />
-                        <span className="sr-only">Remove {skill}</span>
-                      </button>
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-
-              <div className="grid gap-2">
-                <Label>Nice-to-Have Skills (Press Enter or click + to add)</Label>
-                <div className="flex gap-2">
-                  <Input
-                    placeholder="Type skill and press Enter..."
-                    value={niceToHaveInput}
-                    onChange={(e) => setNiceToHaveInput(e.target.value)}
-                    onKeyDown={handleNiceToHaveKeyDown}
-                    className="flex-1"
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="icon"
-                    onClick={addNiceToHaveSkill}
-                    disabled={!niceToHaveInput.trim()}
-                  >
-                    <IconPlus className="h-4 w-4" />
-                  </Button>
-                </div>
-                <div className="flex flex-wrap gap-2 mt-2">
-                  {niceToHaveSkills.map((skill) => (
-                    <Badge key={skill} variant="outline" className="gap-1 pl-2.5">
-                      {skill}
-                      <button
-                        onClick={() => removeNiceToHaveSkill(skill)}
-                        className="ml-1 ring-offset-background rounded-full outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 hover:bg-muted"
-                      >
-                        <IconX className="h-3 w-3 text-muted-foreground hover:text-foreground" />
-                        <span className="sr-only">Remove {skill}</span>
-                      </button>
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setIsOpen(false)} disabled={isSubmitting}>
-                Cancel
-              </Button>
-              <Button onClick={handleCreateJob} disabled={isSubmitting}>
-                {isSubmitting ? 'Creating...' : 'Create Job'}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {filteredJobs.map((job) => (
-          <Link href={`/ta/jobs/${job.id}`} key={job.id} className="block group">
-            <Card className="h-full hover:shadow-md transition-all duration-200 border-border group-hover:border-primary/50">
-              <CardHeader className="pb-3">
-                <div className="flex justify-between items-start gap-4">
-                  <div>
-                    <CardTitle className="line-clamp-1 text-lg group-hover:text-primary transition-colors">
-                      {job.title}
-                    </CardTitle>
-                    <CardDescription className="flex items-center gap-2 mt-1.5">
-                      <IconBriefcase className="h-3.5 w-3.5" />
-                      {job.seniority}
-                    </CardDescription>
-                  </div>
-                  <Badge variant={job.status === 'open' ? 'default' : 'secondary'} className="capitalize shrink-0">
-                    {job.status}
-                  </Badge>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-4 pb-3">
-                {job.businessUnit && (
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <IconBuilding className="h-3.5 w-3.5" />
-                    <span>{job.businessUnit}</span>
-                  </div>
-                )}
-                
-                <div className="space-y-2">
-                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Required Skills</p>
-                  <div className="flex flex-wrap gap-1.5">
-                    {job.mustHave.slice(0, 4).map((skill) => (
-                      <Badge key={skill} variant="secondary" className="text-xs font-normal">
-                        {skill}
-                      </Badge>
-                    ))}
-                    {job.mustHave.length > 4 && (
-                      <Badge variant="secondary" className="text-xs font-normal opacity-70">
-                        +{job.mustHave.length - 4}
-                      </Badge>
-                    )}
-                    {job.mustHave.length === 0 && (
-                      <span className="text-xs text-muted-foreground italic">No required skills specified</span>
-                    )}
-                  </div>
-                </div>
-
-                {job.niceToHave.length > 0 && (
-                  <div className="space-y-2">
-                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Nice to Have</p>
-                    <div className="flex flex-wrap gap-1.5">
-                      {job.niceToHave.slice(0, 3).map((skill) => (
-                        <Badge key={skill} variant="outline" className="text-xs font-normal">
-                          {skill}
-                        </Badge>
-                      ))}
-                       {job.niceToHave.length > 3 && (
-                      <Badge variant="outline" className="text-xs font-normal opacity-70">
-                        +{job.niceToHave.length - 3}
-                      </Badge>
-                    )}
+      {/* Jobs Grid */}
+      <motion.div
+        variants={container}
+        initial="hidden"
+        animate="show"
+        className="grid gap-6 md:grid-cols-2 lg:grid-cols-3"
+      >
+        <AnimatePresence>
+          {filteredJobs.map((job) => (
+            <motion.div key={job.id} variants={item} layout>
+              <Link href={`/ta/jobs/${job.id}`} className="block group h-full">
+                <Card className="h-full relative overflow-hidden bg-white/50 dark:bg-zinc-900/50 backdrop-blur-md border-white/20 dark:border-white/10 hover:shadow-xl hover:shadow-primary/5 hover:-translate-y-1 transition-all duration-300">
+                  <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                  
+                  <CardHeader className="pb-3 relative z-10">
+                    <div className="flex justify-between items-start gap-4">
+                      <div className="space-y-1">
+                        <CardTitle className="line-clamp-1 text-lg group-hover:text-primary transition-colors">
+                          {job.title}
+                        </CardTitle>
+                        <CardDescription className="flex items-center gap-2">
+                           <Badge variant="outline" className="text-xs font-normal bg-background/50">
+                             {job.seniority}
+                           </Badge>
+                           {job.businessUnit && (
+                             <span className="text-xs text-muted-foreground flex items-center gap-1">
+                               <IconBuilding className="h-3 w-3" />
+                               {job.businessUnit}
+                             </span>
+                           )}
+                        </CardDescription>
+                      </div>
+                      <StatusBadge status={job.status} />
                     </div>
-                  </div>
-                )}
-              </CardContent>
-              <CardFooter className="pt-3 border-t text-xs text-muted-foreground flex justify-between items-center">
-                <div className="flex items-center gap-1.5">
-                  <IconCalendar className="h-3.5 w-3.5" />
-                  <span>Created {new Date(job.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
-                </div>
-                <IconChevronRight className="h-4 w-4 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-200" />
-              </CardFooter>
-            </Card>
-          </Link>
-        ))}
+                  </CardHeader>
+                  
+                  <CardContent className="space-y-4 pb-3 relative z-10">
+                    <div className="space-y-2">
+                      <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">
+                        Required Skills
+                      </p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {job.mustHave.slice(0, 3).map((skill) => (
+                          <Badge key={skill} variant="secondary" className="text-xs font-normal bg-secondary/50 hover:bg-secondary/70 transition-colors">
+                            {skill}
+                          </Badge>
+                        ))}
+                        {job.mustHave.length > 3 && (
+                          <Badge variant="secondary" className="text-xs font-normal bg-secondary/30 text-muted-foreground">
+                            +{job.mustHave.length - 3}
+                          </Badge>
+                        )}
+                        {job.mustHave.length === 0 && (
+                          <span className="text-xs text-muted-foreground italic">None specified</span>
+                        )}
+                      </div>
+                    </div>
+                  </CardContent>
+                  
+                  <CardFooter className="pt-4 border-t border-white/10 relative z-10 flex justify-between items-center text-xs text-muted-foreground">
+                    <div className="flex items-center gap-1.5">
+                      <IconCalendar className="h-3.5 w-3.5" />
+                      <span>{new Date(job.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</span>
+                    </div>
+                    <div className="flex items-center gap-1 text-primary font-medium opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300">
+                      View Details
+                      <IconChevronRight className="h-3.5 w-3.5" />
+                    </div>
+                  </CardFooter>
+                </Card>
+              </Link>
+            </motion.div>
+          ))}
+        </AnimatePresence>
 
         {filteredJobs.length === 0 && (
-          <div className="col-span-full py-12 text-center border rounded-xl border-dashed bg-muted/20">
-            <div className="mx-auto w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-4">
-              <IconBriefcase className="h-6 w-6 text-muted-foreground" />
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="col-span-full py-16 text-center border-2 border-dashed border-white/20 rounded-2xl bg-white/5 backdrop-blur-sm"
+          >
+            <div className="mx-auto w-16 h-16 rounded-full bg-muted/30 flex items-center justify-center mb-4">
+              <IconSearch className="h-8 w-8 text-muted-foreground/50" />
             </div>
-            <h3 className="text-lg font-medium">No jobs found</h3>
-            <p className="text-sm text-muted-foreground mt-1 max-w-xs mx-auto">
-              {searchQuery ? 'Try adjusting your search query.' : 'Get started by creating your first job posting.'}
+            <h3 className="text-xl font-semibold">No jobs found</h3>
+            <p className="text-muted-foreground mt-2 max-w-xs mx-auto mb-6">
+              {searchQuery ? `No matches for "${searchQuery}"` : 'Get started by creating your first job posting.'}
             </p>
             {!searchQuery && (
-              <Button variant="outline" className="mt-4" onClick={() => setIsOpen(true)}>
+              <Button onClick={() => setIsOpen(true)}>
                 <IconPlus className="mr-2 h-4 w-4" />
                 Create Job
               </Button>
             )}
-          </div>
+          </motion.div>
         )}
-      </div>
+      </motion.div>
     </div>
+  );
+}
+
+function StatCard({ 
+  title, 
+  value, 
+  icon: Icon, 
+  trend, 
+  color 
+}: { 
+  title: string; 
+  value: number | string; 
+  icon: React.ElementType;
+  trend?: string;
+  color: 'blue' | 'purple' | 'amber' | 'pink' | 'green';
+}) {
+  const colorStyles = {
+    blue: "from-blue-500/10 to-blue-500/5 border-blue-200/20 text-blue-500",
+    purple: "from-purple-500/10 to-purple-500/5 border-purple-200/20 text-purple-500",
+    amber: "from-amber-500/10 to-amber-500/5 border-amber-200/20 text-amber-500",
+    pink: "from-pink-500/10 to-pink-500/5 border-pink-200/20 text-pink-500",
+    green: "from-green-500/10 to-green-500/5 border-green-200/20 text-green-500",
+  };
+
+  return (
+    <motion.div variants={item}>
+      <Card className={cn(
+        "relative overflow-hidden border transition-all duration-300 hover:shadow-lg hover:-translate-y-1 group",
+        "bg-white/50 dark:bg-zinc-900/50 backdrop-blur-md",
+        colorStyles[color]
+      )}>
+        <div className={cn(
+          "absolute inset-0 bg-gradient-to-br opacity-0 group-hover:opacity-100 transition-opacity duration-500",
+          color === 'blue' && "from-blue-500/10 via-transparent to-transparent",
+          color === 'purple' && "from-purple-500/10 via-transparent to-transparent",
+          color === 'amber' && "from-amber-500/10 via-transparent to-transparent",
+          color === 'pink' && "from-pink-500/10 via-transparent to-transparent",
+          color === 'green' && "from-green-500/10 via-transparent to-transparent",
+        )} />
+        
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 relative z-10">
+          <CardTitle className="text-sm font-medium text-muted-foreground group-hover:text-foreground transition-colors">
+            {title}
+          </CardTitle>
+          <div className={cn("p-2 rounded-lg bg-background/50 shadow-sm transition-colors", colorStyles[color].split(" ").pop())}>
+            <Icon className="h-4 w-4" />
+          </div>
+        </CardHeader>
+        <CardContent className="relative z-10">
+          <div className="text-2xl font-bold tracking-tight mt-1">{value}</div>
+          {trend && (
+            <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+              {trend}
+            </p>
+          )}
+        </CardContent>
+      </Card>
+    </motion.div>
+  );
+}
+
+function StatusBadge({ status }: { status: string }) {
+  const styles = {
+    open: "bg-green-500/15 text-green-700 dark:text-green-300 hover:bg-green-500/25 border-green-200/50",
+    closed: "bg-gray-500/15 text-gray-700 dark:text-gray-300 hover:bg-gray-500/25 border-gray-200/50",
+    draft: "bg-amber-500/15 text-amber-700 dark:text-amber-300 hover:bg-amber-500/25 border-amber-200/50",
+    archived: "bg-red-500/15 text-red-700 dark:text-red-300 hover:bg-red-500/25 border-red-200/50",
+  };
+
+  const style = styles[status as keyof typeof styles] || styles.open;
+
+  return (
+    <Badge 
+      variant="outline" 
+      className={cn(
+        "capitalize px-2.5 py-0.5 border transition-colors", 
+        style
+      )}
+    >
+      {status}
+    </Badge>
   );
 }
