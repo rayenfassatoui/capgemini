@@ -24,11 +24,11 @@ export function ensureEnv(value: string | undefined, name: string): string {
  */
 export const AI_MODELS = {
   /** Primary agent model — best for tool calling, multi-step reasoning */
-  agent: 'google/gemini-2.5-flash',
+  agent: 'stepfun/step-3.5-flash:free',
   /** Structured output — JSON generation, data extraction, scoring */
-  structured: 'google/gemini-2.5-flash',
+  structured: 'stepfun/step-3.5-flash:free',
   /** Long-form generation — job descriptions, emails, analysis */
-  generation: 'google/gemini-2.5-flash',
+  generation: 'stepfun/step-3.5-flash:free',
 } as const;
 
 export type AITaskType = keyof typeof AI_MODELS;
