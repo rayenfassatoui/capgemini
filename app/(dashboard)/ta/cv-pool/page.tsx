@@ -12,10 +12,10 @@ export default async function CvPoolPage() {
   ]);
 
   return (
-    <div className="flex flex-col gap-6 p-6">
-      <div className="flex flex-col gap-2">
-        <h1 className="text-3xl font-bold tracking-tight">CV Pool</h1>
-        <p className="text-muted-foreground">
+    <div className="space-y-8">
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">CV Pool</h1>
+        <p className="text-muted-foreground mt-1">
           Upload and manage candidate resumes to build your talent pipeline.
         </p>
       </div>

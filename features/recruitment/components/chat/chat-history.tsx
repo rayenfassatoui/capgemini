@@ -47,13 +47,15 @@ export function ChatHistory({
   }
 
   return (
-    <div className="py-1">
+    <div className="py-2 px-2 space-y-1.5">
       {conversations.map((conv) => (
         <div
           key={conv.id}
           className={cn(
-            'group flex items-center gap-3 px-4 py-3 cursor-pointer transition-colors hover:bg-muted/50',
-            activeConversationId === conv.id && 'bg-muted/60'
+            'group flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer transition-all duration-200 border border-transparent',
+            activeConversationId === conv.id
+              ? 'bg-primary/10 border-primary/20 shadow-sm'
+              : 'hover:bg-muted/40 hover:border-white/5 hover:scale-[1.01]'
           )}
           onClick={() => onSwitch(conv.id)}
           onKeyDown={(e) => {
@@ -62,8 +64,11 @@ export function ChatHistory({
           role="button"
           tabIndex={0}
         >
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary/10">
-            <IconMessageChatbot className="size-4 text-primary" />
+          <div className={cn(
+            "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-colors",
+            activeConversationId === conv.id ? "bg-primary text-white shadow-lg shadow-primary/25" : "bg-muted text-muted-foreground group-hover:bg-primary/20 group-hover:text-primary"
+          )}>
+            <IconMessageChatbot className="size-4.5" />
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium text-foreground truncate">
@@ -76,7 +81,7 @@ export function ChatHistory({
           <Button
             variant="ghost"
             size="icon"
-            className="h-7 w-7 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive shrink-0"
+            className="h-7 w-7 opacity-0 group-hover:opacity-100 text-muted-foreground/60 hover:text-destructive hover:bg-destructive/10 shrink-0 transition-all rounded-lg"
             onClick={(e) => {
               e.stopPropagation();
               onDelete(conv.id);

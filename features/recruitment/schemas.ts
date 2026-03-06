@@ -248,6 +248,75 @@ export const aiPredictivePipelineOutputSchema = z.object({
   summary: z.string(),
 });
 
+// ---------- AI Candidate Summary ----------
+
+export const aiCandidateSummaryOutputSchema = z.object({
+  summary: z.string(),
+  keyStrengths: z.array(z.string()).default([]),
+  keyRisks: z.array(z.string()).default([]),
+  fitScore: z.number().min(0).max(100),
+  recommendedActions: z.array(z.string()).default([]),
+});
+
+// ---------- AI Talent Insights ----------
+
+export const aiTalentInsightsOutputSchema = z.object({
+  totalCandidates: z.number(),
+  topSkills: z.array(z.object({
+    skill: z.string(),
+    count: z.number(),
+    percentage: z.number(),
+  })).default([]),
+  skillGaps: z.array(z.object({
+    skill: z.string(),
+    demandCount: z.number(),
+    supplyCount: z.number(),
+    gapSeverity: z.enum(['low', 'medium', 'high', 'critical']),
+  })).default([]),
+  marketTrends: z.array(z.string()).default([]),
+  recommendations: z.array(z.string()).default([]),
+  pipelineHealth: z.object({
+    activeJobs: z.number(),
+    avgTimeInPipeline: z.string(),
+    bottleneckStage: z.string().nullable(),
+    overallHealth: z.enum(['healthy', 'warning', 'critical']),
+  }),
+});
+
+// ---------- AI Follow-up Questions ----------
+
+export const aiFollowupQuestionsOutputSchema = z.object({
+  followupQuestions: z.array(z.object({
+    question: z.string(),
+    rationale: z.string(),
+    targetArea: z.string(),
+    difficulty: z.enum(['easy', 'medium', 'hard']),
+  })).default([]),
+  areasToProbe: z.array(z.string()).default([]),
+  overallAssessment: z.string(),
+});
+
+// ---------- AI Job Requirements Optimizer ----------
+
+export const aiJobRequirementsOptimizerOutputSchema = z.object({
+  analysis: z.object({
+    clarity: z.number().min(0).max(100),
+    competitiveness: z.number().min(0).max(100),
+    inclusivity: z.number().min(0).max(100),
+    overallScore: z.number().min(0).max(100),
+  }),
+  suggestions: z.array(z.object({
+    area: z.string(),
+    issue: z.string(),
+    recommendation: z.string(),
+    priority: z.enum(['low', 'medium', 'high']),
+  })).default([]),
+  optimizedMustHave: z.array(z.string()).default([]),
+  optimizedNiceToHave: z.array(z.string()).default([]),
+  optimizedDescription: z.string(),
+  marketInsights: z.array(z.string()).default([]),
+});
+
 // ---------- Inferred Types ----------
 
 export type CreateJobSchema = z.infer<typeof createJobSchema>;
@@ -262,6 +331,10 @@ export type ScheduleInterviewSchema = z.infer<typeof scheduleInterviewSchema>;
 export type InterviewReportSchema = z.infer<typeof interviewReportSchema>;
 export type SendInterviewEmailSchema = z.infer<typeof sendInterviewEmailSchema>;
 export type AiCvExtractionOutput = z.infer<typeof aiCvExtractionOutputSchema>;
+export type AiCandidateSummaryOutput = z.infer<typeof aiCandidateSummaryOutputSchema>;
+export type AiTalentInsightsOutput = z.infer<typeof aiTalentInsightsOutputSchema>;
+export type AiFollowupQuestionsOutput = z.infer<typeof aiFollowupQuestionsOutputSchema>;
+export type AiJobRequirementsOptimizerOutput = z.infer<typeof aiJobRequirementsOptimizerOutputSchema>;
 
 // ---------- AI Statistics Chat Schema ----------
 

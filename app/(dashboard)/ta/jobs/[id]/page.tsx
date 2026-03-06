@@ -26,14 +26,22 @@ export default async function JobDetailPage({
   }
 
   return (
-    <div className="container mx-auto py-6 space-y-6">
-      <div className="flex items-center gap-4">
-        <Link 
+    <div className="space-y-8">
+      <div className="space-y-4">
+        <Link
           href="/ta/jobs"
-          className="inline-flex items-center justify-center rounded-md h-8 px-2.5 text-sm font-medium hover:bg-muted transition-all"
+          className="inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium hover:bg-accent hover:text-accent-foreground transition-colors"
         >
-          <IconArrowLeft className="mr-2 size-4" /> Back to Jobs
+          <IconArrowLeft className="size-4" /> Back to Jobs
         </Link>
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
+            {job.title}
+          </h1>
+          <p className="text-muted-foreground mt-1">
+            Job Details
+          </p>
+        </div>
       </div>
 
       <JobDetailClient job={job} candidates={candidates} jobId={id} managers={managers} />

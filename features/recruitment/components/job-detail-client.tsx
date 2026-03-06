@@ -85,6 +85,16 @@ import type {
 
 // ---------- Types (Locally defined as they are not in types.ts) ----------
 
+interface ScreeningData {
+  score: number;
+  mustMatchScore: number;
+  niceMatchScore: number;
+  aiSummary?: string | null;
+  matchedMustHave?: string[];
+  gaps?: string[];
+  [key: string]: unknown;
+}
+
 interface Job {
   id: string;
   title: string;
@@ -180,7 +190,7 @@ export function JobDetailClient({
   const [meetLink, setMeetLink] = React.useState('');
 
   const [screeningDialogOpen, setScreeningDialogOpen] = React.useState(false);
-  const [viewScreeningData, setViewScreeningData] = React.useState<any>(null); // Using any for flexibility with complex JSON
+  const [viewScreeningData, setViewScreeningData] = React.useState<ScreeningData | null>(null);
 
   const [questionsDialogOpen, setQuestionsDialogOpen] = React.useState(false);
   const [currentQuestions, setCurrentQuestions] = React.useState<string[]>([]);
@@ -799,16 +809,16 @@ export function JobDetailClient({
                <div>
                  <h4 className="font-semibold mb-2">Analysis</h4>
                  <div className="space-y-2">
-                   {viewScreeningData.matchedMustHave?.length > 0 && (
+                   {(viewScreeningData.matchedMustHave?.length ?? 0) > 0 && (
                      <div className="flex flex-wrap gap-2">
                        <span className="text-sm font-medium mr-2">Matched:</span>
-                       {viewScreeningData.matchedMustHave.map((m: string) => <Badge key={m} variant="secondary">{m}</Badge>)}
+                       {viewScreeningData.matchedMustHave!.map((m: string) => <Badge key={m} variant="secondary">{m}</Badge>)}
                      </div>
                    )}
-                   {viewScreeningData.gaps?.length > 0 && (
+                   {(viewScreeningData.gaps?.length ?? 0) > 0 && (
                      <div className="flex flex-wrap gap-2">
                        <span className="text-sm font-medium mr-2">Gaps:</span>
-                       {viewScreeningData.gaps.map((m: string) => <Badge key={m} variant="destructive">{m}</Badge>)}
+                       {viewScreeningData.gaps!.map((m: string) => <Badge key={m} variant="destructive">{m}</Badge>)}
                      </div>
                    )}
                  </div>

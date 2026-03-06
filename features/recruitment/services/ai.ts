@@ -1,9 +1,49 @@
+/**
+ * AI Service — Model Configuration & OpenRouter Client
+ *
+ * Provides a centralized AI configuration with smart model routing.
+ * Models are organized by task type for optimal cost/quality balance.
+ */
+
+// ---- Environment ----
+
 export function ensureEnv(value: string | undefined, name: string): string {
   if (!value) {
     throw new Error(`${name} is not set`);
   }
   return value;
 }
+
+// ---- Model Configuration ----
+
+/**
+ * Model tiers for different task types.
+ * Each tier is optimized for cost/quality balance.
+ *
+ * To override globally, set AI_MODEL in .env — all tasks will use that model.
+ */
+export const AI_MODELS = {
+  /** Primary agent model — best for tool calling, multi-step reasoning */
+  agent: 'stepfun/step-3.5-flash:free',
+  /** Structured output — JSON generation, data extraction, scoring */
+  structured: 'stepfun/step-3.5-flash:free',
+  /** Long-form generation — job descriptions, emails, analysis */
+  generation: 'stepfun/step-3.5-flash:free',
+} as const;
+
+export type AITaskType = keyof typeof AI_MODELS;
+
+/**
+ * Returns the model string for a given task type.
+ * If `AI_MODEL` env var is set, all tasks use that single model (useful for testing).
+ */
+export function getModelForTask(task: AITaskType): string {
+  const override = process.env.AI_MODEL;
+  if (override) return override;
+  return AI_MODELS[task];
+}
+
+// ---- Response Parsing ----
 
 export function cleanJsonResponse(text: string): string {
   let cleaned = text.trim();
@@ -57,17 +97,29 @@ export function normalizeContent(content: unknown): string {
   return JSON.stringify(content);
 }
 
+// ---- OpenRouter Client ----
+
+/**
+ * Call OpenRouter with a system + user prompt.
+ * Uses the model appropriate for the given task type.
+ *
+ * @param systemPrompt - System instructions
+ * @param userPrompt - User message
+ * @param task - Task type for model selection (default: 'structured')
+ */
 export async function callOpenRouter(
   systemPrompt: string,
-  userPrompt: string
+  userPrompt: string,
+  task: AITaskType = 'structured'
 ): Promise<string> {
-  const apiKey = ensureEnv(process.env.OPENROUTER_KEY, 'OPENROUTER_KEY');
+  const apiKey = ensureEnv(process.env.OPENROUTER_API_KEY, 'OPENROUTER_API_KEY');
+  const model = getModelForTask(task);
 
   const { OpenRouter } = await import('@openrouter/sdk');
   const client = new OpenRouter({ apiKey });
 
   const response = await client.chat.send({
-    model: 'arcee-ai/trinity-large-preview:free',
+    model,
     messages: [
       { role: 'system', content: systemPrompt },
       { role: 'user', content: userPrompt },

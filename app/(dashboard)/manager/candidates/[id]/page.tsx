@@ -1,4 +1,3 @@
-import { Suspense } from 'react';
 import { notFound } from 'next/navigation';
 import { 
   getCandidateAction, 
@@ -44,10 +43,10 @@ export default async function ManagerCandidateDetailPage({ params }: { params: P
   } : null;
 
   return (
-    <div className="space-y-6 p-8 animate-in fade-in duration-500">
+    <div className="space-y-6">
       <div className="flex items-center gap-4">
-        <Link href="/manager/candidates" className="inline-flex items-center justify-center rounded-md h-8 px-2.5 text-sm font-medium hover:bg-muted transition-all">
-            <IconArrowLeft className="mr-2 h-4 w-4" /> Back to Candidates
+        <Link href="/manager/candidates" className="inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium hover:bg-accent hover:text-accent-foreground transition-colors">
+          <IconArrowLeft className="size-4" /> Back to Candidates
         </Link>
       </div>
 

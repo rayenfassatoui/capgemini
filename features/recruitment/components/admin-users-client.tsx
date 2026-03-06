@@ -112,7 +112,7 @@ export function AdminUsersClient() {
         })
         setUsers(mappedUsers)
       }
-    } catch (err) {
+    } catch {
       toast.error("An unexpected error occurred")
     } finally {
       setLoading(false)
@@ -143,7 +143,7 @@ export function AdminUsersClient() {
       setIsCreateOpen(false)
       setCreateForm({ name: "", email: "", password: "", role: "ta" })
       fetchUsers()
-    } catch (err) {
+    } catch {
       toast.error("Failed to create user")
     } finally {
       setCreating(false)

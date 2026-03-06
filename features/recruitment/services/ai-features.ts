@@ -6,13 +6,18 @@
  * - Job Description Writer: Generate full JD from a title/brief
  * - Offer/Rejection Email: AI drafts a professional email
  * - Predictive Pipeline Score: Predict hiring probability from screening + reports
+ * - Candidate Summary: Executive summary of a candidate's profile and fit
+ * - Talent Insights: Analyze talent pool trends, skill gaps, and market insights
+ * - Follow-up Questions: Generate targeted follow-up interview questions
+ * - Job Requirements Optimizer: Analyze and improve job descriptions
  */
 
-import { and, desc, eq } from 'drizzle-orm';
+import { and, count, desc, eq } from 'drizzle-orm';
 import { db } from '@/lib/db';
 import {
   candidates,
   cvPool,
+  interviewGuides,
   interviewReports,
   interviews,
   jobs,
@@ -25,6 +30,10 @@ import {
   aiJobDescriptionOutputSchema,
   aiCandidateEmailOutputSchema,
   aiPredictivePipelineOutputSchema,
+  aiCandidateSummaryOutputSchema,
+  aiTalentInsightsOutputSchema,
+  aiFollowupQuestionsOutputSchema,
+  aiJobRequirementsOptimizerOutputSchema,
 } from '../schemas';
 
 // ==================== 1. AI Interview Debrief ====================
@@ -286,7 +295,7 @@ Return a JSON object with:
 - seniority: the seniority level (string)
 - businessUnit: business unit or null`;
 
-  const content = await callOpenRouter(systemPrompt, userPrompt);
+  const content = await callOpenRouter(systemPrompt, userPrompt, 'generation');
   return aiJobDescriptionOutputSchema.parse(
     JSON.parse(cleanJsonResponse(content))
   );
@@ -364,7 +373,7 @@ The email should:
 Return JSON with "subject" and "body" fields. Body should be plain text with line breaks.`;
   }
 
-  const content = await callOpenRouter(systemPrompt, userPrompt);
+  const content = await callOpenRouter(systemPrompt, userPrompt, 'generation');
   return aiCandidateEmailOutputSchema.parse(
     JSON.parse(cleanJsonResponse(content))
   );
@@ -467,6 +476,356 @@ Return a JSON object with:
 
   const content = await callOpenRouter(systemPrompt, userPrompt);
   return aiPredictivePipelineOutputSchema.parse(
+    JSON.parse(cleanJsonResponse(content))
+  );
+}
+
+// ==================== 6. AI Candidate Summary ====================
+
+export async function summarizeCandidate(
+  candidateId: string,
+  jobId?: string
+): Promise<{
+  summary: string;
+  keyStrengths: string[];
+  keyRisks: string[];
+  fitScore: number;
+  recommendedActions: string[];
+}> {
+  const [candidate] = await db
+    .select()
+    .from(candidates)
+    .where(eq(candidates.id, candidateId));
+  if (!candidate) throw new Error('Candidate not found');
+
+  const [cv] = await db
+    .select({
+      extractedSkills: cvPool.extractedSkills,
+      extractedExperiences: cvPool.extractedExperiences,
+      extractedEducation: cvPool.extractedEducation,
+      extractedLanguages: cvPool.extractedLanguages,
+      extractedSummary: cvPool.extractedSummary,
+    })
+    .from(cvPool)
+    .where(eq(cvPool.id, candidate.cvId));
+
+  const [screening] = jobId
+    ? await db
+        .select()
+        .from(screenings)
+        .where(
+          and(eq(screenings.candidateId, candidateId), eq(screenings.jobId, jobId))
+        )
+        .orderBy(desc(screenings.createdAt))
+    : [undefined];
+
+  const reports = await db
+    .select()
+    .from(interviewReports)
+    .where(eq(interviewReports.candidateId, candidateId))
+    .orderBy(desc(interviewReports.createdAt));
+
+  let job: { title: string; seniority: string; mustHave: string[] } | undefined;
+  if (jobId) {
+    const [j] = await db.select().from(jobs).where(eq(jobs.id, jobId));
+    job = j ? { title: j.title, seniority: j.seniority, mustHave: j.mustHave as string[] } : undefined;
+  }
+
+  const avgInterviewScore =
+    reports.length > 0
+      ? reports.reduce((sum, r) => sum + (r.score ?? 0), 0) / reports.length
+      : null;
+
+  const systemPrompt =
+    'You are a JSON API. Respond ONLY with valid JSON. No markdown, no explanations, no code fences.';
+
+  const userPrompt = `You are a senior executive recruiter at Capgemini. Generate a concise executive summary of this candidate suitable for a hiring committee.
+
+Candidate: ${candidate.fullName}
+Current Stage: ${candidate.stage}
+Email: ${candidate.email}
+${job ? `Position: ${job.title} (${job.seniority})` : 'No specific job assigned'}
+${job ? `Must-Have Skills: ${JSON.stringify(job.mustHave)}` : ''}
+
+CV Data:
+- Skills: ${JSON.stringify(cv?.extractedSkills ?? [])}
+- Experience: ${JSON.stringify(cv?.extractedExperiences ?? [])}
+- Education: ${JSON.stringify(cv?.extractedEducation ?? [])}
+- Languages: ${JSON.stringify(cv?.extractedLanguages ?? [])}
+- CV Summary: ${cv?.extractedSummary ?? 'Not available'}
+
+Screening: ${screening ? `Score ${screening.score}/100, Gaps: ${JSON.stringify(screening.gaps)}` : 'Not screened yet'}
+Interviews: ${reports.length} completed, Avg Score: ${avgInterviewScore?.toFixed(0) ?? 'N/A'}/100
+${reports.map((r, i) => `  Report ${i + 1}: Stage ${r.stage}, Score ${r.score}/100, Decision: ${r.decision}`).join('\n')}
+
+Return a JSON object with:
+- summary: 1 paragraph executive summary (4-6 sentences, professional tone)
+- keyStrengths: string[] (3-5 top strengths)
+- keyRisks: string[] (2-4 risks or concerns)
+- fitScore: number 0-100 (overall fit assessment${job ? ' for this specific role' : ''})
+- recommendedActions: string[] (2-3 concrete next steps)`;
+
+  const content = await callOpenRouter(systemPrompt, userPrompt, 'generation');
+  return aiCandidateSummaryOutputSchema.parse(
+    JSON.parse(cleanJsonResponse(content))
+  );
+}
+
+// ==================== 7. AI Talent Insights ====================
+
+export async function analyzeTalentInsights(): Promise<{
+  totalCandidates: number;
+  topSkills: Array<{ skill: string; count: number; percentage: number }>;
+  skillGaps: Array<{ skill: string; demandCount: number; supplyCount: number; gapSeverity: 'low' | 'medium' | 'high' | 'critical' }>;
+  marketTrends: string[];
+  recommendations: string[];
+  pipelineHealth: {
+    activeJobs: number;
+    avgTimeInPipeline: string;
+    bottleneckStage: string | null;
+    overallHealth: 'healthy' | 'warning' | 'critical';
+  };
+}> {
+  // Gather aggregated data for the AI to analyze
+  const allCandidates = await db.select().from(candidates);
+  const allJobs = await db.select().from(jobs).where(eq(jobs.status, 'open'));
+  const allScreenings = await db.select().from(screenings);
+  const allCvs = await db
+    .select({
+      extractedSkills: cvPool.extractedSkills,
+    })
+    .from(cvPool);
+
+  // Compute skill frequency across CV pool
+  const skillFreq: Record<string, number> = {};
+  for (const cv of allCvs) {
+    for (const skill of cv.extractedSkills ?? []) {
+      const normalized = skill.toLowerCase().trim();
+      skillFreq[normalized] = (skillFreq[normalized] ?? 0) + 1;
+    }
+  }
+  const topSkillsSorted = Object.entries(skillFreq)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 15)
+    .map(([skill, cnt]) => ({ skill, count: cnt }));
+
+  // Compute demand from job must-haves
+  const demandFreq: Record<string, number> = {};
+  for (const job of allJobs) {
+    for (const skill of job.mustHave as string[]) {
+      const normalized = skill.toLowerCase().trim();
+      demandFreq[normalized] = (demandFreq[normalized] ?? 0) + 1;
+    }
+  }
+
+  // Stage distribution
+  const stageDistribution: Record<string, number> = {};
+  for (const c of allCandidates) {
+    stageDistribution[c.stage] = (stageDistribution[c.stage] ?? 0) + 1;
+  }
+
+  const systemPrompt =
+    'You are a JSON API. Respond ONLY with valid JSON. No markdown, no explanations, no code fences.';
+
+  const userPrompt = `You are a workforce analytics expert at Capgemini. Analyze this talent pool data and provide strategic insights.
+
+Pool Statistics:
+- Total CVs in Pool: ${allCvs.length}
+- Total Candidates (assigned to jobs): ${allCandidates.length}
+- Active Open Jobs: ${allJobs.length}
+- Total Screenings Performed: ${allScreenings.length}
+
+Top 15 Skills in CV Pool:
+${topSkillsSorted.map(s => `  ${s.skill}: ${s.count} candidates`).join('\n')}
+
+Skills Demanded by Open Jobs:
+${Object.entries(demandFreq).sort((a, b) => b[1] - a[1]).slice(0, 15).map(([s, c]) => `  ${s}: ${c} jobs`).join('\n')}
+
+Pipeline Stage Distribution:
+${Object.entries(stageDistribution).map(([stage, cnt]) => `  ${stage}: ${cnt}`).join('\n')}
+
+Return a JSON object with:
+- totalCandidates: number (total in pipeline)
+- topSkills: array of { skill: string, count: number, percentage: number } (top 10, percentage relative to total CVs)
+- skillGaps: array of { skill: string, demandCount: number, supplyCount: number, gapSeverity: "low"|"medium"|"high"|"critical" } (skills demanded by jobs but underrepresented in pool)
+- marketTrends: string[] (3-5 observations about the talent landscape)
+- recommendations: string[] (3-5 actionable recommendations for the recruitment team)
+- pipelineHealth: { activeJobs: number, avgTimeInPipeline: string (estimate), bottleneckStage: string or null, overallHealth: "healthy"|"warning"|"critical" }`;
+
+  const content = await callOpenRouter(systemPrompt, userPrompt, 'generation');
+  return aiTalentInsightsOutputSchema.parse(
+    JSON.parse(cleanJsonResponse(content))
+  );
+}
+
+// ==================== 8. AI Follow-up Questions ====================
+
+export async function generateFollowupQuestions(
+  interviewId: string
+): Promise<{
+  followupQuestions: Array<{ question: string; rationale: string; targetArea: string; difficulty: 'easy' | 'medium' | 'hard' }>;
+  areasToProbe: string[];
+  overallAssessment: string;
+}> {
+  const [interview] = await db
+    .select()
+    .from(interviews)
+    .where(eq(interviews.id, interviewId));
+  if (!interview) throw new Error('Interview not found');
+
+  const [report] = await db
+    .select()
+    .from(interviewReports)
+    .where(eq(interviewReports.interviewId, interviewId));
+  if (!report) throw new Error('Interview report not found — submit a report first');
+
+  const [candidate] = await db
+    .select()
+    .from(candidates)
+    .where(eq(candidates.id, interview.candidateId));
+  if (!candidate) throw new Error('Candidate not found');
+
+  const [job] = await db
+    .select()
+    .from(jobs)
+    .where(eq(jobs.id, interview.jobId));
+  if (!job) throw new Error('Job not found');
+
+  // Get the original interview guide questions if they exist
+  const [guide] = await db
+    .select()
+    .from(interviewGuides)
+    .where(
+      and(
+        eq(interviewGuides.candidateId, interview.candidateId),
+        eq(interviewGuides.jobId, interview.jobId),
+        eq(interviewGuides.stage, interview.stage)
+      )
+    );
+
+  const systemPrompt =
+    'You are a JSON API. Respond ONLY with valid JSON. No markdown, no explanations, no code fences.';
+
+  const userPrompt = `You are a senior interviewer coach at Capgemini. Based on the previous interview answers, generate targeted follow-up questions that dig deeper into areas of concern or interest.
+
+Interview Context:
+- Stage: ${interview.stage}
+- Candidate: ${candidate.fullName}
+- Position: ${job.title} (${job.seniority})
+- Interview Score: ${report.score}/100
+- Decision: ${report.decision}
+- Overall Evaluation: ${report.overallEvaluation ?? 'None'}
+
+Original Questions Asked:
+${(guide?.questions as string[] ?? []).map((q, i) => `Q${i + 1}: ${q}`).join('\n')}
+
+Candidate Answers:
+${(report.candidateAnswers as Array<{ question: string; answer: string }>)
+  .map((qa, i) => `Q${i + 1}: ${qa.question}\nA${i + 1}: ${qa.answer}`)
+  .join('\n\n')}
+
+Job Requirements:
+- Must-Have: ${JSON.stringify(job.mustHave)}
+- Nice-To-Have: ${JSON.stringify(job.niceToHave)}
+
+Return a JSON object with:
+- followupQuestions: array of 5-8 objects, each with:
+  - question: the follow-up question (specific, probing, not generic)
+  - rationale: why this question is important (1 sentence)
+  - targetArea: what skill/competency this probes (e.g. "technical depth", "leadership", "problem-solving")
+  - difficulty: "easy" | "medium" | "hard"
+- areasToProbe: string[] (3-5 key areas that need deeper investigation)
+- overallAssessment: 2-3 sentence assessment of the candidate's interview performance and what the follow-up should focus on`;
+
+  const content = await callOpenRouter(systemPrompt, userPrompt, 'generation');
+  return aiFollowupQuestionsOutputSchema.parse(
+    JSON.parse(cleanJsonResponse(content))
+  );
+}
+
+// ==================== 9. AI Job Requirements Optimizer ====================
+
+export async function optimizeJobRequirements(
+  jobId: string
+): Promise<{
+  analysis: {
+    clarity: number;
+    competitiveness: number;
+    inclusivity: number;
+    overallScore: number;
+  };
+  suggestions: Array<{ area: string; issue: string; recommendation: string; priority: 'low' | 'medium' | 'high' }>;
+  optimizedMustHave: string[];
+  optimizedNiceToHave: string[];
+  optimizedDescription: string;
+  marketInsights: string[];
+}> {
+  const [job] = await db.select().from(jobs).where(eq(jobs.id, jobId));
+  if (!job) throw new Error('Job not found');
+
+  // Gather data about how well this job's requirements match the talent pool
+  const jobScreenings = await db
+    .select()
+    .from(screenings)
+    .where(eq(screenings.jobId, jobId))
+    .orderBy(desc(screenings.createdAt));
+
+  const avgScreeningScore =
+    jobScreenings.length > 0
+      ? jobScreenings.reduce((sum, s) => sum + s.score, 0) / jobScreenings.length
+      : null;
+
+  const commonGaps: Record<string, number> = {};
+  for (const s of jobScreenings) {
+    for (const gap of s.gaps as string[]) {
+      const normalized = gap.toLowerCase().trim();
+      commonGaps[normalized] = (commonGaps[normalized] ?? 0) + 1;
+    }
+  }
+  const topGaps = Object.entries(commonGaps)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 10);
+
+  const [{ value: candidateCount }] = await db
+    .select({ value: count() })
+    .from(candidates)
+    .where(eq(candidates.jobId, jobId));
+
+  const systemPrompt =
+    'You are a JSON API. Respond ONLY with valid JSON. No markdown, no explanations, no code fences.';
+
+  const userPrompt = `You are a job description optimization expert at Capgemini. Analyze this job posting and suggest improvements to attract better candidates and improve screening match rates.
+
+Current Job:
+- Title: ${job.title}
+- Seniority: ${job.seniority}
+- Business Unit: ${job.businessUnit ?? 'Not specified'}
+- Description: ${job.description}
+- Must-Have: ${JSON.stringify(job.mustHave)}
+- Nice-To-Have: ${JSON.stringify(job.niceToHave)}
+
+Performance Data:
+- Candidates Applied: ${candidateCount}
+- Screenings Performed: ${jobScreenings.length}
+- Average Screening Score: ${avgScreeningScore?.toFixed(0) ?? 'N/A'}/100
+- Most Common Skill Gaps: ${topGaps.map(([gap, cnt]) => `${gap} (${cnt} candidates)`).join(', ') || 'None yet'}
+
+Analyze the job description for:
+1. Clarity: Are requirements clear and specific?
+2. Competitiveness: Are the requirements realistic for the market?
+3. Inclusivity: Are there unnecessarily restrictive requirements?
+4. Optimization: What changes would improve candidate quality?
+
+Return a JSON object with:
+- analysis: { clarity: 0-100, competitiveness: 0-100, inclusivity: 0-100, overallScore: 0-100 }
+- suggestions: array of { area: string, issue: string, recommendation: string, priority: "low"|"medium"|"high" } (4-8 suggestions)
+- optimizedMustHave: string[] (improved must-have list)
+- optimizedNiceToHave: string[] (improved nice-to-have list)
+- optimizedDescription: string (rewritten, improved job description — plain text with line breaks, no markdown)
+- marketInsights: string[] (3-5 insights about how this role competes in the current market)`;
+
+  const content = await callOpenRouter(systemPrompt, userPrompt, 'generation');
+  return aiJobRequirementsOptimizerOutputSchema.parse(
     JSON.parse(cleanJsonResponse(content))
   );
 }

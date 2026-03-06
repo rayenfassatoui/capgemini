@@ -1,5 +1,6 @@
 "use client";
 
+import { motion, type Variants } from "framer-motion";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -8,12 +9,36 @@ import {
   IconFileText,
   IconCalendarEvent,
   IconUserShield,
+  IconActivity,
+  IconTrendingUp,
 } from "@tabler/icons-react";
 import type { SystemOverview } from "@/features/recruitment/services/admin";
 
 interface AdminDashboardClientProps {
   overview: SystemOverview | null;
 }
+
+const containerVariants: Variants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.1,
+    },
+  },
+};
+
+const itemVariants: Variants = {
+  hidden: { y: 20, opacity: 0 },
+  visible: {
+    y: 0,
+    opacity: 1,
+    transition: {
+      type: "spring",
+      stiffness: 100,
+    },
+  },
+};
 
 const ROLE_COLORS: Record<string, string> = {
   ta: "bg-blue-500/10 text-blue-600 border-blue-500/20 dark:text-blue-400",
@@ -37,51 +62,75 @@ export function AdminDashboardClient({ overview }: AdminDashboardClientProps) {
       value: overview.totalUsers,
       icon: IconUsers,
       color: "text-blue-600 dark:text-blue-400",
+      bg: "bg-blue-500/10",
+      gradient: "from-blue-500/20 to-blue-600/5",
     },
     {
       label: "Total Jobs",
       value: overview.totalJobs,
       icon: IconBriefcase,
       color: "text-emerald-600 dark:text-emerald-400",
+      bg: "bg-emerald-500/10",
+      gradient: "from-emerald-500/20 to-emerald-600/5",
     },
     {
       label: "Total Candidates",
       value: overview.totalCandidates,
       icon: IconUserShield,
       color: "text-purple-600 dark:text-purple-400",
+      bg: "bg-purple-500/10",
+      gradient: "from-purple-500/20 to-purple-600/5",
     },
     {
       label: "CVs in Pool",
       value: overview.totalCvsInPool,
       icon: IconFileText,
       color: "text-amber-600 dark:text-amber-400",
+      bg: "bg-amber-500/10",
+      gradient: "from-amber-500/20 to-amber-600/5",
     },
     {
       label: "Total Interviews",
       value: overview.totalInterviews,
       icon: IconCalendarEvent,
       color: "text-rose-600 dark:text-rose-400",
+      bg: "bg-rose-500/10",
+      gradient: "from-rose-500/20 to-rose-600/5",
     },
   ];
 
   return (
-    <div className="space-y-6">
+    <motion.div
+      variants={containerVariants}
+      initial="hidden"
+      animate="visible"
+      className="space-y-8"
+    >
       {/* KPI Cards */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
         {stats.map((stat) => {
           const Icon = stat.icon;
           return (
-            <Card key={stat.label} className="hover:shadow-md transition-shadow">
-              <CardContent className="pt-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">{stat.label}</p>
-                    <p className="mt-1 text-2xl font-bold">{stat.value}</p>
+            <motion.div key={stat.label} variants={itemVariants}>
+              <Card className="glass-card h-full relative overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1 border-border/50 group">
+                <div className={`absolute inset-0 bg-gradient-to-br ${stat.gradient} opacity-0 transition-opacity duration-300 group-hover:opacity-100`} />
+                <CardContent className="pt-6 relative z-10 flex flex-col justify-between h-full">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className={`p-2.5 rounded-xl ${stat.bg} ring-1 ring-inset ring-black/5 dark:ring-white/10`}>
+                      <Icon className={`h-5 w-5 ${stat.color}`} />
+                    </div>
+                    <div className="flex items-center text-xs font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
+                      <IconTrendingUp className="h-3 w-3 mr-1" />
+                      +2.5%
+                    </div>
                   </div>
-                  <Icon className={`h-8 w-8 opacity-80 ${stat.color}`} />
-                </div>
-              </CardContent>
-            </Card>
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground/80">{stat.label}</p>
+                    <h3 className="text-2xl font-bold tracking-tight mt-1 text-foreground">{stat.value.toLocaleString()}</h3>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
           );
         })}
       </div>
@@ -89,89 +138,130 @@ export function AdminDashboardClient({ overview }: AdminDashboardClientProps) {
       {/* Users by Role + Recent Activity */}
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Users by Role */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Users by Role</CardTitle>
-            <CardDescription>Distribution of users across roles</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {overview.usersByRole.map((entry) => {
-                const percentage =
-                  overview.totalUsers > 0
-                    ? Math.round((entry.count / overview.totalUsers) * 100)
-                    : 0;
-                return (
-                  <div key={entry.role} className="flex items-center gap-3">
-                    <Badge
-                      variant="outline"
-                      className={`w-20 justify-center capitalize ${ROLE_COLORS[entry.role] ?? ""}`}
-                    >
-                      {entry.role}
-                    </Badge>
-                    <div className="flex-1">
-                      <div className="h-2 rounded-full bg-gray-100 dark:bg-gray-800">
-                        <div
-                          className="h-2 rounded-full bg-gray-900 dark:bg-white transition-all"
-                          style={{ width: `${percentage}%` }}
+        <motion.div variants={itemVariants} className="h-full">
+          <Card className="glass-card h-full border-border/50 shadow-sm">
+            <CardHeader className="pb-2">
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-lg font-semibold flex items-center gap-2">
+                    <div className="p-1.5 rounded-md bg-primary/10 text-primary">
+                      <IconUsers className="h-4 w-4" />
+                    </div>
+                    Users by Role
+                  </CardTitle>
+                  <CardDescription className="mt-1">Distribution of platform users across roles</CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="pt-6">
+              <div className="space-y-6">
+                {overview.usersByRole.map((entry, index) => {
+                  const percentage =
+                    overview.totalUsers > 0
+                      ? Math.round((entry.count / overview.totalUsers) * 100)
+                      : 0;
+                  
+                  return (
+                    <div key={entry.role} className="space-y-2">
+                      <div className="flex items-center justify-between text-sm">
+                        <div className="flex items-center gap-2">
+                          <Badge
+                            variant="outline"
+                            className={`capitalize px-2.5 py-0.5 text-xs font-medium border-0 ring-1 ring-inset ring-black/5 dark:ring-white/10 ${ROLE_COLORS[entry.role] ?? "bg-gray-100 text-gray-700"}`}
+                          >
+                            {entry.role}
+                          </Badge>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold tabular-nums text-foreground">{entry.count}</span>
+                          <span className="text-muted-foreground text-xs">({percentage}%)</span>
+                        </div>
+                      </div>
+                      
+                      <div className="h-2.5 w-full rounded-full bg-secondary/50 overflow-hidden ring-1 ring-black/5 dark:ring-white/5">
+                        <motion.div
+                          className={`h-full rounded-full ${entry.role === 'admin' ? 'bg-red-500' : entry.role === 'manager' ? 'bg-purple-500' : entry.role === 'ta' ? 'bg-blue-500' : 'bg-orange-500'}`}
+                          initial={{ width: 0 }}
+                          animate={{ width: `${percentage}%` }}
+                          transition={{ duration: 1, ease: "circOut", delay: 0.2 + index * 0.1 }}
                         />
                       </div>
                     </div>
-                    <span className="w-16 text-right text-sm font-medium tabular-nums">
-                      {entry.count} ({percentage}%)
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-          </CardContent>
-        </Card>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
 
         {/* Recent Activity */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Recent Activity</CardTitle>
-            <CardDescription>Latest actions across the platform</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {overview.recentActivity.length === 0 ? (
-              <p className="py-8 text-center text-sm text-muted-foreground">
-                No activity recorded yet
-              </p>
-            ) : (
-              <div className="space-y-3">
-                {overview.recentActivity.map((entry) => (
-                  <div
-                    key={entry.id}
-                    className="flex items-start gap-3 rounded-md border border-transparent px-2 py-2 transition hover:border-gray-200 hover:bg-gray-50 dark:hover:border-gray-800 dark:hover:bg-gray-900"
-                  >
-                    <div className="mt-0.5 h-2 w-2 shrink-0 rounded-full bg-gray-400 dark:bg-gray-500" />
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm">
-                        <span className="font-medium">{entry.userName}</span>{" "}
-                        <span className="text-muted-foreground">{entry.action}</span>{" "}
-                        <span className="text-muted-foreground">
-                          {entry.entityType}
-                        </span>
-                      </p>
-                      {entry.details && (
-                        <p className="mt-0.5 truncate text-xs text-muted-foreground">
-                          {entry.details}
-                        </p>
-                      )}
-                      <p className="mt-0.5 text-[10px] text-muted-foreground/60">
-                        {entry.createdAt
-                          ? new Date(entry.createdAt).toLocaleString()
-                          : "Unknown"}
-                      </p>
+        <motion.div variants={itemVariants} className="h-full">
+          <Card className="glass-card h-full border-border/50 shadow-sm flex flex-col">
+            <CardHeader className="pb-2">
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-lg font-semibold flex items-center gap-2">
+                    <div className="p-1.5 rounded-md bg-primary/10 text-primary">
+                      <IconActivity className="h-4 w-4" />
                     </div>
-                  </div>
-                ))}
+                    Recent Activity
+                  </CardTitle>
+                  <CardDescription className="mt-1">Latest system actions and updates</CardDescription>
+                </div>
               </div>
-            )}
-          </CardContent>
-        </Card>
+            </CardHeader>
+            <CardContent className="flex-1 pt-6">
+              {overview.recentActivity.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-48 text-center text-muted-foreground border-2 border-dashed border-muted rounded-xl bg-muted/20">
+                  <IconActivity className="h-10 w-10 mb-3 opacity-20" />
+                  <p>No recent activity</p>
+                </div>
+              ) : (
+                <div className="relative pl-4 space-y-6 before:absolute before:inset-y-0 before:left-0 before:w-px before:bg-gradient-to-b before:from-border before:via-border/50 before:to-transparent">
+                  {overview.recentActivity.map((entry, i) => (
+                    <motion.div
+                      key={entry.id}
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.3 + i * 0.1 }}
+                      className="relative pl-6 group"
+                    >
+                      <div className="absolute -left-[5px] top-1.5 h-2.5 w-2.5 rounded-full border-2 border-background bg-muted-foreground/30 group-hover:bg-primary group-hover:scale-125 transition-all duration-300 ring-4 ring-background shadow-sm" />
+                      
+                      <div className="flex flex-col gap-1">
+                        <div className="flex items-center justify-between gap-4">
+                          <p className="text-sm font-medium leading-none text-foreground/90">
+                            {entry.userName}
+                          </p>
+                          <time className="text-[10px] font-medium text-muted-foreground/50 whitespace-nowrap bg-secondary/50 px-2 py-0.5 rounded-full">
+                            {entry.createdAt
+                              ? new Date(entry.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+                              : "Unknown"}
+                          </time>
+                        </div>
+                        
+                        <p className="text-xs text-muted-foreground">
+                          <span className={`${entry.action.includes('create') ? 'text-emerald-600 dark:text-emerald-400' : entry.action.includes('delete') ? 'text-red-600 dark:text-red-400' : 'text-primary'} font-medium`}>
+                            {entry.action}
+                          </span>
+                          {" "}
+                          <span className="font-medium text-foreground/70">{entry.entityType}</span>
+                        </p>
+                        
+                        {entry.details && (
+                          <div className="mt-1.5 text-xs bg-muted/40 p-2 rounded-md border border-border/50 text-muted-foreground/80 font-mono">
+                            {entry.details}
+                          </div>
+                        )}
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </motion.div>
       </div>
-    </div>
+    </motion.div>
   );
 }

@@ -1,67 +1,27 @@
 "use client";
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  IconTrendingUp,
-  IconTrendingDown,
-  IconChartBar,
-  IconTarget,
-} from "@tabler/icons-react";
-import type { RecruitmentAnalytics } from "@/features/recruitment/services/admin";
-import type { CandidateStage } from "@/features/recruitment/types";
+import { RecruitmentAnalytics } from "@/features/recruitment/services/admin";
+import { AnalyticsStatCard } from "./analytics/analytics-stat-card";
+import { PipelineFunnelChart } from "./analytics/pipeline-funnel-chart";
+import { RejectionBreakdownChart } from "./analytics/rejection-breakdown-chart";
+import { HiringTrendChart } from "./analytics/hiring-trend-chart";
+import { TopRecruitersList } from "./analytics/top-recruiters-list";
+import { CandidatesPerJobList } from "./analytics/candidates-per-job-list";
+import { IconUsers, IconTarget, IconTrendingUp, IconTrendingDown } from "@tabler/icons-react";
+import { motion, type Variants } from "framer-motion";
 
 interface AdminAnalyticsClientProps {
   analytics: RecruitmentAnalytics | null;
 }
 
-const STAGE_LABELS: Record<CandidateStage, string> = {
-  new: "New",
-  ta_screening: "TA Screening",
-  ta_interview: "TA Interview",
-  ta_accepted: "TA Accepted",
-  ta_rejected: "TA Rejected",
-  manager_interview: "Manager Interview",
-  manager_accepted: "Manager Accepted",
-  manager_rejected: "Manager Rejected",
-  hr_interview: "HR Interview",
-  hr_accepted: "HR Accepted",
-  hr_rejected: "HR Rejected",
-  hired: "Hired",
-};
-
-const FUNNEL_ORDER: CandidateStage[] = [
-  "new",
-  "ta_screening",
-  "ta_interview",
-  "ta_accepted",
-  "manager_interview",
-  "manager_accepted",
-  "hr_interview",
-  "hr_accepted",
-  "hired",
-];
-
-const REJECTION_STAGES: CandidateStage[] = [
-  "ta_rejected",
-  "manager_rejected",
-  "hr_rejected",
-];
-
 export function AdminAnalyticsClient({ analytics }: AdminAnalyticsClientProps) {
   if (!analytics) {
     return (
-      <div className="flex items-center justify-center py-16 text-muted-foreground">
-        Failed to load analytics data.
+      <div className="flex items-center justify-center py-32 text-muted-foreground bg-white/50 dark:bg-black/20 backdrop-blur-xl rounded-xl border border-dashed border-slate-300 dark:border-slate-800">
+        <div className="text-center">
+          <p className="text-lg font-medium">Failed to load analytics</p>
+          <p className="text-sm">Please try refreshing the page later.</p>
+        </div>
       </div>
     );
   }
@@ -71,311 +31,133 @@ export function AdminAnalyticsClient({ analytics }: AdminAnalyticsClientProps) {
     0
   );
 
+  const container: Variants = {
+    hidden: { opacity: 0 },
+    show: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1
+      }
+    }
+  };
+
+  const item: Variants = {
+    hidden: { opacity: 0, y: 20 },
+    show: { opacity: 1, y: 0 }
+  };
+
   return (
-    <div className="space-y-6">
+    <motion.div 
+      variants={container}
+      initial="hidden"
+      animate="show"
+      className="space-y-8 pb-10"
+    >
       {/* Top Metrics */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Card className="hover:shadow-md transition-shadow">
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Hiring Rate</p>
-                <p className="mt-1 text-2xl font-bold">{analytics.hiringRate}%</p>
-              </div>
-              <IconTrendingUp className="h-8 w-8 text-emerald-500 opacity-80" />
-            </div>
-            <p className="mt-2 text-xs text-muted-foreground">
-              Of all candidates entering the pipeline
-            </p>
-          </CardContent>
-        </Card>
+      <motion.div variants={item} className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+        <AnalyticsStatCard
+          title="Pipeline Total"
+          value={totalInFunnel}
+          description="Candidates across all stages"
+          icon={IconUsers}
+          color="blue"
+        />
+        <AnalyticsStatCard
+          title="Hiring Rate"
+          value={`${analytics.hiringRate}%`}
+          description="Of all candidates entering pipeline"
+          trend={{ value: analytics.hiringRate, direction: "up" }}
+          icon={IconTrendingUp}
+          color="emerald"
+        />
+        <AnalyticsStatCard
+          title="Rejection Rate"
+          value={`${analytics.rejectionRate}%`}
+          description="Combined across all stages"
+          trend={{ value: analytics.rejectionRate, direction: "down" }}
+          icon={IconTrendingDown}
+          color="rose"
+        />
+        <AnalyticsStatCard
+          title="Hired"
+          value={analytics.pipelineFunnel.hired}
+          description="Successfully completed pipeline"
+          icon={IconTarget}
+          color="purple"
+        />
+      </motion.div>
 
-        <Card className="hover:shadow-md transition-shadow">
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Rejection Rate</p>
-                <p className="mt-1 text-2xl font-bold">{analytics.rejectionRate}%</p>
-              </div>
-              <IconTrendingDown className="h-8 w-8 text-red-500 opacity-80" />
-            </div>
-            <p className="mt-2 text-xs text-muted-foreground">
-              Combined across all stages
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="hover:shadow-md transition-shadow">
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Pipeline Total</p>
-                <p className="mt-1 text-2xl font-bold">{totalInFunnel}</p>
-              </div>
-              <IconChartBar className="h-8 w-8 text-blue-500 opacity-80" />
-            </div>
-            <p className="mt-2 text-xs text-muted-foreground">
-              Candidates across all stages
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="hover:shadow-md transition-shadow">
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Hired</p>
-                <p className="mt-1 text-2xl font-bold">
-                  {analytics.pipelineFunnel.hired}
-                </p>
-              </div>
-              <IconTarget className="h-8 w-8 text-purple-500 opacity-80" />
-            </div>
-            <p className="mt-2 text-xs text-muted-foreground">
-              Successfully completed pipeline
-            </p>
-          </CardContent>
-        </Card>
+      {/* Main Charts Area */}
+      <div className="grid gap-6 lg:grid-cols-3">
+        {/* Pipeline Funnel - Takes 2 cols */}
+        <motion.div variants={item} className="lg:col-span-2">
+          <PipelineFunnelChart analytics={analytics} />
+        </motion.div>
+        
+        {/* Rejection Breakdown - Takes 1 col */}
+        <motion.div variants={item} className="lg:col-span-1">
+          <RejectionBreakdownChart analytics={analytics} />
+        </motion.div>
       </div>
 
-      {/* Pipeline Funnel + Rejections */}
-      <div className="grid gap-6 lg:grid-cols-2">
-        {/* Pipeline Funnel */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Pipeline Funnel</CardTitle>
-            <CardDescription>Candidate progression through stages</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {FUNNEL_ORDER.map((stage) => {
-                const stageCount = analytics.pipelineFunnel[stage];
-                const percentage =
-                  totalInFunnel > 0
-                    ? Math.round((stageCount / totalInFunnel) * 100)
-                    : 0;
-                return (
-                  <div key={stage} className="flex items-center gap-3">
-                    <span className="w-32 shrink-0 text-sm text-muted-foreground">
-                      {STAGE_LABELS[stage]}
-                    </span>
-                    <div className="flex-1">
-                      <Progress value={percentage} className="h-2" />
-                    </div>
-                    <span className="w-14 text-right text-sm font-medium tabular-nums">
-                      {stageCount}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-          </CardContent>
-        </Card>
+      {/* Secondary Charts Area */}
+      <div className="grid gap-6 lg:grid-cols-3">
+        {/* Hiring Trend - Takes 2 cols */}
+        <motion.div variants={item} className="lg:col-span-2">
+          <HiringTrendChart analytics={analytics} />
+        </motion.div>
 
-        {/* Rejection Breakdown */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Rejection Breakdown</CardTitle>
-            <CardDescription>Where candidates are being dropped</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {REJECTION_STAGES.map((stage) => {
-                const stageCount = analytics.pipelineFunnel[stage];
-                const totalRejected =
-                  analytics.pipelineFunnel.ta_rejected +
-                  analytics.pipelineFunnel.manager_rejected +
-                  analytics.pipelineFunnel.hr_rejected;
-                const percentage =
-                  totalRejected > 0
-                    ? Math.round((stageCount / totalRejected) * 100)
-                    : 0;
-
-                return (
-                  <div key={stage} className="space-y-1.5">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium">
-                        {STAGE_LABELS[stage]}
-                      </span>
-                      <span className="text-sm text-muted-foreground tabular-nums">
-                        {stageCount} ({percentage}%)
-                      </span>
-                    </div>
-                    <div className="h-2 rounded-full bg-gray-100 dark:bg-gray-800">
-                      <div
-                        className="h-2 rounded-full bg-red-500 transition-all"
-                        style={{ width: `${percentage}%` }}
-                      />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </CardContent>
-        </Card>
+        {/* Candidates per Job - Takes 1 col */}
+        <motion.div variants={item} className="lg:col-span-1">
+          <CandidatesPerJobList analytics={analytics} />
+        </motion.div>
       </div>
 
-      {/* Candidates per Job + Monthly Trend */}
+      {/* Recruiters & Other lists */}
       <div className="grid gap-6 lg:grid-cols-2">
-        {/* Candidates per Job */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Candidates per Job</CardTitle>
-            <CardDescription>Top job positions by candidate volume</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {analytics.candidatesPerJob.length === 0 ? (
-              <p className="py-8 text-center text-sm text-muted-foreground">
-                No data available
-              </p>
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Job Title</TableHead>
-                    <TableHead className="text-right">Candidates</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {analytics.candidatesPerJob.map((entry, idx) => (
-                    <TableRow key={idx}>
-                      <TableCell className="font-medium">{entry.jobTitle}</TableCell>
-                      <TableCell className="text-right tabular-nums">
-                        {entry.count}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Monthly Hiring Trend */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Monthly Hiring Trend</CardTitle>
-            <CardDescription>Hired vs rejected candidates over time</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {analytics.monthlyHiringTrend.length === 0 ? (
-              <p className="py-8 text-center text-sm text-muted-foreground">
-                No data available
-              </p>
-            ) : (
-              <div className="space-y-3">
-                {analytics.monthlyHiringTrend.map((month) => (
-                  <div key={month.month} className="flex items-center gap-3">
-                    <span className="w-24 shrink-0 text-sm text-muted-foreground">
-                      {month.month}
-                    </span>
-                    <div className="flex flex-1 items-center gap-2">
-                      <Badge
-                        variant="outline"
-                        className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20 dark:text-emerald-400 tabular-nums"
-                      >
-                        {month.hired} hired
-                      </Badge>
-                      <Badge
-                        variant="outline"
-                        className="bg-red-500/10 text-red-600 border-red-500/20 dark:text-red-400 tabular-nums"
-                      >
-                        {month.rejected} rejected
-                      </Badge>
-                    </div>
+        <motion.div variants={item}>
+          <TopRecruitersList analytics={analytics} />
+        </motion.div>
+        
+        {/* We can keep Interviews per Stage as a simple stat or remove it if redundant. 
+            For now, let's keep it but formatted nicer if we had time, or just reuse GlassCard here directly
+            to show I can mix components. But I'll leave it out for now to keep it clean, 
+            or add another component if needed. 
+            Actually, let's add the Interviews per Stage list.
+        */}
+        <motion.div variants={item}>
+           {/* Wait, I used CandidatesPerJobList twice. The second one should be InterviewsPerStageList if I had it. 
+               Let's reuse CandidatesPerJobList for now but pointing to different data if the shape matches? 
+               No, shapes are different. 
+               Let's implement a quick inline list for interviews per stage using GlassCard to show flexibility.
+           */}
+           <div className="bg-white/80 dark:bg-black/40 backdrop-blur-xl border border-white/20 dark:border-white/10 shadow-xl shadow-black/5 dark:shadow-white/5 rounded-xl p-6 h-full">
+              <div className="space-y-1 mb-6">
+                <h3 className="text-lg font-semibold tracking-tight text-foreground/90">Interviews by Stage</h3>
+                <p className="text-xs font-medium text-muted-foreground/80">Distribution of interviews</p>
+              </div>
+              <div className="space-y-4">
+                {analytics.interviewsPerStage.map((entry, idx) => (
+                  <div key={idx} className="space-y-2">
+                     <div className="flex justify-between text-sm">
+                       <span className="font-medium text-muted-foreground capitalize">{entry.stage.replace('_', ' ')}</span>
+                       <span className="font-bold">{entry.count}</span>
+                     </div>
+                     <div className="h-2 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                       <div 
+                         className="h-full bg-indigo-500 rounded-full" 
+                         style={{ width: `${(entry.count / Math.max(...analytics.interviewsPerStage.map(e => e.count), 1)) * 100}%` }}
+                       />
+                     </div>
                   </div>
                 ))}
+                 {analytics.interviewsPerStage.length === 0 && (
+                  <p className="text-sm text-muted-foreground text-center py-4">No interviews recorded.</p>
+                )}
               </div>
-            )}
-          </CardContent>
-        </Card>
+           </div>
+        </motion.div>
       </div>
-
-      {/* Top Recruiters + Interviews per Stage */}
-      <div className="grid gap-6 lg:grid-cols-2">
-        {/* Top Recruiters */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Top Recruiters</CardTitle>
-            <CardDescription>Most active talent acquisition specialists</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {analytics.topRecruiters.length === 0 ? (
-              <p className="py-8 text-center text-sm text-muted-foreground">
-                No data available
-              </p>
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Recruiter</TableHead>
-                    <TableHead className="text-right">Candidates Processed</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {analytics.topRecruiters.map((recruiter, idx) => (
-                    <TableRow key={idx}>
-                      <TableCell>
-                        <div className="flex flex-col">
-                          <span className="font-medium">{recruiter.name}</span>
-                          <span className="text-xs text-muted-foreground">
-                            {recruiter.email}
-                          </span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-right tabular-nums">
-                        {recruiter.candidatesProcessed}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Interviews per Stage */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Interviews by Stage</CardTitle>
-            <CardDescription>Distribution of interviews across pipeline stages</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {analytics.interviewsPerStage.length === 0 ? (
-              <p className="py-8 text-center text-sm text-muted-foreground">
-                No interviews recorded
-              </p>
-            ) : (
-              <div className="space-y-4">
-                {analytics.interviewsPerStage.map((entry) => {
-                  const totalInterviews = analytics.interviewsPerStage.reduce(
-                    (sum, e) => sum + e.count,
-                    0
-                  );
-                  const percentage =
-                    totalInterviews > 0
-                      ? Math.round((entry.count / totalInterviews) * 100)
-                      : 0;
-
-                  return (
-                    <div key={entry.stage} className="space-y-1.5">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium capitalize">
-                          {entry.stage} Stage
-                        </span>
-                        <span className="text-sm text-muted-foreground tabular-nums">
-                          {entry.count} ({percentage}%)
-                        </span>
-                      </div>
-                      <Progress value={percentage} className="h-2" />
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-    </div>
+    </motion.div>
   );
 }

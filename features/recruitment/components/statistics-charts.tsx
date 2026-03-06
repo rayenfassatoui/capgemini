@@ -112,109 +112,152 @@ export function StatisticsCharts({
   jobsStats,
   insights,
 }: StatisticsChartsProps) {
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    show: { opacity: 1, transition: { staggerChildren: 0.1 } },
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    show: { opacity: 1, y: 0, transition: { duration: 0.5, ease: "easeOut" as const } },
+  };
+
   return (
     <div className="flex flex-col gap-10">
-      {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight text-foreground">
-          Statistics
-        </h1>
-        <p className="text-muted-foreground mt-1">
-          Complete analytics across your CV pool, job requirements, and
-          recruitment pipeline
-        </p>
-      </div>
-
       {/* Overview Cards */}
-      <div className="grid gap-4 md:grid-cols-3">
-        <OverviewCard
-          title="Total CVs"
-          value={cvStats?.totalCvs ?? 0}
-          description="In your CV pool"
-          icon={<IconFileText className="text-muted-foreground h-4 w-4" />}
-        />
-        <OverviewCard
-          title="Total Jobs"
-          value={jobsStats?.totalJobs ?? 0}
-          description="Job requirements created"
-          icon={<IconBriefcase className="text-muted-foreground h-4 w-4" />}
-        />
-        <OverviewCard
-          title="Pipeline Total"
-          value={
-            insights
-              ? Object.values(insights.pipelineFunnel).reduce(
-                  (a, b) => a + b,
-                  0
-                )
-              : 0
-          }
-          description="Candidates in pipeline"
-          icon={<IconUsers className="text-muted-foreground h-4 w-4" />}
-        />
-      </div>
+      <motion.div
+        className="grid gap-4 md:grid-cols-3"
+        variants={containerVariants}
+        initial="hidden"
+        animate="show"
+      >
+        <motion.div variants={itemVariants}>
+          <OverviewCard
+            title="Total CVs"
+            value={cvStats?.totalCvs ?? 0}
+            description="In your CV pool"
+            icon={<IconFileText className="text-muted-foreground h-4 w-4" />}
+          />
+        </motion.div>
+        <motion.div variants={itemVariants}>
+          <OverviewCard
+            title="Total Jobs"
+            value={jobsStats?.totalJobs ?? 0}
+            description="Job requirements created"
+            icon={<IconBriefcase className="text-muted-foreground h-4 w-4" />}
+          />
+        </motion.div>
+        <motion.div variants={itemVariants}>
+          <OverviewCard
+            title="Pipeline Total"
+            value={
+              insights
+                ? Object.values(insights.pipelineFunnel).reduce(
+                    (a, b) => a + b,
+                    0
+                  )
+                : 0
+            }
+            description="Candidates in pipeline"
+            icon={<IconUsers className="text-muted-foreground h-4 w-4" />}
+          />
+        </motion.div>
+      </motion.div>
 
       {/* Charts Row: Donut + Line */}
-      <div className="grid gap-4 lg:grid-cols-2">
-        {insights ? (
-          <PipelineDonutCard pipelineFunnel={insights.pipelineFunnel} />
-        ) : (
-          <EmptyCard message="Unable to load pipeline data" />
-        )}
+      <motion.div
+        className="grid gap-4 lg:grid-cols-2"
+        variants={containerVariants}
+        initial="hidden"
+        animate="show"
+      >
+        <motion.div variants={itemVariants} className="h-full">
+          {insights ? (
+            <PipelineDonutCard pipelineFunnel={insights.pipelineFunnel} />
+          ) : (
+            <EmptyCard message="Unable to load pipeline data" />
+          )}
+        </motion.div>
 
-        {cvStats && cvStats.uploadTrend.length > 0 ? (
-          <UploadTrendLineCard uploadTrend={cvStats.uploadTrend} />
-        ) : (
-          <EmptyCard message="Unable to load upload trend" />
-        )}
-      </div>
+        <motion.div variants={itemVariants} className="h-full">
+          {cvStats && cvStats.uploadTrend.length > 0 ? (
+            <UploadTrendLineCard uploadTrend={cvStats.uploadTrend} />
+          ) : (
+            <EmptyCard message="Unable to load upload trend" />
+          )}
+        </motion.div>
+      </motion.div>
 
       {/* Skill Gap Radar + Top Skills */}
-      <div className="grid gap-4 lg:grid-cols-2">
-        {insights && insights.skillGapAnalysis.length > 0 ? (
-          <SkillGapRadarCard skillGapAnalysis={insights.skillGapAnalysis} />
-        ) : (
-          <EmptyCard message="No skill gap data available" />
-        )}
+      <motion.div
+        className="grid gap-4 lg:grid-cols-2"
+        variants={containerVariants}
+        initial="hidden"
+        animate="show"
+      >
+        <motion.div variants={itemVariants} className="h-full">
+          {insights && insights.skillGapAnalysis.length > 0 ? (
+            <SkillGapRadarCard skillGapAnalysis={insights.skillGapAnalysis} />
+          ) : (
+            <EmptyCard message="No skill gap data available" />
+          )}
+        </motion.div>
 
-        {cvStats ? (
-          <TopSkillsCard
-            topSkills={cvStats.topSkills}
-            totalCvs={cvStats.totalCvs}
-          />
-        ) : (
-          <EmptyCard message="Unable to load CV skills data" />
-        )}
-      </div>
+        <motion.div variants={itemVariants} className="h-full">
+          {cvStats ? (
+            <TopSkillsCard
+              topSkills={cvStats.topSkills}
+              totalCvs={cvStats.totalCvs}
+            />
+          ) : (
+            <EmptyCard message="Unable to load CV skills data" />
+          )}
+        </motion.div>
+      </motion.div>
 
       {/* Jobs Breakdown + Languages + Demanded Roles */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {jobsStats ? (
-          <JobsBreakdownCard jobsStats={jobsStats} />
-        ) : (
-          <EmptyCard message="Unable to load job statistics" />
-        )}
+      <motion.div
+        className="grid gap-4 md:grid-cols-2 lg:grid-cols-3"
+        variants={containerVariants}
+        initial="hidden"
+        animate="show"
+      >
+        <motion.div variants={itemVariants} className="h-full">
+          {jobsStats ? (
+            <JobsBreakdownCard jobsStats={jobsStats} />
+          ) : (
+            <EmptyCard message="Unable to load job statistics" />
+          )}
+        </motion.div>
 
-        {cvStats ? (
-          <LanguagesCard
-            languageDistribution={cvStats.languageDistribution}
-          />
-        ) : (
-          <EmptyCard message="Unable to load language data" />
-        )}
+        <motion.div variants={itemVariants} className="h-full">
+          {cvStats ? (
+            <LanguagesCard
+              languageDistribution={cvStats.languageDistribution}
+            />
+          ) : (
+            <EmptyCard message="Unable to load language data" />
+          )}
+        </motion.div>
 
-        {insights ? (
-          <DemandedRolesCard
-            mostDemandedJobProfiles={insights.mostDemandedJobProfiles}
-          />
-        ) : (
-          <EmptyCard message="Unable to load demanded roles" />
-        )}
-      </div>
+        <motion.div variants={itemVariants} className="h-full">
+          {insights ? (
+            <DemandedRolesCard
+              mostDemandedJobProfiles={insights.mostDemandedJobProfiles}
+            />
+          ) : (
+            <EmptyCard message="Unable to load demanded roles" />
+          )}
+        </motion.div>
+      </motion.div>
 
       {/* Full-width Skill Gap Table */}
       {insights && insights.skillGapAnalysis.length > 0 && (
-        <SkillGapTableCard skillGapAnalysis={insights.skillGapAnalysis} />
+        <motion.div variants={containerVariants} initial="hidden" animate="show">
+          <motion.div variants={itemVariants}>
+            <SkillGapTableCard skillGapAnalysis={insights.skillGapAnalysis} />
+          </motion.div>
+        </motion.div>
       )}
     </div>
   );
@@ -233,13 +276,16 @@ function OverviewCard({
   icon: React.ReactNode;
 }) {
   return (
-    <Card>
+    <Card className="bg-white/80 dark:bg-black/40 backdrop-blur-xl border-white/20 dark:border-white/10 shadow-xl shadow-black/5 dark:shadow-white/5 relative overflow-hidden">
+      <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-primary/50 to-transparent" />
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className="text-sm font-medium">{title}</CardTitle>
         {icon}
       </CardHeader>
       <CardContent>
-        <div className="text-2xl font-bold">{value}</div>
+        <div className="text-3xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
+          {value}
+        </div>
         <p className="text-muted-foreground text-xs mt-1">{description}</p>
       </CardContent>
     </Card>
@@ -249,7 +295,7 @@ function OverviewCard({
 // -- Empty Card --
 function EmptyCard({ message }: { message: string }) {
   return (
-    <Card>
+    <Card className="bg-white/80 dark:bg-black/40 backdrop-blur-xl border-white/20 dark:border-white/10 shadow-xl shadow-black/5 dark:shadow-white/5">
       <CardContent className="flex items-center justify-center h-32">
         <p className="text-sm text-muted-foreground">{message}</p>
       </CardContent>
@@ -280,7 +326,7 @@ function PipelineDonutCard({
   const displayLabel = activeSegment?.label ?? "Total";
 
   return (
-    <Card>
+    <Card className="bg-white/80 dark:bg-black/40 backdrop-blur-xl border-white/20 dark:border-white/10 shadow-xl shadow-black/5 dark:shadow-white/5">
       <CardHeader>
         <CardTitle className="text-base font-semibold flex items-center gap-2">
           <IconTrendingUp className="size-4 text-muted-foreground" />
@@ -373,7 +419,7 @@ function UploadTrendLineCard({
   }));
 
   return (
-    <Card>
+    <Card className="bg-white/80 dark:bg-black/40 backdrop-blur-xl border-white/20 dark:border-white/10 shadow-xl shadow-black/5 dark:shadow-white/5">
       <CardHeader>
         <CardTitle className="text-base font-semibold flex items-center gap-2">
           <IconFileText className="size-4 text-muted-foreground" />
@@ -463,7 +509,7 @@ function SkillGapRadarCard({
   }));
 
   return (
-    <Card>
+    <Card className="bg-white/80 dark:bg-black/40 backdrop-blur-xl border-white/20 dark:border-white/10 shadow-xl shadow-black/5 dark:shadow-white/5">
       <CardHeader className="items-center pb-4">
         <CardTitle className="text-base font-semibold flex items-center gap-2">
           <IconSparkles className="size-4 text-muted-foreground" />
@@ -532,7 +578,7 @@ function TopSkillsCard({
   totalCvs: number;
 }) {
   return (
-    <Card>
+    <Card className="bg-white/80 dark:bg-black/40 backdrop-blur-xl border-white/20 dark:border-white/10 shadow-xl shadow-black/5 dark:shadow-white/5">
       <CardHeader>
         <CardTitle className="text-base font-semibold flex items-center gap-2">
           <IconCode className="size-4 text-muted-foreground" />
@@ -576,7 +622,7 @@ function TopSkillsCard({
 // -- Jobs Breakdown Card --
 function JobsBreakdownCard({ jobsStats }: { jobsStats: JobsStats }) {
   return (
-    <Card>
+    <Card className="bg-white/80 dark:bg-black/40 backdrop-blur-xl border-white/20 dark:border-white/10 shadow-xl shadow-black/5 dark:shadow-white/5">
       <CardHeader>
         <CardTitle className="text-base font-semibold flex items-center gap-2">
           <IconBriefcase className="size-4 text-muted-foreground" />
@@ -654,7 +700,7 @@ function LanguagesCard({
   languageDistribution: Array<{ language: string; count: number }>;
 }) {
   return (
-    <Card>
+    <Card className="bg-white/80 dark:bg-black/40 backdrop-blur-xl border-white/20 dark:border-white/10 shadow-xl shadow-black/5 dark:shadow-white/5">
       <CardHeader>
         <CardTitle className="text-base font-semibold flex items-center gap-2">
           <IconLanguage className="size-4 text-muted-foreground" />
@@ -690,7 +736,7 @@ function DemandedRolesCard({
   mostDemandedJobProfiles: Array<{ title: string; count: number }>;
 }) {
   return (
-    <Card>
+    <Card className="bg-white/80 dark:bg-black/40 backdrop-blur-xl border-white/20 dark:border-white/10 shadow-xl shadow-black/5 dark:shadow-white/5">
       <CardHeader>
         <CardTitle className="text-base font-semibold flex items-center gap-2">
           <IconBriefcase className="size-4 text-muted-foreground" />
@@ -728,7 +774,7 @@ function SkillGapTableCard({
   skillGapAnalysis: Array<{ skill: string; demand: number; supply: number }>;
 }) {
   return (
-    <Card>
+    <Card className="bg-white/80 dark:bg-black/40 backdrop-blur-xl border-white/20 dark:border-white/10 shadow-xl shadow-black/5 dark:shadow-white/5">
       <CardHeader>
         <CardTitle className="text-base font-semibold flex items-center gap-2">
           <IconSparkles className="size-4 text-primary" />
