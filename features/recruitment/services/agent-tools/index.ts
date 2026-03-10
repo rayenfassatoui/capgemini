@@ -13,6 +13,7 @@ import type {
   ToolHandler,
 } from './types';
 import { sanitizeForJson, truncateArray, createResolveId } from './utils';
+import { TOOL_ARG_SCHEMAS } from './schemas';
 
 // Re-export types for consumers
 export type {
@@ -111,6 +112,18 @@ export async function executeAgentTool(
       success: false,
       error: `Access denied: your role (${ctx.role}) cannot use ${toolName}`,
     };
+  }
+
+  // Validate tool arguments against schema
+  const schema = TOOL_ARG_SCHEMAS[toolName];
+  if (schema) {
+    const result = schema.safeParse(args);
+    if (!result.success) {
+      return {
+        success: false,
+        error: `Invalid arguments for ${toolName}: ${result.error.issues.map((i) => i.message).join(', ')}`,
+      };
+    }
   }
 
   try {
