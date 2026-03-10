@@ -81,7 +81,6 @@ function groupCandidatesByStage(
   }));
 }
 
-
 function buildCvSection(cvs: CvRow[], role: UserRole): string {
   const canSeeCvs = role === 'ta' || role === 'admin';
   if (!canSeeCvs || cvs.length === 0) return '';
@@ -166,10 +165,24 @@ function buildCandidatePipelineSection(
   }
 
   const keyStages = ['hired', 'hr_accepted', 'hr_rejected', 'manager_accepted', 'manager_rejected', 'ta_accepted', 'ta_rejected'] as const;
-  const stageGrouped = groupCandidatesByStage(filteredCandidates, jobMap);
-  const stageOrder = new Map<string, number>(keyStages.map((stage, index) => [stage, index]));
-  stageGrouped.sort((a, b) => (stageOrder.get(a.stage) ?? Number.MAX_SAFE_INTEGER) - (stageOrder.get(b.stage) ?? Number.MAX_SAFE_INTEGER));
-  const stageListLines = stageGrouped.flatMap(({ stage, candidates }) => candidates.length > 0 ? [`### ${stage}\n${candidates.map((n) => `- ${n}`).join('\n')}`] : []);
+  const stageGrouped: CandidateByStage[] = groupCandidatesByStage(
+    filteredCandidates,
+    jobMap
+  );
+  const stageOrder = new Map<string, number>(
+    keyStages.map((stage, index) => [stage, index])
+  );
+  stageGrouped.sort(
+    (a: CandidateByStage, b: CandidateByStage) =>
+      (stageOrder.get(a.stage) ?? Number.MAX_SAFE_INTEGER) -
+      (stageOrder.get(b.stage) ?? Number.MAX_SAFE_INTEGER)
+  );
+  const stageListLines = stageGrouped.flatMap(
+    ({ stage, candidates }: CandidateByStage) =>
+      candidates.length > 0
+        ? [`### ${stage}\n${candidates.map((n: string) => `- ${n}`).join('\n')}`]
+        : []
+  );
   if (stageListLines.length > 0) sections.push(`## Candidates by Stage (EXACT - use these names when asked)\n${stageListLines.join('\n')}`);
 
   const recentCandidates = filteredCandidates.slice(0, 20);
