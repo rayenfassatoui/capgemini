@@ -6,6 +6,23 @@ import type { CvMatchFilters, CvMatchResult } from '../types';
 import { getJob } from './jobs';
 import { callOpenRouter, cleanJsonResponse } from './ai';
 
+function skillsMatch(cvSkill: string, jobSkill: string): boolean {
+  if (cvSkill === jobSkill) return true;
+  
+  // Normalize: remove dots, dashes, spaces
+  const normalize = (s: string) => s.replace(/[\s.\-_]/g, '').toLowerCase();
+  const cvNorm = normalize(cvSkill);
+  const jobNorm = normalize(jobSkill);
+  
+  if (cvNorm === jobNorm) return true;
+  
+  // Only allow prefix match if job skill is 4+ chars (blocks "c" matching "docker")
+  if (jobSkill.length >= 4 && cvSkill.startsWith(jobSkill)) return true;
+  if (cvSkill.length >= 4 && jobSkill.startsWith(cvSkill)) return true;
+  
+  return false;
+}
+
 export async function matchCvsToJob(jobId: string): Promise<CvMatchResult[]> {
   const job = await getJob(jobId);
   if (!job) throw new Error('Job not found');
@@ -34,16 +51,22 @@ export async function matchCvsToJob(jobId: string): Promise<CvMatchResult[]> {
     const cvSkills = (cv.extractedSkills ?? []).map((s) => s.toLowerCase());
 
     const matchedMustHave = mustHaveLower.filter((skill) =>
-      cvSkills.some((cs) => cs.includes(skill) || skill.includes(cs))
+      cvSkills.some((cs) => skillsMatch(cs, skill))
     );
     const matchedNiceToHave = niceToHaveLower.filter((skill) =>
-      cvSkills.some((cs) => cs.includes(skill) || skill.includes(cs))
+      cvSkills.some((cs) => skillsMatch(cs, skill))
     );
 
-    const mustScore =
+    let mustScore =
       mustHaveLower.length > 0
         ? (matchedMustHave.length / mustHaveLower.length) * 100
         : 100;
+        
+    // Experience Bonus: +2 points per role, max +10
+    const experienceCount = (cv.extractedExperiences ?? []).length;
+    const experienceBonus = Math.min(experienceCount * 2, 10);
+    mustScore = Math.min(mustScore + experienceBonus, 100);
+
     const niceScore =
       niceToHaveLower.length > 0
         ? (matchedNiceToHave.length / niceToHaveLower.length) * 100
@@ -51,7 +74,7 @@ export async function matchCvsToJob(jobId: string): Promise<CvMatchResult[]> {
     const matchScore = Math.round(mustScore * 0.7 + niceScore * 0.3);
 
     const gaps = mustHaveLower.filter(
-      (skill) => !cvSkills.some((cs) => cs.includes(skill) || skill.includes(cs))
+      (skill) => !cvSkills.some((cs) => skillsMatch(cs, skill))
     );
 
     return {
@@ -137,16 +160,22 @@ export async function matchCvsToJobWithFilters(
     const cvSkills = (cv.extractedSkills ?? []).map((s) => s.toLowerCase());
 
     const matchedMustHave = mustHaveLower.filter((skill) =>
-      cvSkills.some((cs) => cs.includes(skill) || skill.includes(cs))
+      cvSkills.some((cs) => skillsMatch(cs, skill))
     );
     const matchedNiceToHave = niceToHaveLower.filter((skill) =>
-      cvSkills.some((cs) => cs.includes(skill) || skill.includes(cs))
+      cvSkills.some((cs) => skillsMatch(cs, skill))
     );
 
-    const mustScore =
+    let mustScore =
       mustHaveLower.length > 0
         ? (matchedMustHave.length / mustHaveLower.length) * 100
         : 100;
+
+    // Experience Bonus: +2 points per role, max +10
+    const experienceCount = (cv.extractedExperiences ?? []).length;
+    const experienceBonus = Math.min(experienceCount * 2, 10);
+    mustScore = Math.min(mustScore + experienceBonus, 100);
+
     const niceScore =
       niceToHaveLower.length > 0
         ? (matchedNiceToHave.length / niceToHaveLower.length) * 100
@@ -154,7 +183,7 @@ export async function matchCvsToJobWithFilters(
     const keywordScore = Math.round(mustScore * 0.7 + niceScore * 0.3);
 
     const gaps = mustHaveLower.filter(
-      (skill) => !cvSkills.some((cs) => cs.includes(skill) || skill.includes(cs))
+      (skill) => !cvSkills.some((cs) => skillsMatch(cs, skill))
     );
 
     return {
@@ -222,7 +251,10 @@ Return a JSON array where each object has:
       for (const aiResult of aiResults) {
         const match = topResults.find((m) => m.cvId === aiResult.cvId);
         if (match) {
-          match.matchScore = Math.round(match.matchScore * 0.3 + aiResult.score * 0.7);
+          const aiScoreIsValid = aiResult.score > 5 && aiResult.score <= 100;
+          if (aiScoreIsValid) {
+            match.matchScore = Math.round(match.matchScore * 0.3 + aiResult.score * 0.7);
+          }
           match.aiRecommendation = aiResult.recommendation;
           match.aiStrengths = aiResult.strengths;
           match.aiConcerns = aiResult.concerns;
@@ -299,16 +331,21 @@ export async function searchCvsSemantically(
     .orderBy(asc(distance))
     .limit(limit);
 
-  return results.map((row) => ({
-    cvId: row.id,
-    cvFilename: row.filename,
-    candidateName: row.extractedName ?? 'Unknown',
-    candidateEmail: row.extractedEmail ?? '',
-    distance: Number(row.distance),
-    similarityScore: Math.round((1 - Number(row.distance)) * 100),
-    extractedSkills: row.extractedSkills ?? [],
-    extractedLanguages: row.extractedLanguages ?? [],
-    extractedSummary: row.extractedSummary ?? null,
-    experienceCount: (row.extractedExperiences ?? []).length,
-  }));
+  return results.map((row) => {
+    const rawSimilarity = 1 - Number(row.distance);
+    const clampedSimilarity = Math.max(0, Math.min(1, rawSimilarity));
+    
+    return {
+      cvId: row.id,
+      cvFilename: row.filename,
+      candidateName: row.extractedName ?? 'Unknown',
+      candidateEmail: row.extractedEmail ?? '',
+      distance: Number(row.distance),
+      similarityScore: Math.round(clampedSimilarity * 100),
+      extractedSkills: row.extractedSkills ?? [],
+      extractedLanguages: row.extractedLanguages ?? [],
+      extractedSummary: row.extractedSummary ?? null,
+      experienceCount: (row.extractedExperiences ?? []).length,
+    };
+  });
 }

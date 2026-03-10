@@ -222,10 +222,6 @@ export async function generateTextEmbeddingsBatch(
   return texts.map(() => null);
 }
 
-/**
- * Build a composite text representation of a CV for embedding.
- * Combines the most semantically meaningful fields into a single passage.
- */
 export function buildCvEmbeddingText(cv: {
   rawText?: string | null;
   extractedName?: string | null;
@@ -235,45 +231,61 @@ export function buildCvEmbeddingText(cv: {
   extractedLanguages?: string[] | null;
   extractedSummary?: string | null;
 }): string {
-  // Prefer rawText if available as it captures the full context
-  if (cv.rawText && cv.rawText.trim().length > 100) {
-    return cv.rawText.trim();
-  }
-
-  // Fallback: compose from extracted structured fields
+  // CRITICAL FIX: We NEVER use rawText anymore.
+  // NV-EmbedQA E5 v5 has a strict 512 token limit (~2000 chars).
+  // If we use rawText, we only embed the first half of the first page of the CV.
+  // Instead, we build a "Dense Semantic Summary" using the AI-extracted metadata.
+  
   const parts: string[] = [];
 
   if (cv.extractedName) {
-    parts.push(`Name: ${cv.extractedName}`);
+    parts.push(`Candidate: ${cv.extractedName}`);
   }
 
-  if (cv.extractedSummary) {
-    parts.push(`Summary: ${cv.extractedSummary}`);
-  }
-
+  // 1. Skills are most critical for matching
   if (cv.extractedSkills && cv.extractedSkills.length > 0) {
-    parts.push(`Skills: ${cv.extractedSkills.join(', ')}`);
+    parts.push(`Core Skills: ${cv.extractedSkills.join(', ')}`);
   }
 
+  // 2. Experience summaries are second most critical
   if (cv.extractedExperiences && cv.extractedExperiences.length > 0) {
+    // We only take the Job Title and Company to save tokens, avoiding long bullet points
     const expLines = cv.extractedExperiences
-      .map((e) => Object.values(e).join(' at '))
+      .map((e) => {
+        const title = e.title || e.role || e.position || '';
+        const company = e.company || e.organization || '';
+        return title && company ? `${title} at ${company}` : title || company;
+      })
+      .filter(Boolean)
       .join('; ');
-    parts.push(`Experience: ${expLines}`);
+    if (expLines) parts.push(`Experience: ${expLines}`);
   }
 
-  if (cv.extractedEducation && cv.extractedEducation.length > 0) {
-    const eduLines = cv.extractedEducation
-      .map((e) => Object.values(e).join(' at '))
-      .join('; ');
-    parts.push(`Education: ${eduLines}`);
-  }
-
+  // 3. Languages
   if (cv.extractedLanguages && cv.extractedLanguages.length > 0) {
     parts.push(`Languages: ${cv.extractedLanguages.join(', ')}`);
   }
 
-  return parts.join('\n');
+  // 4. Education (Degree and Major only)
+  if (cv.extractedEducation && cv.extractedEducation.length > 0) {
+    const eduLines = cv.extractedEducation
+      .map((e) => {
+        const degree = e.degree || e.level || '';
+        const field = e.field || e.major || '';
+        return degree && field ? `${degree} in ${field}` : degree || field;
+      })
+      .filter(Boolean)
+      .join('; ');
+    if (eduLines) parts.push(`Education: ${eduLines}`);
+  }
+
+  // 5. Summary (Put last as it might be fluffy and we want to ensure skills/exp fit in the 512 token window)
+  if (cv.extractedSummary) {
+    parts.push(`Profile: ${cv.extractedSummary}`);
+  }
+
+  // Join with periods so the embedding model understands them as separate thoughts
+  return parts.join('. ');
 }
 
 /**
