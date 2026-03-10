@@ -1,4 +1,5 @@
 import type { AgentToolDefinition, ToolHandler } from './types';
+import { searchCvsSemantically } from '../cv-matching';
 
 // ==================== CV MATCHING + SCREENING + BULK ASSIGN ====================
 
@@ -228,7 +229,6 @@ export const executors: Record<string, ToolHandler> = {
     const limit = Math.min(Math.max(Number(args.limit ?? 10), 1), 30);
     const threshold = Math.min(Math.max(Number(args.threshold ?? 0.6), 0.1), 1.0);
 
-    const { searchCvsSemantically } = await import('../cv-matching');
     const results = await searchCvsSemantically(query, { threshold, limit });
 
     return {
