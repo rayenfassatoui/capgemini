@@ -1,0 +1,52 @@
+{
+  "manifest_version": 3,
+  "name": "Capgemini AI Interview Co-Pilot",
+  "description": "Real-time AI-powered interview assistant that transcribes, analyzes, and generates live hints during video meetings.",
+  "version": "1.0.0",
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "tabCapture",
+    "storage",
+    "offscreen",
+    "sidePanel"
+  ],
+  "host_permissions": [
+    "https://meet.google.com/*",
+    "https://teams.microsoft.com/*",
+    "https://*.zoom.us/*",
+    "http://localhost:3000/*"
+  ],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "side_panel": {
+    "default_path": "popup.html"
+  },
+  "action": {
+    "default_title": "AI Co-Pilot",
+    "default_icon": {
+       "16": "icons/icon-16.png",
+       "48": "icons/icon-48.png",
+       "128": "icons/icon-128.png"
+    }
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://meet.google.com/*",
+        "https://teams.microsoft.com/*",
+        "https://*.zoom.us/*"
+      ],
+      "js": ["content.js"],
+      "css": ["content.css"],
+      "run_at": "document_idle"
+    }
+  ],
+  "icons": {
+    "16": "icons/icon-16.png",
+    "48": "icons/icon-48.png",
+    "128": "icons/icon-128.png"
+  }
+}
