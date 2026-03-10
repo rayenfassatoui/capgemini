@@ -306,7 +306,7 @@ export function StatisticsChat() {
                 // malformed file event
               }
             } else {
-              textContent += line;
+              textContent += line + '\n';
               setMessages((prev) =>
                 prev.map((m) =>
                   m.id === assistantMsg.id
