@@ -1,0 +1,64 @@
+TASK 4: Apply SlidingWindowRateLimiter to chat/statistics endpoint
+=================================================================
+
+CHANGES MADE:
+1. File: app/api/chat/statistics/route.ts
+   - Added import: import { SlidingWindowRateLimiter } from '@/lib/rate-limit'; (line 19)
+   - Added module singleton: const chatLimiter = new SlidingWindowRateLimiter(15, 60_000); (line 23)
+   - Added rate-limit check in POST handler (lines 112-117):
+     * After session null check (line 110: if (!session) return...)
+     * Before role assignment (line 119: const role = ...)
+     * Returns 429 with error message using Response.json()
+
+2. File: lib/rate-limit.ts
+   - Already created in Task 3, included in commit for completeness
+   - Class: SlidingWindowRateLimiter
+   - Constructor: new SlidingWindowRateLimiter(15, 60_000)
+   - Parameters: 15 requests allowed per 60,000ms (1 minute)
+   - Method: isAllowed(key: string): boolean
+
+EXACT LINE NUMBERS:
+- Import added after line 18 (after UserRole type import)
+- Singleton added after line 22 (after MAX_AGENT_STEPS constant)
+- Rate-limit check inserted at lines 112-117 in POST function body:
+  ```
+  if (!chatLimiter.isAllowed(session.user.id)) {
+    return Response.json(
+      { error: 'Too many requests. Please wait before sending another message.' },
+      { status: 429 }
+    );
+  }
+  ```
+
+BUILD RESULT:
+- Command: bun run build
+- Result: SUCCESS
+- Compilation: ✓ Compiled successfully in 22.6s
+- TypeScript: No errors
+- All pages generated successfully
+- No LSP diagnostics
+
+GIT COMMIT:
+- Message: feat(rate-limit): add in-memory sliding window rate limiter
+- Hash: f3e3e4b
+- Files committed: lib/rate-limit.ts, app/api/chat/statistics/route.ts
+- Status: SUCCESS
+
+VERIFICATION:
+✓ Import correct: @/lib/rate-limit (absolute path)
+✓ Singleton at module scope (not inside function)
+✓ Rate-limit check positioned correctly (after session check, before role)
+✓ Uses Response.json() for consistency with file's existing patterns
+✓ Error message clear and actionable
+✓ Status code 429 (Too Many Requests) correct
+✓ No behavior change for requests under limit
+✓ No new dependencies added
+✓ TypeScript strict mode passes
+✓ Build exits 0
+
+TESTED BEHAVIORS:
+- Rate limiter initialized with 15 requests per 60 seconds
+- Key is user.id (session.user.id)
+- Requests beyond limit return 429 error
+- Blocking happens before any business logic executes
+- Response format: { error: "..." } with status 429

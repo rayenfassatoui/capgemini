@@ -1,0 +1,65 @@
+Task 6: Apply Zod Validation to agent-tools/index.ts
+=====================================================
+
+OBJECTIVE:
+Apply Zod validation to executeAgentTool function using TOOL_ARG_SCHEMAS from schemas.ts.
+Insert validation block after RBAC check and before try block.
+
+EXECUTION STEPS COMPLETED:
+
+1. [✓] Read index.ts to locate insertion point
+   - RBAC check closing brace at line 115 (previously line 114)
+   - try block at line 129 (previously line 116)
+   - Gap correctly identified for validation block insertion
+
+2. [✓] Confirmed schemas.ts exports TOOL_ARG_SCHEMAS
+   - Export found at line 10: export const TOOL_ARG_SCHEMAS: Record<string, z.ZodType>
+   - Contains 73 tool argument schemas with .passthrough()
+
+3. [✓] Added import statement
+   - Added line 16: import { TOOL_ARG_SCHEMAS } from './schemas';
+   - Import placed after utils import (line 15)
+
+4. [✓] Inserted validation block (lines 117-127)
+   ```typescript
+   // Validate tool arguments against schema
+   const schema = TOOL_ARG_SCHEMAS[toolName];
+   if (schema) {
+     const result = schema.safeParse(args);
+     if (!result.success) {
+       return {
+         success: false,
+         error: `Invalid arguments for ${toolName}: ${result.error.issues.map((i) => i.message).join(', ')}`,
+       };
+     }
+   }
+   ```
+   - Uses .safeParse() for graceful failure (NOT .parse())
+   - Returns early on validation failure with { success: false, error: '...' }
+   - Args passed unchanged to handlers (Record<string, unknown>)
+
+5. [✓] TypeScript validation passed
+   - bunx tsc --noEmit completed with no errors
+   - No type safety violations
+
+6. [✓] Git commit successful
+   - Commit: 7e1d1d6
+   - Message: "feat(agent-tools): add Zod validation schemas for all tool arguments"
+   - Files committed:
+     * features/recruitment/services/agent-tools/schemas.ts (new file, 378 lines)
+     * features/recruitment/services/agent-tools/index.ts (modified, +12 lines)
+
+VERIFICATION RESULTS:
+
+✓ Import added correctly: TOOL_ARG_SCHEMAS from './schemas'
+✓ Validation block inserted between RBAC check and try block
+✓ Uses .safeParse() for safe validation
+✓ Error messages include field-level details from Zod
+✓ Arguments remain Record<string, unknown> (handlers unchanged)
+✓ No TypeScript errors
+✓ Both files committed in single commit with proper message
+✓ Validation is pre-handler (no impact on handler signatures)
+
+OUTCOME:
+Task 6 completed successfully. Agent tools now validate all input arguments
+against Zod schemas before execution, preventing invalid data from reaching handlers.

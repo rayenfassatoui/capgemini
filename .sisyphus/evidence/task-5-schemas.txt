@@ -1,0 +1,23 @@
+Task 5 Evidence — Agent Tool Schemas
+
+Tool count per module (from definitions arrays):
+- cv-pool: 7
+- jobs: 7
+- candidates: 8
+- matching: 6
+- interviews: 11
+- communication: 6
+- ai-features: 9
+- dashboard: 4
+- activity: 7
+- admin: 8
+Total: 73
+
+Tricky schema notes:
+- upload_cv schema only validates attachmentIndex (number). _attachment is injected at runtime and intentionally excluded.
+- toggle_onboarding_task completed coerced from string in executor; schema uses boolean.
+- create_interview_report candidateAnswers is array of {question, answer} objects; schema allows optional array.
+
+Verification:
+- LSP diagnostics: none (schemas.ts)
+- bun run build: success

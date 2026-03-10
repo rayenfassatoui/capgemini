@@ -1,0 +1,2 @@
+2:import { searchCvsSemantically } from '../cv-matching';
+232:    const results = await searchCvsSemantically(query, { threshold, limit });

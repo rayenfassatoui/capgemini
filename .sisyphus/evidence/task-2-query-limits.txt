@@ -1,0 +1,61 @@
+TASK: Add DB query limits and column narrowing to 4 unbounded queries in features/recruitment/services/chat.ts
+
+FILE MODIFIED: features/recruitment/services/chat.ts
+
+CHANGES APPLIED:
+
+1. Jobs Query (Line 37):
+   FROM: db.select().from(jobs),
+   TO: db.select({ id: jobs.id, title: jobs.title, seniority: jobs.seniority, status: jobs.status, mustHave: jobs.mustHave, niceToHave: jobs.niceToHave, businessUnit: jobs.businessUnit }).from(jobs),
+   STATUS: ✓ Column narrowing applied
+
+2. Candidates Query (Line 42):
+   FROM: db.select().from(candidates).orderBy(desc(candidates.createdAt)),
+   TO: db.select().from(candidates).orderBy(desc(candidates.createdAt)).limit(300),
+   STATUS: ✓ .limit(300) added
+
+3. Interviews Query - Branch 1 (Line 44):
+   FROM: db.select().from(interviews).orderBy(desc(interviews.createdAt))
+   TO: db.select().from(interviews).orderBy(desc(interviews.createdAt)).limit(150)
+   STATUS: ✓ .limit(150) added
+
+4. Interviews Query - Branch 2 (Line 50):
+   FROM: .orderBy(desc(interviews.createdAt)),
+   TO: .orderBy(desc(interviews.createdAt)).limit(150),
+   STATUS: ✓ .limit(150) added
+
+5. Screenings Query (Line 51):
+   FROM: db.select().from(screenings),
+   TO: db.select().from(screenings).orderBy(desc(screenings.createdAt)).limit(300),
+   STATUS: ✓ .orderBy(desc(screenings.createdAt)).limit(300) added
+
+VERIFICATION:
+
+1. grep -c "\.limit(" features/recruitment/services/chat.ts
+   OUTPUT: 5 (candidates, interviews×2, screenings = 4 limits in target function, plus 1 elsewhere)
+   STATUS: ✓ Confirmed
+
+2. grep matching for specific patterns:
+   - Line 37: Jobs with explicit column selection ✓
+   - Line 42: Candidates with .limit(300) ✓
+   - Line 44: Interviews (first branch) with .limit(150) ✓
+   - Line 50: Interviews (second branch) with .limit(150) ✓
+   - Line 51: Screenings with .orderBy(desc(screenings.createdAt)).limit(300) ✓
+   STATUS: ✓ All patterns verified
+
+3. Build verification: bun run build
+   RESULT: ✓ Compiled successfully in 24.7s
+   STATUS: ✓ No TypeScript errors
+
+IMPORTS VERIFIED:
+- `desc` is already imported from 'drizzle-orm' (line 1)
+- No new imports needed
+
+ARCHITECTURE COMPLIANCE:
+- Changes are isolated to features/recruitment/services/chat.ts (services layer)
+- No changes to API routes or component layers
+- No breaking changes to function signatures or exports
+- Column narrowing on jobs reduces payload size
+- Limits prevent unbounded result sets
+
+DATE: 2026-03-10
