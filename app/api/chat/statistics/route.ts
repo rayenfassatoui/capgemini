@@ -223,7 +223,7 @@ Match user intent to the correct tool. Follow DO/NEVER rules:
   → NEVER: list_cv_pool (it doesn't search by meaning)
 
 "top candidates for [job]" or "best matches for [job]"
-  → DO: list_jobs → match_cvs_to_job(jobId) → present ranked table
+  → DO: list_jobs → hybrid_search_cvs(jobId) → present ranked table
   → NEVER: list_cv_pool alone (ignores job requirements)
 
 "who should I interview next?"

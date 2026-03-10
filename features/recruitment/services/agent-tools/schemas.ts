@@ -128,6 +128,12 @@ export const TOOL_ARG_SCHEMAS: Record<string, z.ZodType> = {
       jobId: z.string(),
     })
     .passthrough(),
+  hybrid_search_cvs: z
+    .object({
+      jobId: z.string(),
+      limit: z.coerce.number().optional(),
+    })
+    .passthrough(),
   match_cvs_to_job_with_filters: z
     .object({
       jobId: z.string(),

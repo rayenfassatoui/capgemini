@@ -1,5 +1,5 @@
 import type { AgentToolDefinition, ToolHandler } from './types';
-import { searchCvsSemantically } from '../cv-matching';
+import { searchCvsSemantically, hybridMatchCvsToJob } from '../cv-matching';
 
 // ==================== CV MATCHING + SCREENING + BULK ASSIGN ====================
 
@@ -144,6 +144,27 @@ export const definitions: AgentToolDefinition[] = [
     allowedRoles: ['ta', 'admin'],
     mutating: false,
   },
+  {
+    name: 'hybrid_search_cvs',
+    description:
+      "Advanced: Run a Hybrid Search (Reciprocal Rank Fusion) combining precise Keyword Matching with NLP-based Semantic Search. Use this when the user wants the absolute best, most accurate ranking of candidates for a specific job, as it neutralizes the weaknesses of both individual algorithms. Returns RRF scores and split rankings.",
+    parameters: {
+      type: 'object',
+      properties: {
+        jobId: {
+          type: 'string',
+          description: 'UUID of the job to match against',
+        },
+        limit: {
+          type: 'string',
+          description: 'Maximum number of results to return (default: 20)',
+        },
+      },
+      required: ['jobId'],
+    },
+    allowedRoles: ['ta', 'admin'],
+    mutating: false,
+  },
 ];
 
 // ---- Executors ----
@@ -156,6 +177,18 @@ export const executors: Record<string, ToolHandler> = {
     return truncateArray(
       matches.map((m) => sanitizeForJson(m)),
       15
+    );
+  },
+
+  hybrid_search_cvs: async (args, { resolveId, sanitizeForJson, truncateArray }) => {
+    const limit = args.limit ? parseInt(String(args.limit), 10) : 20;
+    const matches = await hybridMatchCvsToJob(
+      await resolveId(args.jobId, 'jobId'),
+      limit
+    );
+    return truncateArray(
+      matches.map((m) => sanitizeForJson(m)),
+      limit
     );
   },
 

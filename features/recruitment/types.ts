@@ -204,3 +204,20 @@ export interface SmartInsights {
   skillGapAnalysis: Array<{ skill: string; demand: number; supply: number }>;
   pipelineFunnel: Record<CandidateStage, number>;
 }
+
+// ---------- Hybrid Search Types ----------
+
+export interface HybridSearchResult {
+  cvId: string;
+  cvFilename: string;
+  candidateName: string;
+  candidateEmail: string;
+  rrfScore: number;
+  keywordScore: number;
+  semanticScore: number;
+  keywordRank: number;
+  semanticRank: number;
+  extractedSkills: string[];
+  extractedExperiences: number;
+  alreadyAssigned: boolean;
+}

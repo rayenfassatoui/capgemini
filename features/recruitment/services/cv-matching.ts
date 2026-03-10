@@ -2,7 +2,7 @@ import { eq, sql, isNotNull, asc } from 'drizzle-orm';
 import { db } from '@/lib/db';
 import { candidates, cvPool } from '@/db/schema';
 import { cvMatchFiltersSchema, aiMatchRecommendationOutputSchema } from '../schemas';
-import type { CvMatchFilters, CvMatchResult } from '../types';
+import type { CvMatchFilters, CvMatchResult, HybridSearchResult } from '../types';
 import { getJob } from './jobs';
 import { callOpenRouter, cleanJsonResponse } from './ai';
 
@@ -348,4 +348,83 @@ export async function searchCvsSemantically(
       experienceCount: (row.extractedExperiences ?? []).length,
     };
   });
+}
+
+// ---------------------------------------------------------------------------
+// Advanced: Hybrid Search combining Keyword Mathing and Semantic Search
+// Uses Reciprocal Rank Fusion (RRF) to merge the ranked lists.
+// ---------------------------------------------------------------------------
+
+export async function hybridMatchCvsToJob(
+  jobId: string,
+  limit: number = 20
+): Promise<HybridSearchResult[]> {
+  const job = await getJob(jobId);
+  if (!job) throw new Error('Job not found');
+
+  // 1. Get Keyword Matches (Lexical)
+  const keywordResults = await matchCvsToJob(jobId);
+
+  // 2. Build Semantic Query from Job
+  const semanticQuery = `Job Title: ${job.title}. Seniority: ${job.seniority}. Skills required: ${job.mustHave.join(', ')}. Domain: ${job.businessUnit ?? 'Technology'}`;
+  
+  // 3. Get Semantic Matches (Vector) - we fetch more than limit to ensure good overlap
+  const semanticResults = await searchCvsSemantically(semanticQuery, { limit: 100, threshold: 0.8 });
+
+  // 4. Reciprocal Rank Fusion (RRF) constants
+  const K = 60; // Standard constant used in RRF
+  
+  // Maps to store ranks
+  const keywordRanks = new Map<string, number>();
+  keywordResults.forEach((res, idx) => keywordRanks.set(res.cvId, idx + 1));
+  
+  const semanticRanks = new Map<string, number>();
+  semanticResults.forEach((res, idx) => semanticRanks.set(res.cvId, idx + 1));
+
+  // Combine all unique CV IDs
+  const allCvIds = new Set([...keywordRanks.keys(), ...semanticRanks.keys()]);
+  
+  // Calculate RRF Scores
+  const rrfResults: HybridSearchResult[] = [];
+  
+  for (const cvId of allCvIds) {
+    const kRank = keywordRanks.get(cvId) || 1000; // Penalize if missing from top 1000
+    const sRank = semanticRanks.get(cvId) || 1000;
+    
+    // RRF Formula: 1 / (K + Rank_1) + 1 / (K + Rank_2)
+    const rrfScoreRaw = (1 / (K + kRank)) + (1 / (K + sRank));
+    
+    // Normalize RRF Score to 0-100 scale (max possible score is roughly 2/61 ≈ 0.0327 = 100%)
+    const maxRrf = (1 / (K + 1)) + (1 / (K + 1)); // 0.032786
+    const rrfScore = Math.round((rrfScoreRaw / maxRrf) * 100);
+
+    // Retrieve original cv data
+    const kRes = keywordResults.find(r => r.cvId === cvId);
+    const sRes = semanticResults.find(r => r.cvId === cvId);
+    
+    const cvFilename = kRes?.cvFilename || sRes?.cvFilename || '';
+    const candidateName = kRes?.candidateName || sRes?.candidateName || 'Unknown';
+    const candidateEmail = kRes?.candidateEmail || sRes?.candidateEmail || '';
+    const alreadyAssigned = kRes?.alreadyAssigned || false;
+    const extractedSkills = sRes?.extractedSkills || [];
+    const extractedExperiences = sRes?.experienceCount || 0;
+
+    rrfResults.push({
+      cvId,
+      cvFilename,
+      candidateName,
+      candidateEmail,
+      rrfScore,
+      keywordScore: kRes?.matchScore || 0,
+      semanticScore: sRes?.similarityScore || 0,
+      keywordRank: kRank,
+      semanticRank: sRank,
+      extractedSkills,
+      extractedExperiences,
+      alreadyAssigned,
+    });
+  }
+
+  // 5. Sort by RRF Score and Limit
+  return rrfResults.sort((a, b) => b.rrfScore - a.rrfScore).slice(0, limit);
 }
