@@ -272,18 +272,24 @@ export async function getStatisticsChatContext(
 
 
   // Count how many CVs have embeddings for semantic search availability
+  // Wrapped in try/catch: the embedding column may not exist if db:push hasn't run
+  // after the pgvector schema migration, and we must not break the entire chat context.
   if (canSeeCvs && cvs.length > 0) {
-    const embeddedCount = await db
-      .select({ id: cvPool.id })
-      .from(cvPool)
-      .where(
-        role === 'admin'
-          ? sql`${cvPool.embedding} IS NOT NULL`
-          : sql`${cvPool.embedding} IS NOT NULL AND ${cvPool.uploadedBy} = ${userId}`
+    try {
+      const embeddedCount = await db
+        .select({ id: cvPool.id })
+        .from(cvPool)
+        .where(
+          role === 'admin'
+            ? sql`${cvPool.embedding} IS NOT NULL`
+            : sql`${cvPool.embedding} IS NOT NULL AND ${cvPool.uploadedBy} = ${userId}`
+        );
+      sections.push(
+        `## Semantic Search\n- CVs with embeddings: ${embeddedCount.length}/${cvs.length}\n- Use the semantic_search_cvs tool for meaning-based CV search (finds conceptually relevant CVs even with different terminology)`
       );
-    sections.push(
-      `## Semantic Search\n- CVs with embeddings: ${embeddedCount.length}/${cvs.length}\n- Use the semantic_search_cvs tool for meaning-based CV search (finds conceptually relevant CVs even with different terminology)`
-    );
+    } catch {
+      // pgvector extension or embedding column not available yet — skip silently
+    }
   }
 
   return sections.join('\n\n');
