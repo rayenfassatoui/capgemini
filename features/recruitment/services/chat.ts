@@ -34,19 +34,21 @@ export async function getStatisticsChatContext(
             .from(cvPool)
             .where(role === 'admin' ? undefined : eq(cvPool.uploadedBy, userId))
         : Promise.resolve([]),
-      db.select().from(jobs),
+      db.select({ id: jobs.id, title: jobs.title, seniority: jobs.seniority, status: jobs.status, mustHave: jobs.mustHave, niceToHave: jobs.niceToHave, businessUnit: jobs.businessUnit }).from(jobs),
       db
         .select()
         .from(candidates)
-        .orderBy(desc(candidates.createdAt)),
+        .orderBy(desc(candidates.createdAt))
+        .limit(300),
       seeAllInterviews
-        ? db.select().from(interviews).orderBy(desc(interviews.createdAt))
+        ? db.select().from(interviews).orderBy(desc(interviews.createdAt)).limit(150)
         : db
             .select()
             .from(interviews)
             .where(eq(interviews.interviewerId, userId))
-            .orderBy(desc(interviews.createdAt)),
-      db.select().from(screenings),
+            .orderBy(desc(interviews.createdAt))
+            .limit(150),
+      db.select().from(screenings).orderBy(desc(screenings.createdAt)).limit(300),
     ]);
 
   const roleStagePrefixes: Record<string, string[]> = {
