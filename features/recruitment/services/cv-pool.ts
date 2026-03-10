@@ -110,7 +110,24 @@ export async function updateCvRawText(cvId: string, rawText: string) {
 
 export async function listCvPool(userId: string) {
   return db
-    .select()
+    .select({
+      id: cvPool.id,
+      filename: cvPool.filename,
+      contentType: cvPool.contentType,
+      size: cvPool.size,
+      rawText: cvPool.rawText,
+      rawBytes: cvPool.rawBytes,
+      extractedName: cvPool.extractedName,
+      extractedEmail: cvPool.extractedEmail,
+      extractedPhone: cvPool.extractedPhone,
+      extractedSkills: cvPool.extractedSkills,
+      extractedExperiences: cvPool.extractedExperiences,
+      extractedEducation: cvPool.extractedEducation,
+      extractedLanguages: cvPool.extractedLanguages,
+      extractedSummary: cvPool.extractedSummary,
+      uploadedBy: cvPool.uploadedBy,
+      createdAt: cvPool.createdAt,
+    })
     .from(cvPool)
     .where(eq(cvPool.uploadedBy, userId))
     .orderBy(desc(cvPool.createdAt));
@@ -123,7 +140,27 @@ export async function deleteCv(cvId: string, userId: string) {
 }
 
 export async function getCvDetails(cvId: string) {
-  const [cv] = await db.select().from(cvPool).where(eq(cvPool.id, cvId));
+  const [cv] = await db
+    .select({
+      id: cvPool.id,
+      filename: cvPool.filename,
+      contentType: cvPool.contentType,
+      size: cvPool.size,
+      rawText: cvPool.rawText,
+      rawBytes: cvPool.rawBytes,
+      extractedName: cvPool.extractedName,
+      extractedEmail: cvPool.extractedEmail,
+      extractedPhone: cvPool.extractedPhone,
+      extractedSkills: cvPool.extractedSkills,
+      extractedExperiences: cvPool.extractedExperiences,
+      extractedEducation: cvPool.extractedEducation,
+      extractedLanguages: cvPool.extractedLanguages,
+      extractedSummary: cvPool.extractedSummary,
+      uploadedBy: cvPool.uploadedBy,
+      createdAt: cvPool.createdAt,
+    })
+    .from(cvPool)
+    .where(eq(cvPool.id, cvId));
   return cv ?? null;
 }
 
@@ -150,7 +187,24 @@ export interface SearchCvPoolFilters {
 
 export async function searchCvPool(userId: string, filters: SearchCvPoolFilters) {
   const allCvs = await db
-    .select()
+    .select({
+      id: cvPool.id,
+      filename: cvPool.filename,
+      contentType: cvPool.contentType,
+      size: cvPool.size,
+      rawText: cvPool.rawText,
+      rawBytes: cvPool.rawBytes,
+      extractedName: cvPool.extractedName,
+      extractedEmail: cvPool.extractedEmail,
+      extractedPhone: cvPool.extractedPhone,
+      extractedSkills: cvPool.extractedSkills,
+      extractedExperiences: cvPool.extractedExperiences,
+      extractedEducation: cvPool.extractedEducation,
+      extractedLanguages: cvPool.extractedLanguages,
+      extractedSummary: cvPool.extractedSummary,
+      uploadedBy: cvPool.uploadedBy,
+      createdAt: cvPool.createdAt,
+    })
     .from(cvPool)
     .where(eq(cvPool.uploadedBy, userId))
     .orderBy(desc(cvPool.createdAt));

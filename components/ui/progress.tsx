@@ -15,6 +15,7 @@ function Progress({
       value={value}
       data-slot="progress"
       className={cn("flex flex-wrap gap-3", className)}
+      getAriaValueText={(formattedValue: string | null, value: number | null) => `${Math.round(value ?? 0)}%`}
       {...props}
     >
       {children}

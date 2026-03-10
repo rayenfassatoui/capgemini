@@ -142,7 +142,7 @@ export const cvPool = pgTable('cv_pool', {
     .notNull()
     .references(() => users.id, { onDelete: 'cascade' }),
   createdAt: timestamp('created_at').defaultNow().notNull(),
-  embedding: vector('embedding', { dimensions: 1024 }),
+  embedding: vector('embedding', { dimensions: 1024 }).$type<number[]>(),
 }, (table) => [
   index('cv_pool_embedding_hnsw_cosine_idx')
     .using('hnsw', table.embedding.op('vector_cosine_ops')),

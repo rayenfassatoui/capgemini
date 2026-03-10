@@ -10,7 +10,16 @@ export async function matchCvsToJob(jobId: string): Promise<CvMatchResult[]> {
   const job = await getJob(jobId);
   if (!job) throw new Error('Job not found');
 
-  const allCvs = await db.select().from(cvPool);
+  const allCvs = await db.select({
+    id: cvPool.id,
+    filename: cvPool.filename,
+    extractedName: cvPool.extractedName,
+    extractedEmail: cvPool.extractedEmail,
+    extractedSkills: cvPool.extractedSkills,
+    extractedExperiences: cvPool.extractedExperiences,
+    extractedLanguages: cvPool.extractedLanguages,
+    extractedSummary: cvPool.extractedSummary,
+  }).from(cvPool);
 
   const existingCandidates = await db
     .select({ cvId: candidates.cvId })
@@ -73,7 +82,16 @@ export async function matchCvsToJobWithFilters(
   const job = await getJob(jobId);
   if (!job) throw new Error('Job not found');
 
-  let allCvs = await db.select().from(cvPool);
+  let allCvs = await db.select({
+    id: cvPool.id,
+    filename: cvPool.filename,
+    extractedName: cvPool.extractedName,
+    extractedEmail: cvPool.extractedEmail,
+    extractedSkills: cvPool.extractedSkills,
+    extractedExperiences: cvPool.extractedExperiences,
+    extractedLanguages: cvPool.extractedLanguages,
+    extractedSummary: cvPool.extractedSummary,
+  }).from(cvPool);
 
   const existingCandidates = await db
     .select({ cvId: candidates.cvId })

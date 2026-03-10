@@ -78,7 +78,12 @@ export async function checkDuplicateCv(
   cvId: string,
   userId: string
 ): Promise<DuplicateMatch[]> {
-  const [target] = await db.select().from(cvPool).where(eq(cvPool.id, cvId));
+  const [target] = await db.select({
+    id: cvPool.id,
+    extractedName: cvPool.extractedName,
+    extractedEmail: cvPool.extractedEmail,
+    extractedPhone: cvPool.extractedPhone,
+  }).from(cvPool).where(eq(cvPool.id, cvId));
   if (!target) return [];
 
   const existing = await db
