@@ -15,7 +15,6 @@ function Progress({
       value={value}
       data-slot="progress"
       className={cn("flex flex-wrap gap-3", className)}
-      formatValueLabel={(v) => `${Math.round(v)}%`}
       {...props}
     >
       {children}
