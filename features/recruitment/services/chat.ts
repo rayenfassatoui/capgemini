@@ -81,9 +81,9 @@ function groupCandidatesByStage(
   }));
 }
 
-function buildCvSection(cvs: CvRow[], role: UserRole): string {
+function buildCvSection(cvs: CvRow[], role: UserRole): string | null {
   const canSeeCvs = role === 'ta' || role === 'admin';
-  if (!canSeeCvs || cvs.length === 0) return '';
+  if (!canSeeCvs || cvs.length === 0) return null;
 
   const skillCounts: Record<string, number> = {};
   const langCounts: Record<string, number> = {};
@@ -133,8 +133,8 @@ function buildCvSection(cvs: CvRow[], role: UserRole): string {
   return sections.join('\n\n');
 }
 
-function buildJobsSection(allJobs: JobRow[]): string {
-  if (allJobs.length === 0) return '';
+function buildJobsSection(allJobs: JobRow[]): string | null {
+  if (allJobs.length === 0) return null;
 
   const jobLines = allJobs
     .map(
@@ -151,7 +151,7 @@ function buildCandidatePipelineSection(
   allCandidatesRaw: CandidateRawRow[],
   jobMap: JobMap,
   role: UserRole
-): string {
+): string | null {
   const sections: string[] = [];
   if (role === 'ta' || role === 'admin') {
     const fullStageCounts: Record<string, number> = {};
@@ -190,6 +190,7 @@ function buildCandidatePipelineSection(
     const candLines = recentCandidates.map((c) => `- ${c.fullName} | Job: ${jobMap.get(c.jobId) ?? 'Unknown'} | Stage: ${c.stage} | ${c.createdAt?.toISOString().split('T')[0] ?? ''}`).join('\n');
     sections.push(`## Recent Candidates\n${candLines}`);
   }
+  if (sections.length === 0) return null;
   return sections.join('\n\n');
 }
 
@@ -198,8 +199,8 @@ function buildInterviewSection(
   jobMap: JobMap,
   allCandidatesRaw: CandidateRawRow[],
   seeAllInterviews: boolean
-): string {
-  if (interviews.length === 0) return '';
+): string | null {
+  if (interviews.length === 0) return null;
   const ivStageCounts: Record<string, number> = {};
   const ivStatusCounts: Record<string, number> = {};
   for (const iv of interviews) {
@@ -234,10 +235,10 @@ function buildScreeningSection(
   jobMap: JobMap,
   filteredCandidates: CandidateRow[],
   allCandidatesRaw: CandidateRawRow[]
-): string {
+): string | null {
   void filteredCandidates;
   void jobMap;
-  if (screenings.length === 0) return '';
+  if (screenings.length === 0) return null;
   const avgScore =
     screenings.reduce((sum, s) => sum + s.score, 0) / screenings.length;
   const candMap = new Map(allCandidatesRaw.map((c) => [c.id, c.fullName]));
@@ -257,7 +258,7 @@ function buildSkillGapSection(
   filteredCandidates: CandidateRow[],
   allJobs: JobRow[],
   cvs: CvRow[]
-): string {
+): string | null {
   void filteredCandidates;
   const jobSkills: Record<string, number> = {};
   for (const j of allJobs) {
@@ -286,7 +287,7 @@ function buildSkillGapSection(
     .sort((a, b) => b.demand - b.supply - (a.demand - a.supply))
     .slice(0, 12);
 
-  if (gapAnalysis.length === 0) return '';
+  if (gapAnalysis.length === 0) return null;
   const gapLines = gapAnalysis
     .map(
       (g) =>
@@ -301,9 +302,9 @@ async function buildSemanticAvailabilitySection(
   role: UserRole,
   userId: string,
   cvs: CvRow[]
-): Promise<string> {
+): Promise<string | null> {
   const canSeeCvs = role === 'ta' || role === 'admin';
-  if (!canSeeCvs || cvs.length === 0) return '';
+  if (!canSeeCvs || cvs.length === 0) return null;
 
   // Count how many CVs have embeddings for semantic search availability
   // Wrapped in try/catch: the embedding column may not exist if db:push hasn't run
@@ -320,7 +321,7 @@ async function buildSemanticAvailabilitySection(
     return `## Semantic Search\n- CVs with embeddings: ${embeddedCount.length}/${cvs.length}\n- Use the semantic_search_cvs tool for meaning-based CV search (finds conceptually relevant CVs even with different terminology)`;
   } catch {
     // pgvector extension or embedding column not available yet — skip silently
-    return '';
+    return null;
   }
 }
 
@@ -378,7 +379,7 @@ export async function getStatisticsChatContext(
     buildScreeningSection(allScreeningsRaw, jobMap, filteredCandidates, allCandidatesRaw),
     buildSkillGapSection(filteredCandidates, allJobs, cvs),
     await buildSemanticAvailabilitySection(userRole, userId, cvs),
-  ].filter((section) => section.length > 0);
+  ].filter((section): section is string => section !== null);
 
   return sections.join('\n\n');
 }
