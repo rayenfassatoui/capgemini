@@ -25,6 +25,7 @@ bun dev                # http://localhost:3000
 | `OPENROUTER_API_KEY` | OpenRouter API key |
 | `EMAIL_USER` | Gmail address for interview emails |
 | `EMAIL_PASSWORD` | Gmail App Password |
+| `NVIDIA_API_KEY` | NVIDIA NIM API key for semantic CV search ([build.nvidia.com](https://build.nvidia.com/)) |
 
 ## Scripts
 
@@ -41,6 +42,17 @@ bun dev                # http://localhost:3000
 ## Docs
 
 See [ARCHITECTURE.md](ARCHITECTURE.md) and [PROJECT-RESUME.md](PROJECT-RESUME.md) for details.
+
+## Semantic Search (pgvector)
+
+The platform uses NVIDIA NV-EmbedQA E5 V5 embeddings with pgvector for semantic CV search. This requires:
+
+1. The `vector` PostgreSQL extension enabled on your Neon database:
+   ```sql
+   CREATE EXTENSION IF NOT EXISTS vector;
+   ```
+2. A valid `NVIDIA_API_KEY` in your environment (separate from `OPENROUTER_API_KEY`).
+3. Run `bun run db:push` to create the vector column and HNSW index.
 
 ## Deploy on Vercel
 

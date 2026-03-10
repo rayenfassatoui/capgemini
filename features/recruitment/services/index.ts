@@ -12,11 +12,12 @@ export {
   getCvDetails,
   getCvFile,
   searchCvPool,
+  generateCvEmbeddingAfterUpload,
 } from './cv-pool';
 
 export { createJob, listJobs, getJob, closeJob, saveJobAsTemplate, listJobTemplates, createJobFromTemplate } from './jobs';
 
-export { matchCvsToJob, matchCvsToJobWithFilters } from './cv-matching';
+export { matchCvsToJob, matchCvsToJobWithFilters, searchCvsSemantically } from './cv-matching';
 
 export {
   assignCvToJob,
@@ -139,3 +140,11 @@ export { listUsersByRole } from './users';
 export { getSystemOverview, getRecruitmentAnalytics, getEmailLogs, getHiredCandidatesOnboarding, getHiredCandidatesOnboardingDetailed } from './admin';
 export type { SystemOverview, RecruitmentAnalytics, EmailLogEntry, OnboardingOverviewEntry, OnboardingDetailedEntry } from './admin';
 export type { EnrichedActivityEntry } from './activity-log';
+
+export {
+  generateTextEmbedding,
+  generateTextEmbeddingsBatch,
+  generateAndStoreCvEmbedding,
+  buildCvEmbeddingText,
+  EMBEDDING_DIMENSIONS,
+} from './embeddings';

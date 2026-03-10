@@ -166,6 +166,10 @@ export const executors: Record<string, ToolHandler> = {
     });
     await services.updateCvRawText(cv.id, rawText);
 
+    // Generate and store semantic embedding (non-blocking — failure is logged, not thrown)
+    const embeddingGenerated = await services.generateCvEmbeddingAfterUpload(cv.id);
+
+
     const { checkDuplicateCv } = await import('../duplicate-detection');
     const duplicates = await checkDuplicateCv(cv.id, ctx.userId);
 
@@ -177,6 +181,7 @@ export const executors: Record<string, ToolHandler> = {
       extractedSkills: extraction.extractedSkills,
       extractedLanguages: extraction.extractedLanguages,
       extractedSummary: extraction.extractedSummary,
+      embeddingGenerated,
       message: 'CV uploaded and parsed successfully',
       duplicateWarning:
         duplicates.length > 0

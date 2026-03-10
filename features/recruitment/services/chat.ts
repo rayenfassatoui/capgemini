@@ -1,4 +1,4 @@
-import { and, asc, desc, eq } from 'drizzle-orm';
+import { and, asc, desc, eq, sql } from 'drizzle-orm';
 import { db } from '@/lib/db';
 import {
   candidates,
@@ -268,6 +268,22 @@ export async function getStatisticsChatContext(
       )
       .join('\n');
     sections.push(`## Skill Gap (Demand vs Supply)\n${gapLines}`);
+  }
+
+
+  // Count how many CVs have embeddings for semantic search availability
+  if (canSeeCvs && cvs.length > 0) {
+    const embeddedCount = await db
+      .select({ id: cvPool.id })
+      .from(cvPool)
+      .where(
+        role === 'admin'
+          ? sql`${cvPool.embedding} IS NOT NULL`
+          : sql`${cvPool.embedding} IS NOT NULL AND ${cvPool.uploadedBy} = ${userId}`
+      );
+    sections.push(
+      `## Semantic Search\n- CVs with embeddings: ${embeddedCount.length}/${cvs.length}\n- Use the semantic_search_cvs tool for meaning-based CV search (finds conceptually relevant CVs even with different terminology)`
+    );
   }
 
   return sections.join('\n\n');

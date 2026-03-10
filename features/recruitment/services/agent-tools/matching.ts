@@ -115,6 +115,34 @@ export const definitions: AgentToolDefinition[] = [
     allowedRoles: ['ta', 'admin'],
     mutating: true,
   },
+  {
+    name: 'semantic_search_cvs',
+    description:
+      'Perform semantic (meaning-based) search across all CVs in the pool using AI embeddings. Unlike keyword matching, this finds CVs that are conceptually relevant even if they use different terminology. Use natural language queries like "experienced Java backend developer with microservices" or "bilingual project manager with agile experience". Returns ranked results with similarity scores.',
+    parameters: {
+      type: 'object',
+      properties: {
+        query: {
+          type: 'string',
+          description:
+            'Natural language description of the ideal candidate profile, skills, or experience to search for',
+        },
+        limit: {
+          type: 'string',
+          description:
+            'Maximum number of results to return (default: 10, max: 30)',
+        },
+        threshold: {
+          type: 'string',
+          description:
+            'Cosine distance threshold (0-1, lower = stricter match). Default: 0.6. Use 0.4 for strict matches, 0.8 for broad matches.',
+        },
+      },
+      required: ['query'],
+    },
+    allowedRoles: ['ta', 'admin'],
+    mutating: false,
+  },
 ];
 
 // ---- Executors ----
@@ -188,6 +216,29 @@ export const executors: Record<string, ToolHandler> = {
       requestedCount: count,
       totalMatches: matches.length,
       candidates: assigned,
+    };
+  },
+
+  semantic_search_cvs: async (args, { sanitizeForJson, truncateArray }) => {
+    const query = String(args.query ?? '').trim();
+    if (!query) {
+      throw new Error('A search query is required for semantic search');
+    }
+
+    const limit = Math.min(Math.max(Number(args.limit ?? 10), 1), 30);
+    const threshold = Math.min(Math.max(Number(args.threshold ?? 0.6), 0.1), 1.0);
+
+    const { searchCvsSemantically } = await import('../cv-matching');
+    const results = await searchCvsSemantically(query, { threshold, limit });
+
+    return {
+      query,
+      totalResults: results.length,
+      threshold,
+      results: truncateArray(
+        results.map((r) => sanitizeForJson(r)),
+        limit
+      ),
     };
   },
 };

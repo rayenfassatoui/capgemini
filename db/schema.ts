@@ -9,6 +9,8 @@ import {
   boolean,
   integer,
   date,
+  index,
+  vector,
 } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 
@@ -140,7 +142,11 @@ export const cvPool = pgTable('cv_pool', {
     .notNull()
     .references(() => users.id, { onDelete: 'cascade' }),
   createdAt: timestamp('created_at').defaultNow().notNull(),
-});
+  embedding: vector('embedding', { dimensions: 1024 }),
+}, (table) => [
+  index('cv_pool_embedding_hnsw_cosine_idx')
+    .using('hnsw', table.embedding.op('vector_cosine_ops')),
+]);
 
 /**
  * Candidates are created when a TA assigns a CV to a job.

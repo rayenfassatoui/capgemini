@@ -195,3 +195,20 @@ export async function searchCvPool(userId: string, filters: SearchCvPoolFilters)
     return true;
   });
 }
+
+/**
+ * Generate and store a semantic embedding for a CV.
+ * This should be called after rawText has been saved to the database.
+ * Failures are logged but do not throw — embedding is non-critical.
+ */
+export async function generateCvEmbeddingAfterUpload(cvId: string): Promise<boolean> {
+  try {
+    const { generateAndStoreCvEmbedding } = await import('./embeddings');
+    const embedding = await generateAndStoreCvEmbedding(cvId);
+    return embedding !== null;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.warn(`[cv-pool] Failed to generate embedding for CV ${cvId}: ${message}`);
+    return false;
+  }
+}

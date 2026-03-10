@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm';
+import { eq, sql, isNotNull, asc } from 'drizzle-orm';
 import { db } from '@/lib/db';
 import { candidates, cvPool } from '@/db/schema';
 import { cvMatchFiltersSchema, aiMatchRecommendationOutputSchema } from '../schemas';
@@ -220,4 +220,77 @@ Return a JSON array where each object has:
   const topCvIds = new Set(topResults.map((r) => r.cvId));
   const remaining = results.filter((r) => !topCvIds.has(r.cvId));
   return [...topResults, ...remaining];
+}
+
+// ---------------------------------------------------------------------------
+// Semantic (vector) search using pgvector + NVIDIA NV-EmbedQA E5 V5
+// ---------------------------------------------------------------------------
+
+export interface SemanticSearchResult {
+  cvId: string;
+  cvFilename: string;
+  candidateName: string;
+  candidateEmail: string;
+  distance: number;
+  similarityScore: number;
+  extractedSkills: string[];
+  extractedLanguages: string[];
+  extractedSummary: string | null;
+  experienceCount: number;
+}
+
+export async function searchCvsSemantically(
+  queryText: string,
+  options: { threshold?: number; limit?: number } = {}
+): Promise<SemanticSearchResult[]> {
+  const { threshold = 0.6, limit = 15 } = options;
+
+  // 1. Generate a query embedding via NVIDIA NV-EmbedQA E5 V5
+  const { generateTextEmbedding } = await import('./embeddings');
+  const queryEmbedding = await generateTextEmbedding(queryText, 'query');
+
+  if (!queryEmbedding) {
+    throw new Error('Failed to generate query embedding \u2014 check NVIDIA_API_KEY and API availability');
+  }
+
+  // 2. Serialize the embedding array to a pgvector-compatible string
+  //    This avoids Drizzle array serialization issues with cosineDistance()
+  const embeddingStr = JSON.stringify(queryEmbedding);
+
+  // 3. Perform cosine distance search using raw SQL <=> operator
+  //    <=> returns cosine distance (0 = identical, 2 = opposite)
+  //    Filter out rows with NULL embeddings and apply distance threshold
+  const distance = sql<number>`(${cvPool.embedding} <=> ${embeddingStr}::vector)`;
+
+  const results = await db
+    .select({
+      id: cvPool.id,
+      filename: cvPool.filename,
+      extractedName: cvPool.extractedName,
+      extractedEmail: cvPool.extractedEmail,
+      extractedSkills: cvPool.extractedSkills,
+      extractedLanguages: cvPool.extractedLanguages,
+      extractedSummary: cvPool.extractedSummary,
+      extractedExperiences: cvPool.extractedExperiences,
+      distance,
+    })
+    .from(cvPool)
+    .where(
+      sql`${cvPool.embedding} IS NOT NULL AND (${cvPool.embedding} <=> ${embeddingStr}::vector) < ${threshold}`
+    )
+    .orderBy(asc(distance))
+    .limit(limit);
+
+  return results.map((row) => ({
+    cvId: row.id,
+    cvFilename: row.filename,
+    candidateName: row.extractedName ?? 'Unknown',
+    candidateEmail: row.extractedEmail ?? '',
+    distance: Number(row.distance),
+    similarityScore: Math.round((1 - Number(row.distance)) * 100),
+    extractedSkills: row.extractedSkills ?? [],
+    extractedLanguages: row.extractedLanguages ?? [],
+    extractedSummary: row.extractedSummary ?? null,
+    experienceCount: (row.extractedExperiences ?? []).length,
+  }));
 }
