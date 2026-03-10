@@ -112,7 +112,14 @@ export async function POST(request: Request) {
   if (!chatLimiter.isAllowed(session.user.id)) {
     return Response.json(
       { error: 'Too many requests. Please wait before sending another message.' },
-      { status: 429 }
+      {
+        status: 429,
+        headers: {
+          'Retry-After': '60',
+          'X-RateLimit-Limit': '15',
+          'X-RateLimit-Remaining': '0',
+        },
+      }
     );
   }
 

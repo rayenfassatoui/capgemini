@@ -1,10 +1,22 @@
 # Capgemini Talent Intelligence
 
-AI-powered recruitment platform. Manages the full hiring pipeline: job creation, CV screening, multi-stage interviews, and hiring decisions.
+AI-powered recruitment platform built for enterprise hiring workflows. Manages the complete talent pipeline from CV upload through job matching, multi-stage interviews, and final hiring decisions --- driven by an AI Agent with 50+ tools.
 
 ## Tech Stack
 
-Next.js 16 / TypeScript / Bun / Tailwind CSS + shadcn/ui / PostgreSQL (Neon) + Drizzle ORM / Better-auth / OpenRouter AI
+| Layer | Technology |
+|---|---|
+| **Framework** | Next.js 16 (App Router, Turbopack) |
+| **Language** | TypeScript (Strict Mode) |
+| **Runtime** | Bun |
+| **Styling** | Tailwind CSS v4 + shadcn/ui |
+| **Database** | PostgreSQL (Neon) + Drizzle ORM + pgvector |
+| **Auth** | Better-auth (email/password, role-based) |
+| **AI (LLM)** | OpenRouter (multi-model routing) |
+| **AI (Embeddings)** | NVIDIA NV-EmbedQA E5 V5 (1024-dim vectors) |
+| **Email** | Nodemailer (Gmail SMTP) |
+| **Charts** | Recharts |
+| **Testing** | Vitest + Testing Library |
 
 ## Getting Started
 
@@ -12,20 +24,34 @@ Next.js 16 / TypeScript / Bun / Tailwind CSS + shadcn/ui / PostgreSQL (Neon) + D
 bun install
 cp .env.example .env   # Fill in your values
 bun run db:push        # Push schema to database
+bun run db:seed        # Seed demo users (ta, manager, hr, admin)
 bun dev                # http://localhost:3000
 ```
 
+### Semantic Search Setup (Optional)
+
+Semantic CV search uses NVIDIA embeddings + pgvector. To enable:
+
+1. Enable the `vector` extension on your Neon database:
+   ```sql
+   CREATE EXTENSION IF NOT EXISTS vector;
+   ```
+2. Set `NVIDIA_API_KEY` in `.env` (get one at [build.nvidia.com](https://build.nvidia.com/))
+3. Run `bun run db:push` to create the embedding column and HNSW index
+
+CVs uploaded after setup will automatically generate embeddings. The AI agent can use the `semantic_search_cvs` tool for meaning-based candidate discovery.
+
 ## Environment Variables
 
-| Variable | Description |
-|---|---|
-| `DATABASE_URL` | PostgreSQL connection string |
-| `BETTER_AUTH_URL` | App URL (`http://localhost:3000`) |
-| `BETTER_AUTH_SECRET` | Random secret for auth |
-| `OPENROUTER_API_KEY` | OpenRouter API key |
-| `EMAIL_USER` | Gmail address for interview emails |
-| `EMAIL_PASSWORD` | Gmail App Password |
-| `NVIDIA_API_KEY` | NVIDIA NIM API key for semantic CV search ([build.nvidia.com](https://build.nvidia.com/)) |
+| Variable | Required | Description |
+|---|---|---|
+| `DATABASE_URL` | Yes | Neon PostgreSQL connection string |
+| `BETTER_AUTH_URL` | Yes | App URL (`http://localhost:3000`) |
+| `BETTER_AUTH_SECRET` | Yes | Random secret for auth sessions |
+| `OPENROUTER_API_KEY` | Yes | OpenRouter API key for LLM agent |
+| `NVIDIA_API_KEY` | No | NVIDIA NIM API key for semantic search |
+| `EMAIL_USER` | No | Gmail address for interview invitation emails |
+| `EMAIL_PASSWORD` | No | Gmail App Password for SMTP |
 
 ## Scripts
 
@@ -33,29 +59,35 @@ bun dev                # http://localhost:3000
 |---|---|
 | `bun dev` | Dev server (Turbopack) |
 | `bun run build` | Production build |
-| `bun run lint` | Lint |
-| `bun run test` | Tests |
-| `bun run db:push` | Push DB schema |
-| `bun run db:studio` | Drizzle Studio |
+| `bun run lint` | ESLint |
+| `bun run test` | Vitest tests |
+| `bun run db:push` | Push Drizzle schema to database |
+| `bun run db:studio` | Open Drizzle Studio (DB GUI) |
 | `bun run db:seed` | Seed demo users |
+| `bun run db:seed-users` | Seed user accounts only |
+| `bun run db:seed-jobs` | Seed sample job postings |
 
-## Docs
+## User Roles
 
-See [ARCHITECTURE.md](ARCHITECTURE.md) and [PROJECT-RESUME.md](PROJECT-RESUME.md) for details.
+| Role | Access |
+|---|---|
+| **TA** (Talent Acquisition) | Full pipeline: CV pool, jobs, candidates, interviews, AI agent |
+| **Manager** | Candidate review (manager stage+), interviews they conduct |
+| **HR** | Candidate review (HR stage+), hiring decisions, export |
+| **Admin** | Everything + user management, analytics, system overview |
 
-## Semantic Search (pgvector)
+## Documentation
 
-The platform uses NVIDIA NV-EmbedQA E5 V5 embeddings with pgvector for semantic CV search. This requires:
+- [ARCHITECTURE.md](ARCHITECTURE.md) --- System architecture, folder structure, layer boundaries
+- [PROJECT-RESUME.md](PROJECT-RESUME.md) --- Feature inventory, AI capabilities, technical decisions
 
-1. The `vector` PostgreSQL extension enabled on your Neon database:
-   ```sql
-   CREATE EXTENSION IF NOT EXISTS vector;
-   ```
-2. A valid `NVIDIA_API_KEY` in your environment (separate from `OPENROUTER_API_KEY`).
-3. Run `bun run db:push` to create the vector column and HNSW index.
+## Deployment
 
-## Deploy on Vercel
+Deploy to Vercel with zero configuration:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```bash
+# Vercel auto-detects Next.js + Bun
+vercel deploy
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Set all environment variables in the Vercel dashboard. The `DATABASE_URL` should point to your Neon database with pooled connections.

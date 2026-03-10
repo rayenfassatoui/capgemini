@@ -1,40 +1,92 @@
+/**
+ * Sliding Window Rate Limiter (In-Memory)
+ *
+ * Tracks request timestamps per key inside a sliding time window.
+ * Includes automatic stale-entry cleanup so the Map never grows unbounded.
+ */
+
+interface RateLimitEntry {
+  timestamps: number[];
+}
+
 export class SlidingWindowRateLimiter {
-  private requests: Map<string, number[]>
+  private readonly store = new Map<string, RateLimitEntry>();
+  private lastGlobalCleanup = Date.now();
 
   constructor(
-    private maxRequests: number,
-    private windowMs: number
-  ) {
-    this.requests = new Map()
-  }
+    private readonly maxRequests: number,
+    private readonly windowMs: number,
+    /** How often (ms) to run a full sweep of stale entries. Default: 5 min */
+    private readonly cleanupIntervalMs: number = 300_000
+  ) {}
 
+  /**
+   * Check whether a request from `key` is allowed.
+   * If allowed, the request is recorded and `true` is returned.
+   * If denied, `false` is returned and nothing is recorded.
+   */
   isAllowed(key: string): boolean {
-    const now = Date.now()
-    const windowStart = now - this.windowMs
+    const now = Date.now();
 
-    // Get existing timestamps for this key
-    const timestamps = this.requests.get(key) ?? []
+    // Periodically purge all stale entries across the entire map
+    this.maybeCleanup(now);
 
-    // Filter to keep only timestamps within the current window
-    const validTimestamps = timestamps.filter((ts) => ts > windowStart)
+    const windowStart = now - this.windowMs;
+    const entry = this.store.get(key);
 
-    // Check if we can allow this request
-    if (validTimestamps.length < this.maxRequests) {
-      validTimestamps.push(now)
-      this.requests.set(key, validTimestamps)
-      return true
+    if (!entry) {
+      // First request from this key
+      this.store.set(key, { timestamps: [now] });
+      return true;
     }
 
-    // Update map with filtered timestamps (without pushing new one)
-    this.requests.set(key, validTimestamps)
-    return false
+    // Prune timestamps that fell out of the window
+    entry.timestamps = entry.timestamps.filter((t) => t > windowStart);
+
+    if (entry.timestamps.length >= this.maxRequests) {
+      return false;
+    }
+
+    entry.timestamps.push(now);
+    return true;
   }
 
+  /** Returns how many requests remain for `key` in the current window. */
+  remaining(key: string): number {
+    const now = Date.now();
+    const windowStart = now - this.windowMs;
+    const entry = this.store.get(key);
+    if (!entry) return this.maxRequests;
+    const active = entry.timestamps.filter((t) => t > windowStart).length;
+    return Math.max(0, this.maxRequests - active);
+  }
+
+  /** Manually reset one key or the entire store. */
   reset(key?: string): void {
     if (key !== undefined) {
-      this.requests.delete(key)
+      this.store.delete(key);
     } else {
-      this.requests.clear()
+      this.store.clear();
+    }
+  }
+
+  // ---- Internal ----
+
+  /**
+   * Sweep the entire map and delete entries whose timestamps
+   * have all expired. Runs at most once per `cleanupIntervalMs`.
+   */
+  private maybeCleanup(now: number): void {
+    if (now - this.lastGlobalCleanup < this.cleanupIntervalMs) return;
+    this.lastGlobalCleanup = now;
+
+    const windowStart = now - this.windowMs;
+    for (const [key, entry] of this.store) {
+      // If every timestamp is outside the window, the entry is stale
+      const hasActive = entry.timestamps.some((t) => t > windowStart);
+      if (!hasActive) {
+        this.store.delete(key);
+      }
     }
   }
 }

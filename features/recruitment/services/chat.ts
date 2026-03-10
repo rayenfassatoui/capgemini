@@ -232,12 +232,8 @@ function buildInterviewSection(
 
 function buildScreeningSection(
   screenings: ScreeningRow[],
-  jobMap: JobMap,
-  filteredCandidates: CandidateRow[],
   allCandidatesRaw: CandidateRawRow[]
 ): string | null {
-  void filteredCandidates;
-  void jobMap;
   if (screenings.length === 0) return null;
   const avgScore =
     screenings.reduce((sum, s) => sum + s.score, 0) / screenings.length;
@@ -255,11 +251,9 @@ function buildScreeningSection(
 }
 
 function buildSkillGapSection(
-  filteredCandidates: CandidateRow[],
   allJobs: JobRow[],
   cvs: CvRow[]
 ): string | null {
-  void filteredCandidates;
   const jobSkills: Record<string, number> = {};
   for (const j of allJobs) {
     for (const s of j.mustHave) {
@@ -376,8 +370,8 @@ export async function getStatisticsChatContext(
     buildJobsSection(allJobs),
     buildCandidatePipelineSection(filteredCandidates, allCandidatesRaw, jobMap, userRole),
     buildInterviewSection(allInterviewsRaw, jobMap, allCandidatesRaw, seeAllInterviews),
-    buildScreeningSection(allScreeningsRaw, jobMap, filteredCandidates, allCandidatesRaw),
-    buildSkillGapSection(filteredCandidates, allJobs, cvs),
+    buildScreeningSection(allScreeningsRaw, allCandidatesRaw),
+    buildSkillGapSection(allJobs, cvs),
     await buildSemanticAvailabilitySection(userRole, userId, cvs),
   ].filter((section): section is string => section !== null);
 
