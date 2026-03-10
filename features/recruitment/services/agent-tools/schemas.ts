@@ -11,7 +11,7 @@ export const TOOL_ARG_SCHEMAS: Record<string, z.ZodType> = {
   // CV Pool
   upload_cv: z
     .object({
-      attachmentIndex: z.number(),
+      attachmentIndex: z.coerce.number(),
     })
     .passthrough(),
   list_cv_pool: z.object({}).passthrough(),
@@ -29,7 +29,7 @@ export const TOOL_ARG_SCHEMAS: Record<string, z.ZodType> = {
     .object({
       skills: z.array(z.string()).optional(),
       languages: z.array(z.string()).optional(),
-      minExperience: z.number().optional(),
+      minExperience: z.coerce.number().optional(),
       location: z.string().optional(),
     })
     .passthrough(),
@@ -133,7 +133,7 @@ export const TOOL_ARG_SCHEMAS: Record<string, z.ZodType> = {
       jobId: z.string(),
       skills: z.array(z.string()).optional(),
       languages: z.array(z.string()).optional(),
-      minPositions: z.number().optional(),
+      minPositions: z.coerce.number().optional(),
     })
     .passthrough(),
   generate_screening: z
@@ -151,14 +151,14 @@ export const TOOL_ARG_SCHEMAS: Record<string, z.ZodType> = {
   bulk_assign_cvs_to_job: z
     .object({
       jobId: z.string(),
-      count: z.number().optional(),
+      count: z.coerce.number().optional(),
     })
     .passthrough(),
   semantic_search_cvs: z
     .object({
       query: z.string(),
-      limit: z.number().optional(),
-      threshold: z.number().optional(),
+      limit: z.coerce.number().optional(),
+      threshold: z.coerce.number().optional(),
     })
     .passthrough(),
 
@@ -223,7 +223,7 @@ export const TOOL_ARG_SCHEMAS: Record<string, z.ZodType> = {
       notes: z.string().optional(),
       candidateAnswers: z.array(candidateAnswerSchema).optional(),
       overallEvaluation: z.string().optional(),
-      score: z.number(),
+      score: z.coerce.number(),
       decision: z.string(),
     })
     .passthrough(),
@@ -323,7 +323,7 @@ export const TOOL_ARG_SCHEMAS: Record<string, z.ZodType> = {
   // Activity
   get_activity_log: z
     .object({
-      limit: z.number().optional(),
+      limit: z.coerce.number().optional(),
     })
     .passthrough(),
   get_activity_by_entity: z
@@ -340,7 +340,7 @@ export const TOOL_ARG_SCHEMAS: Record<string, z.ZodType> = {
   toggle_onboarding_task: z
     .object({
       taskId: z.string(),
-      completed: z.boolean(),
+      completed: z.coerce.boolean(),
     })
     .passthrough(),
   add_onboarding_task: z
@@ -352,7 +352,7 @@ export const TOOL_ARG_SCHEMAS: Record<string, z.ZodType> = {
     .passthrough(),
   get_activity_log_enriched: z
     .object({
-      limit: z.number().optional(),
+      limit: z.coerce.number().optional(),
     })
     .passthrough(),
   export_activity_log: z.object({}).passthrough(),
@@ -362,7 +362,7 @@ export const TOOL_ARG_SCHEMAS: Record<string, z.ZodType> = {
   get_recruitment_analytics: z.object({}).passthrough(),
   get_email_logs: z
     .object({
-      limit: z.number().optional(),
+      limit: z.coerce.number().optional(),
     })
     .passthrough(),
   get_onboarding_overview: z.object({}).passthrough(),
