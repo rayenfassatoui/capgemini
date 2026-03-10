@@ -172,31 +172,31 @@ export function InterviewAutoPilotGuideView({
           </CardHeader>
           {expandedSections.technical && (
             <CardContent className="pt-0">
-              <ScrollArea className="max-h-[500px]">
-                <div className="space-y-4">
-                  {guide.technicalQuestions.map((q, idx) => (
-                    <div key={idx} className="space-y-2">
-                      {idx > 0 && <Separator />}
-                      <div className="flex items-center gap-2 pt-2">
-                        <span className="font-mono text-xs text-muted-foreground w-5">
-                          {idx + 1}.
-                        </span>
-                        <Badge variant="secondary" className="text-[10px]">
-                          {q.topic}
-                        </Badge>
-                        <Badge variant="outline" className="text-[10px]">
-                          {q.targetSeniority}
-                        </Badge>
-                      </div>
-                      <p className="text-sm font-medium pl-7">{q.question}</p>
-                      <div className="pl-7 flex items-start gap-2 bg-muted/50 rounded-md p-2">
+              <div className="space-y-4">
+                {guide.technicalQuestions.map((q, idx) => (
+                  <div key={idx} className="space-y-2">
+                    {idx > 0 && <Separator />}
+                    <div className="flex items-center gap-2 pt-2">
+                      <span className="font-mono text-xs text-muted-foreground w-5">
+                        {idx + 1}.
+                      </span>
+                      <Badge variant="secondary" className="text-[10px]">
+                        {q.topic}
+                      </Badge>
+                      <Badge variant="outline" className="text-[10px]">
+                        {q.targetSeniority}
+                      </Badge>
+                    </div>
+                    <div className="pl-7 space-y-2">
+                      <p className="text-sm font-medium">{q.question}</p>
+                      <div className="flex items-start gap-2 bg-muted/50 rounded-md p-2">
                         <IconBulb className="h-3.5 w-3.5 text-amber-500 mt-0.5 shrink-0" />
                         <p className="text-xs text-muted-foreground">{q.whatToListenFor}</p>
                       </div>
                     </div>
-                  ))}
-                </div>
-              </ScrollArea>
+                  </div>
+                ))}
+              </div>
             </CardContent>
           )}
         </Card>
@@ -243,10 +243,12 @@ export function InterviewAutoPilotGuideView({
                         Gap: {q.missingSkill}
                       </Badge>
                     </div>
-                    <p className="text-sm font-medium pl-7">{q.question}</p>
-                    <div className="pl-7 flex items-start gap-2 bg-muted/50 rounded-md p-2">
-                      <IconBulb className="h-3.5 w-3.5 text-amber-500 mt-0.5 shrink-0" />
-                      <p className="text-xs text-muted-foreground">{q.whatToListenFor}</p>
+                    <div className="pl-7 space-y-2">
+                      <p className="text-sm font-medium">{q.question}</p>
+                      <div className="flex items-start gap-2 bg-muted/50 rounded-md p-2">
+                        <IconBulb className="h-3.5 w-3.5 text-amber-500 mt-0.5 shrink-0" />
+                        <p className="text-xs text-muted-foreground">{q.whatToListenFor}</p>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -290,21 +292,23 @@ export function InterviewAutoPilotGuideView({
                   <div key={idx} className="space-y-2">
                     {idx > 0 && <Separator />}
                     <div className="pt-2">
-                      <Badge variant="secondary" className="text-[10px] mb-2">
+                      <Badge variant="secondary" className="text-[10px] whitespace-normal text-left mb-2 leading-relaxed">
                         Scenario: {q.consultingScenario}
                       </Badge>
                     </div>
-                    <p className="text-sm font-medium">{q.question}</p>
-                    <div className="flex flex-wrap gap-1.5 mt-1">
-                      {q.redFlags.map((flag, fi) => (
-                        <Badge
-                          key={fi}
-                          variant="destructive"
-                          className="text-[10px]"
-                        >
-                          {flag}
-                        </Badge>
-                      ))}
+                    <div className="pl-4 space-y-2 border-l-2 border-violet-500/20">
+                      <p className="text-sm font-medium">{q.question}</p>
+                      <div className="flex flex-wrap gap-1.5 mt-1">
+                        {q.redFlags.map((flag, fi) => (
+                          <Badge
+                            key={fi}
+                            variant="destructive"
+                            className="text-[10px]"
+                          >
+                            {flag}
+                          </Badge>
+                        ))}
+                      </div>
                     </div>
                   </div>
                 ))}
