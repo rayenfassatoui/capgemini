@@ -336,6 +336,36 @@ export type AiTalentInsightsOutput = z.infer<typeof aiTalentInsightsOutputSchema
 export type AiFollowupQuestionsOutput = z.infer<typeof aiFollowupQuestionsOutputSchema>;
 export type AiJobRequirementsOptimizerOutput = z.infer<typeof aiJobRequirementsOptimizerOutputSchema>;
 
+// ---------- AI Interview Auto-Pilot Schema ----------
+
+export const aiInterviewAutoPilotOutputSchema = z.object({
+  interviewerBriefing: z.string().min(10),
+  technicalQuestions: z.array(
+    z.object({
+      topic: z.string().min(1),
+      question: z.string().min(10),
+      whatToListenFor: z.string().min(5),
+      targetSeniority: z.string().min(1),
+    })
+  ).min(3).max(8),
+  gapMitigationQuestions: z.array(
+    z.object({
+      missingSkill: z.string().min(1),
+      question: z.string().min(10),
+      whatToListenFor: z.string().min(5),
+    })
+  ).default([]),
+  behavioralQuestions: z.array(
+    z.object({
+      consultingScenario: z.string().min(5),
+      question: z.string().min(10),
+      redFlags: z.array(z.string()).min(1),
+    })
+  ).min(1).max(3),
+});
+
+export type AiInterviewAutoPilotOutput = z.infer<typeof aiInterviewAutoPilotOutputSchema>;
+
 // ---------- AI Statistics Chat Schema ----------
 
 export const aiStatisticsChatSchema = z.object({

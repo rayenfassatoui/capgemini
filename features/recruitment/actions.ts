@@ -278,6 +278,41 @@ export async function updateInterviewQuestionsAction(
   }
 }
 
+// ==================== INTERVIEW AUTO-PILOT ACTIONS ====================
+
+export async function generateInterviewAutoPilotAction(
+  candidateId: string,
+  jobId: string,
+  stage: InterviewStage
+) {
+  try {
+    const session = await requireRole(['ta', 'manager', 'hr', 'admin']);
+    const services = await getServices();
+    const guide = await services.generateInterviewAutoPilotGuide(
+      candidateId,
+      jobId,
+      stage,
+      session.user.id
+    );
+    revalidatePath(`/ta/jobs/${jobId}`);
+    revalidatePath('/manager/candidates');
+    revalidatePath('/hr/candidates');
+    return guide;
+  } catch (error) {
+    handleActionError(error);
+  }
+}
+
+export async function getInterviewAutoPilotAction(
+  candidateId: string,
+  jobId: string,
+  stage: InterviewStage
+) {
+  await requireRole(['ta', 'manager', 'hr', 'admin']);
+  const services = await getServices();
+  return services.getInterviewAutoPilotGuide(candidateId, jobId, stage);
+}
+
 // ==================== INTERVIEW ACTIONS ====================
 
 export async function scheduleInterviewAction(input: ScheduleInterviewInput) {

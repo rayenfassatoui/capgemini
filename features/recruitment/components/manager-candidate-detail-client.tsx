@@ -23,7 +23,8 @@ import {
 } from '@/features/recruitment/actions';
 import { toast } from 'sonner';
 import { IconMail, IconCalendar, IconCheck, IconX, IconExternalLink, IconCircleCheck, IconCircleDashed, IconPlus, IconTrash, IconSparkles, IconEdit, IconDeviceFloppy } from '@tabler/icons-react';
-import type { InterviewDecision, CandidateStage } from '@/features/recruitment/types';
+import type { InterviewDecision, CandidateStage, InterviewAutoPilotGuide } from '@/features/recruitment/types';
+import { InterviewAutoPilotGuideView } from './interview-autopilot-guide';
 
 interface InterviewGuide {
   id: string;
@@ -69,6 +70,7 @@ interface ManagerCandidateDetailClientProps {
   interviewGuide?: InterviewGuide | null;
   currentInterview?: Interview | null;
   hrUsers?: UserListItem[];
+  autoPilotGuide?: InterviewAutoPilotGuide | null;
 }
 
 function StepIndicator({ step, label, done, active }: { step: number; label: string; done: boolean; active: boolean }) {
@@ -94,6 +96,7 @@ export function ManagerCandidateDetailClient({
   interviewGuide,
   currentInterview,
   hrUsers,
+  autoPilotGuide,
 }: ManagerCandidateDetailClientProps) {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState('interview');
@@ -339,8 +342,18 @@ export function ManagerCandidateDetailClient({
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList>
           <TabsTrigger value="interview">Interview Workflow</TabsTrigger>
+          <TabsTrigger value="autopilot">Auto-Pilot Guide</TabsTrigger>
           <TabsTrigger value="ta-report">TA Report</TabsTrigger>
         </TabsList>
+        
+        <TabsContent value="autopilot" className="space-y-4">
+          <InterviewAutoPilotGuideView
+            candidateId={candidate.id}
+            jobId={candidate.jobId}
+            stage="manager"
+            initialGuide={autoPilotGuide ?? null}
+          />
+        </TabsContent>
         
         <TabsContent value="ta-report" className="space-y-4">
           {taReports.length === 0 ? (

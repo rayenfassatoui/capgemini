@@ -14,6 +14,7 @@ import {
   IconEdit,
   IconEye,
   IconTrash,
+  IconBrain,
 } from '@tabler/icons-react';
 
 import { Button } from '@/components/ui/button';
@@ -74,6 +75,7 @@ import {
 } from '@/features/recruitment/actions';
 
 import { MatchCvsDialog, InlineCvMatching } from '@/features/recruitment/components/match-cvs-dialog';
+import { InterviewAutoPilotGuideView } from '@/features/recruitment/components/interview-autopilot-guide';
 
 import type {
   CandidateStage,
@@ -195,6 +197,9 @@ export function JobDetailClient({
   const [questionsDialogOpen, setQuestionsDialogOpen] = React.useState(false);
   const [currentQuestions, setCurrentQuestions] = React.useState<string[]>([]);
   const [currentGuideId, setCurrentGuideId] = React.useState<string>('');
+
+  const [autoPilotDialogOpen, setAutoPilotDialogOpen] = React.useState(false);
+  const [autoPilotCandidateId, setAutoPilotCandidateId] = React.useState<string>('');
 
   const [reportDialogOpen, setReportDialogOpen] = React.useState(false);
   const [reportInterviewId, setReportInterviewId] = React.useState('');
@@ -609,6 +614,9 @@ export function JobDetailClient({
                         <Button size="sm" variant="secondary" className="flex-1" onClick={() => handleViewQuestions(candidate.id)}>
                           <IconFileText className="mr-1 size-3" /> Questions
                         </Button>
+                        <Button size="sm" variant="outline" className="w-full" onClick={() => { setAutoPilotCandidateId(candidate.id); setAutoPilotDialogOpen(true); }}>
+                          <IconBrain className="mr-1 size-3" /> Auto-Pilot Guide
+                        </Button>
                         <div className="flex w-full gap-2 mt-2">
                            <Button size="sm" variant="default" className="flex-1 bg-green-600 hover:bg-green-700" onClick={() => handleUpdateStage(candidate.id, 'ta_accepted')}>
                              Accept
@@ -858,6 +866,28 @@ export function JobDetailClient({
             <Button variant="outline" onClick={() => setQuestionsDialogOpen(false)}>Cancel</Button>
             <Button onClick={handleUpdateQuestions}>Save Changes</Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Auto-Pilot Guide Dialog */}
+      <Dialog open={autoPilotDialogOpen} onOpenChange={setAutoPilotDialogOpen}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <IconBrain className="h-5 w-5 text-primary" />
+              AI Interview Auto-Pilot Guide
+            </DialogTitle>
+            <DialogDescription>
+              Hyper-personalized interview guide with advanced technical, gap mitigation, and behavioral questions.
+            </DialogDescription>
+          </DialogHeader>
+          {autoPilotCandidateId && (
+            <InterviewAutoPilotGuideView
+              candidateId={autoPilotCandidateId}
+              jobId={job.id}
+              stage="ta"
+            />
+          )}
         </DialogContent>
       </Dialog>
 

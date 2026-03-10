@@ -1,44 +1,123 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+# ==============================================================================
+# ENTERPRISE-GRADE .GITIGNORE (Next.js 16 + Bun + Drizzle + AI)
+# ==============================================================================
 
-# dependencies
-/node_modules
-/.pnp
-.pnp.*
-.yarn/*
-!.yarn/patches
-!.yarn/plugins
-!.yarn/releases
-!.yarn/versions
-
-# testing
-/coverage
-
-# next.js
-/.next/
-/out/
-
-# production
-/build
-
-# misc
-.DS_Store
+# 1. 🔒 CREDENTIALS & SECRETS (ABSOLUTE PRIORITY)
+# ------------------------------------------------------------------------------
+.env
+.env.*
+!.env.example
+!.env.template
 *.pem
+*.key
+*.cert
+*.p12
+*.crt
+# Prevent accidental leaks of AI API keys, DB strings, or auth secrets
+auth.json
+secrets.json
+keys.json
 
-# debug
+# 2. 📦 DEPENDENCIES & PACKAGE MANAGERS
+# ------------------------------------------------------------------------------
+node_modules/
+# Bun specific
+# (Unlike yarn.lock, bun.lockb SHOULD be committed, but we ignore cache)
+.bun/
+.bun-build/
+# Other package managers (forbidden in this project, but we ignore their caches)
+.npm/
+.yarn/
+.pnpm-store/
+
+# 3. 🏗️ BUILD & NEXT.JS ARTIFACTS
+# ------------------------------------------------------------------------------
+.next/
+/out/
+/build/
+/dist/
+*.tsbuildinfo
+next-env.d.ts
+# Vercel deployment cache
+.vercel/
+
+# 4. 🧠 AI & DATA ARTIFACTS (Vector Docs, Raw PDFs)
+# ------------------------------------------------------------------------------
+# Ignore temporary uploads, raw CV PDFs, or local embedding caches
+/tmp/
+/temp/
+/*.pdf
+/*.docx
+# Ignore any local vector dumps or AI model weights if pulled locally
+/*.bin
+/*.pt
+/*.safetensors
+/model-cache/
+
+# 5. 🗄️ DATABASE & ORM
+# ------------------------------------------------------------------------------
+# Ignore local SQLite files if used for testing
+*.sqlite
+*.sqlite3
+*.db
+*.db3
+# Note: DO NOT ignore drizzle/ folder (migrations must be committed)
+
+# 6. 📝 LOGS, REPORTS & DEBUGGING
+# ------------------------------------------------------------------------------
+logs/
+*.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
+lerna-debug.log*
+# Error screenshots for Playwright/Cypress
+test-results/
+playwright-report/
+blob-report/
+playwright/.cache/
+coverage/
+.nyc_output/
 
-# env files (can opt-in for committing if needed)
-.env
+# 7. 💻 IDEs & EDITORS
+# ------------------------------------------------------------------------------
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+.project
+.classpath
+.settings/
 
-# vercel
-.vercel
-
-# typescript
-*.tsbuildinfo
-next-env.d.ts
-
-# Windows reserved files
+# 8. 🖥️ OS GENERATED FILES
+# ------------------------------------------------------------------------------
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Desktop.ini
+$RECYCLE.BIN/
 nul
+
+# 9. 🚀 MISCELLANEOUS
+# ------------------------------------------------------------------------------
+.cache/
+.parcel-cache/
+.eslintcache
+.stylelintcache
+# Any weird archive formats users might accidentally drop in the root
+*.zip
+*.tar
+*.gz
+*.rar

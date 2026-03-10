@@ -4,7 +4,8 @@ import {
   getInterviewReportsByCandidateAction, 
   getInterviewGuideAction,
   getInterviewByCandidateAndStageAction,
-  listUsersByRoleAction
+  listUsersByRoleAction,
+  getInterviewAutoPilotAction
 } from '@/features/recruitment/actions';
 import { requireRole } from '@/lib/auth';
 import { ManagerCandidateDetailClient } from '@/features/recruitment/components/manager-candidate-detail-client';
@@ -23,11 +24,12 @@ export default async function ManagerCandidateDetailPage({ params }: { params: P
     notFound();
   }
 
-  const [reports, guide, managerInterview, hrUsers] = await Promise.all([
+  const [reports, guide, managerInterview, hrUsers, autoPilotGuide] = await Promise.all([
     getInterviewReportsByCandidateAction(id).catch(() => []),
     candidate.jobId ? getInterviewGuideAction(id, candidate.jobId, 'manager').catch(() => null) : null,
     getInterviewByCandidateAndStageAction(id, 'manager').catch(() => null),
     listUsersByRoleAction('hr'),
+    candidate.jobId ? getInterviewAutoPilotAction(id, candidate.jobId, 'manager').catch(() => null) : null,
   ]);
 
   // Filter reports for TA stage
@@ -56,6 +58,7 @@ export default async function ManagerCandidateDetailPage({ params }: { params: P
         interviewGuide={guide}
         currentInterview={currentInterview}
         hrUsers={hrUsers}
+        autoPilotGuide={autoPilotGuide}
       />
     </div>
   );

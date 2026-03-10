@@ -205,6 +205,34 @@ export interface SmartInsights {
   pipelineFunnel: Record<CandidateStage, number>;
 }
 
+// ---------- Interview Auto-Pilot Types ----------
+
+export interface AutoPilotTechnicalQuestion {
+  topic: string;
+  question: string;
+  whatToListenFor: string;
+  targetSeniority: string;
+}
+
+export interface AutoPilotGapQuestion {
+  missingSkill: string;
+  question: string;
+  whatToListenFor: string;
+}
+
+export interface AutoPilotBehavioralQuestion {
+  consultingScenario: string;
+  question: string;
+  redFlags: string[];
+}
+
+export interface InterviewAutoPilotGuide {
+  interviewerBriefing: string;
+  technicalQuestions: AutoPilotTechnicalQuestion[];
+  gapMitigationQuestions: AutoPilotGapQuestion[];
+  behavioralQuestions: AutoPilotBehavioralQuestion[];
+}
+
 // ---------- Hybrid Search Types ----------
 
 export interface HybridSearchResult {

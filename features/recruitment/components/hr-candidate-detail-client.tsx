@@ -36,7 +36,8 @@ import {
   sendHRDecisionEmailAction,
 } from '../actions';
 
-import type { InterviewDecision } from '../types';
+import type { InterviewDecision, InterviewAutoPilotGuide } from '../types';
+import { InterviewAutoPilotGuideView } from './interview-autopilot-guide';
 
 interface Candidate {
   id: string;
@@ -77,13 +78,15 @@ interface HRCandidateDetailClientProps {
   priorReports: Report[];
   interviewGuide?: InterviewGuide | null;
   currentInterview?: Interview | null;
+  autoPilotGuide?: InterviewAutoPilotGuide | null;
 }
 
 export function HRCandidateDetailClient({ 
   candidate, 
   priorReports, 
   interviewGuide, 
-  currentInterview 
+  currentInterview,
+  autoPilotGuide,
 }: HRCandidateDetailClientProps) {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState('workflow');
@@ -264,9 +267,20 @@ export function HRCandidateDetailClient({
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList>
           <TabsTrigger value="workflow">HR Decision Process</TabsTrigger>
+          <TabsTrigger value="autopilot">Auto-Pilot Guide</TabsTrigger>
           <TabsTrigger value="reports">Prior Reports (TA & Manager)</TabsTrigger>
           <TabsTrigger value="meeting">Meeting (Optional)</TabsTrigger>
         </TabsList>
+
+        {/* Auto-Pilot Guide Tab */}
+        <TabsContent value="autopilot" className="space-y-4">
+          <InterviewAutoPilotGuideView
+            candidateId={candidate.id}
+            jobId={candidate.jobId}
+            stage="hr"
+            initialGuide={autoPilotGuide ?? null}
+          />
+        </TabsContent>
 
         {/* Prior Reports Tab */}
         <TabsContent value="reports" className="space-y-4">

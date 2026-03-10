@@ -37,6 +37,8 @@ export {
   generateInterviewQuestionsWithAI,
   getInterviewGuide,
   updateInterviewQuestions,
+  generateInterviewAutoPilotGuide,
+  getInterviewAutoPilotGuide,
 } from './interview-guides';
 
 export {
