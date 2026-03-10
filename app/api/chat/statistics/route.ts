@@ -16,9 +16,11 @@ import {
 } from '@/features/recruitment/services/agent-tools';
 import { getModelForTask } from '@/features/recruitment/services/ai';
 import type { UserRole } from '@/features/recruitment/types';
+import { SlidingWindowRateLimiter } from '@/lib/rate-limit';
 
 // Max tool-call iterations before we force a final answer
 const MAX_AGENT_STEPS = 15;
+const chatLimiter = new SlidingWindowRateLimiter(15, 60_000);
 
 async function getAuthSession() {
   const headersList = await headers();
@@ -106,6 +108,13 @@ interface LLMResponse {
 export async function POST(request: Request) {
   const session = await getAuthSession();
   if (!session) return new Response('Unauthorized', { status: 401 });
+
+  if (!chatLimiter.isAllowed(session.user.id)) {
+    return Response.json(
+      { error: 'Too many requests. Please wait before sending another message.' },
+      { status: 429 }
+    );
+  }
 
   const role = (session.user.role ?? 'ta') as UserRole;
 
