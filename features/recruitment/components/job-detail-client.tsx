@@ -266,17 +266,9 @@ export function JobDetailClient({
     }
   };
 
-  const handleGenerateQuestions = async (candidateId: string) => {
-    try {
-      toast.info('Generating questions...');
-      await generateInterviewQuestionsAction(candidateId, jobId, 'ta');
-      toast.success('Questions generated');
-    } catch (error) {
-      toast.error('Failed to generate questions');
-    }
-  };
+  const [isGeneratingQuestions, setIsGeneratingQuestions] = React.useState(false);
 
-  const handleViewQuestions = async (candidateId: string) => {
+  const handleManageQuestions = async (candidateId: string) => {
     try {
       const guide = await getInterviewGuideAction(candidateId, jobId, 'ta');
       if (guide) {
@@ -284,7 +276,24 @@ export function JobDetailClient({
         setCurrentGuideId(guide.id);
         setQuestionsDialogOpen(true);
       } else {
-        toast.error('No questions guide found');
+        setIsGeneratingQuestions(true);
+        const loadingToastId = toast.loading('Generating AI Questions (this might take a few seconds)...');
+        try {
+          await generateInterviewQuestionsAction(candidateId, jobId, 'ta');
+          const newGuide = await getInterviewGuideAction(candidateId, jobId, 'ta');
+          if (newGuide) {
+            setCurrentQuestions(newGuide.questions || []);
+            setCurrentGuideId(newGuide.id);
+            setQuestionsDialogOpen(true);
+            toast.success('Questions AI Generated', { id: loadingToastId });
+          } else {
+            toast.error('Failed to retrieve generated questions', { id: loadingToastId });
+          }
+        } catch (error) {
+          toast.error('Failed to generate AI questions', { id: loadingToastId });
+        } finally {
+          setIsGeneratingQuestions(false);
+        }
       }
     } catch (error) {
       toast.error('Failed to fetch questions');
@@ -502,8 +511,8 @@ export function JobDetailClient({
         <TabsList className="grid w-full grid-cols-4 lg:w-[400px]">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="cv-matching">CV Matching</TabsTrigger>
-          <TabsTrigger value="candidates">Pipeline</TabsTrigger>
           <TabsTrigger value="interviews">Interviews</TabsTrigger>
+          <TabsTrigger value="candidates">Pipeline</TabsTrigger>
         </TabsList>
 
         {/* TAB 1: OVERVIEW */}
@@ -591,41 +600,29 @@ export function JobDetailClient({
 
                     {candidate.stage === 'ta_screening' && (
                       <>
-                        <Button size="sm" variant="outline" className="flex-1" onClick={() => handleViewScreening(candidate.id)}>
+                        <Button size="sm" variant="outline" className="w-full mb-2" onClick={() => handleViewScreening(candidate.id)}>
                           <IconEye className="mr-1 size-3" /> View Screening
                         </Button>
-                        <Button size="sm" variant="default" className="flex-1" onClick={() => handleGenerateQuestions(candidate.id)}>
-                          Generate Questions
-                        </Button>
-                        <Button size="sm" variant="ghost" className="w-full" onClick={() => handleUpdateStage(candidate.id, 'ta_interview')}>
-                          Move to Interview
-                        </Button>
-                      </>
-                    )}
-
-                    {candidate.stage === 'ta_interview' && (
-                      <>
-                        <Button size="sm" variant="outline" className="flex-1" onClick={() => {
-                           setSelectedCandidateId(candidate.id);
-                           setScheduleDialogOpen(true);
-                        }}>
-                          <IconCalendar className="mr-1 size-3" /> Schedule
-                        </Button>
-                        <Button size="sm" variant="secondary" className="flex-1" onClick={() => handleViewQuestions(candidate.id)}>
-                          <IconFileText className="mr-1 size-3" /> Questions
-                        </Button>
-                        <Button size="sm" variant="outline" className="w-full" onClick={() => { setAutoPilotCandidateId(candidate.id); setAutoPilotDialogOpen(true); }}>
-                          <IconBrain className="mr-1 size-3" /> Auto-Pilot Guide
-                        </Button>
                         <div className="flex w-full gap-2 mt-2">
-                           <Button size="sm" variant="default" className="flex-1 bg-green-600 hover:bg-green-700" onClick={() => handleUpdateStage(candidate.id, 'ta_accepted')}>
-                             Accept
+                           <Button size="sm" variant="default" className="flex-1 bg-green-600 hover:bg-green-700" onClick={() => handleUpdateStage(candidate.id, 'ta_interview')}>
+                             Accept (to Interview)
                            </Button>
                            <Button size="sm" variant="destructive" className="flex-1" onClick={() => handleUpdateStage(candidate.id, 'ta_rejected')}>
                              Reject
                            </Button>
                         </div>
                       </>
+                    )}
+
+                    {candidate.stage === 'ta_interview' && (
+                      <div className="flex w-full gap-2 mt-2">
+                         <Button size="sm" variant="default" className="flex-1 bg-green-600 hover:bg-green-700" onClick={() => handleUpdateStage(candidate.id, 'ta_accepted')}>
+                           Accept
+                         </Button>
+                         <Button size="sm" variant="destructive" className="flex-1" onClick={() => handleUpdateStage(candidate.id, 'ta_rejected')}>
+                           Reject
+                         </Button>
+                      </div>
                     )}
 
                     {candidate.stage === 'ta_accepted' && (
@@ -679,49 +676,72 @@ export function JobDetailClient({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {allInterviews.length === 0 ? (
+                {candidates.filter(c => ['ta_interview', 'manager_interview', 'hr_interview'].includes(c.stage)).length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                      No interviews found.
-                    </TableCell>
+                     <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                        No active candidates for interview. Go to Pipeline to accept candidates into the interview stage.
+                     </TableCell>
                   </TableRow>
                 ) : (
-                  allInterviews.map(({ interview, candidate }) => (
-                    <TableRow key={interview.id}>
-                      <TableCell>
-                        <div className="font-medium">{candidate.fullName}</div>
-                        <div className="text-xs text-muted-foreground">{candidate.email}</div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className="uppercase text-[10px]">{interview.stage}</Badge>
-                      </TableCell>
-                      <TableCell>
-                         {typeof interview.scheduledDate === 'string' ? interview.scheduledDate : interview.scheduledDate.toLocaleDateString()} at {interview.scheduledTime}
-                      </TableCell>
-                      <TableCell>
-                        {interview.meetLink && (
-                          <a href={interview.meetLink} target="_blank" rel="noreferrer" className="text-blue-500 hover:underline flex items-center gap-1">
-                            Link <IconArrowLeft className="rotate-135 size-3" />
-                          </a>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={interview.status === 'completed' ? 'default' : 'secondary'}>
-                          {interview.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                         <div className="flex justify-end gap-2">
-                           <Button size="icon-sm" variant="ghost" onClick={() => handleSendEmail(interview, candidate)} title="Send Email">
-                             <IconSend className="size-4" />
-                           </Button>
-                           <Button size="icon-sm" variant="ghost" onClick={() => handleOpenReport(interview.id, candidate.id)} title="Write Report">
-                             <IconEdit className="size-4" />
-                           </Button>
-                         </div>
-                      </TableCell>
-                    </TableRow>
-                  ))
+                  candidates.filter(c => ['ta_interview', 'manager_interview', 'hr_interview'].includes(c.stage)).map(candidate => {
+                    const interview = candidate.interviews?.find(i => i.status === 'scheduled') || candidate.interviews?.[0];
+                    const isScheduled = !!interview;
+                    
+                    return (
+                      <TableRow key={candidate.id}>
+                        <TableCell>
+                          <div className="font-medium">{candidate.fullName}</div>
+                          <div className="text-xs text-muted-foreground">{candidate.email}</div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="uppercase text-[10px]">{candidate.stage.replace('_', ' ')}</Badge>
+                        </TableCell>
+                        <TableCell>
+                           {isScheduled ? (
+                              `${typeof interview.scheduledDate === 'string' ? interview.scheduledDate : (interview.scheduledDate instanceof Date ? interview.scheduledDate.toLocaleDateString() : '')} at ${interview.scheduledTime}`
+                           ) : (
+                              <span className="text-muted-foreground">Not Scheduled</span>
+                           )}
+                        </TableCell>
+                        <TableCell>
+                          {isScheduled && interview.meetLink && (
+                            <a href={interview.meetLink} target="_blank" rel="noreferrer" className="text-blue-500 hover:underline flex items-center gap-1">
+                              Link <IconArrowLeft className="rotate-135 size-3" />
+                            </a>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={isScheduled && interview.status === 'completed' ? 'default' : 'secondary'}>
+                            {isScheduled ? interview.status : 'pending'}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                           <div className="flex justify-end gap-2">
+                             <Button size="sm" variant="outline" onClick={() => handleManageQuestions(candidate.id)} title="AI Interview Questions" disabled={isGeneratingQuestions}>
+                               <IconBrain className="mr-2 size-4" /> Questions
+                             </Button>
+                             {!isScheduled ? (
+                                <Button size="sm" variant="default" onClick={() => {
+                                      setSelectedCandidateId(candidate.id);
+                                      setScheduleDialogOpen(true);
+                                 }}>
+                                  <IconCalendar className="mr-2 size-4" /> Schedule
+                                </Button>
+                             ) : (
+                                <>
+                                  <Button size="sm" variant="outline" onClick={() => handleSendEmail(interview, candidate)} title="Send Email">
+                                    <IconSend className="size-4 mr-2" /> Email
+                                  </Button>
+                                  <Button size="sm" variant="default" className="bg-purple-600 hover:bg-purple-700 text-white" onClick={() => handleOpenReport(interview.id, candidate.id)} title="Fill Report">
+                                    <IconEdit className="size-4 mr-2" /> Report
+                                  </Button>
+                                </>
+                             )}
+                           </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
                 )}
               </TableBody>
             </Table>
