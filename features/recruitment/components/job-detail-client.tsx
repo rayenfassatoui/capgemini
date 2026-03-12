@@ -762,9 +762,10 @@ export function JobDetailClient({
             <div className="space-y-2">
               <label className="text-sm font-medium">Candidate</label>
               <select 
-                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                className="flex h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring opacity-80 cursor-not-allowed"
                 value={selectedCandidateId}
                 onChange={(e) => setSelectedCandidateId(e.target.value)}
+                disabled
               >
                 <option value="" disabled>Select a candidate</option>
                 {candidates
