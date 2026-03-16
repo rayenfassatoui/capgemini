@@ -86,7 +86,7 @@ export interface ScheduleInterviewInput {
   candidateId: string;
   jobId: string;
   stage: InterviewStage;
-  scheduledDate: string; // DD/MM/YYYY
+  scheduledDate: string; // YYYY-MM-DD
   scheduledTime: string; // HH:mm
   meetLink: string;
 }

@@ -28,7 +28,7 @@ export const definitions: AgentToolDefinition[] = [
         },
         scheduledDate: {
           type: 'string',
-          description: 'Interview date (DD/MM/YYYY)',
+          description: 'Interview date (YYYY-MM-DD)',
         },
         scheduledTime: {
           type: 'string',
@@ -207,3 +207,4 @@ export const executors: Record<string, ToolHandler> = {
     return { message: 'All notifications marked as read' };
   },
 };
+

@@ -52,7 +52,7 @@ export const definitions: AgentToolDefinition[] = [
   {
     name: 'schedule_interview',
     description:
-      'Schedule an interview for a candidate. Requires candidate ID, job ID, stage (ta/manager/hr), date (DD/MM/YYYY), time (HH:mm), and Google Meet link. Also updates the candidate stage accordingly.',
+      'Schedule an interview for a candidate. Requires candidate ID, job ID, stage (ta/manager/hr), date (YYYY-MM-DD), time (HH:mm), and Google Meet link. Also updates the candidate stage accordingly.',
     parameters: {
       type: 'object',
       properties: {
@@ -68,7 +68,7 @@ export const definitions: AgentToolDefinition[] = [
         },
         scheduledDate: {
           type: 'string',
-          description: 'Interview date in DD/MM/YYYY format',
+          description: 'Interview date in YYYY-MM-DD format',
         },
         scheduledTime: {
           type: 'string',
@@ -160,7 +160,7 @@ export const definitions: AgentToolDefinition[] = [
         },
         newDate: {
           type: 'string',
-          description: 'New interview date in DD/MM/YYYY format',
+          description: 'New interview date in YYYY-MM-DD format',
         },
         newTime: {
           type: 'string',
@@ -383,3 +383,4 @@ export const executors: Record<string, ToolHandler> = {
     );
   },
 };
+

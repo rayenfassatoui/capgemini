@@ -18,8 +18,7 @@ export async function scheduleInterview(
 ) {
   const validated = scheduleInterviewSchema.parse(input);
 
-  const [day, month, year] = validated.scheduledDate.split('/');
-  const dbDate = `${year}-${month}-${day}`;
+    const dbDate = validated.scheduledDate;
 
   const [interview] = await db
     .insert(interviews)
@@ -148,8 +147,7 @@ export async function rescheduleInterview(
   newDate: string,
   newTime: string
 ) {
-  const [day, month, year] = newDate.split('/');
-  const dbDate = `${year}-${month}-${day}`;
+  const dbDate = newDate;
 
   const [updated] = await db
     .update(interviews)

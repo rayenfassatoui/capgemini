@@ -187,16 +187,11 @@ export function ManagerCandidateDetailClient({
     }
     try {
       setIsScheduling(true);
-      let formattedDate = scheduleData.date;
-      if (scheduleData.date.includes('-')) {
-        const [y, m, d] = scheduleData.date.split('-');
-        formattedDate = `${d}/${m}/${y}`;
-      }
       const interview = await scheduleInterviewAction({
         candidateId: candidate.id,
         jobId: candidate.jobId,
         stage: 'manager',
-        scheduledDate: formattedDate,
+        scheduledDate: scheduleData.date,
         scheduledTime: scheduleData.time,
         meetLink: scheduleData.link
       });
@@ -206,7 +201,7 @@ export function ManagerCandidateDetailClient({
         candidateEmail: candidate.email,
         candidateName: candidate.fullName,
         jobTitle: candidate.job?.title || 'Job',
-        scheduledDate: formattedDate,
+        scheduledDate: scheduleData.date,
         scheduledTime: scheduleData.time,
         meetLink: scheduleData.link,
         interviewerName: 'Manager',

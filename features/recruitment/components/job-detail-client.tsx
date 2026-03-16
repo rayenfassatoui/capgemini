@@ -320,15 +320,10 @@ export function JobDetailClient({
         candidateId: selectedCandidateId,
         jobId,
         stage: 'ta',
-        scheduledDate: scheduleDate, // format DD/MM/YYYY? Input is YYYY-MM-DD usually. Action expects DD/MM/YYYY.
+        scheduledDate: scheduleDate,
         scheduledTime: scheduleTime,
         meetLink,
       };
-      // Simple date conversion if needed
-      if (scheduleDate.includes('-')) {
-        const [y, m, d] = scheduleDate.split('-');
-        input.scheduledDate = `${d}/${m}/${y}`;
-      }
 
       await scheduleInterviewAction(input);
       setScheduleDialogOpen(false);

@@ -113,7 +113,7 @@ export const scheduleInterviewSchema = z.object({
   candidateId: z.string().uuid(),
   jobId: z.string().uuid(),
   stage: interviewStageSchema,
-  scheduledDate: z.string().regex(/^\d{2}\/\d{2}\/\d{4}$/, 'Date must be in DD/MM/YYYY format'),
+  scheduledDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be in YYYY-MM-DD format'),
   scheduledTime: z.string().regex(/^\d{2}:\d{2}$/, 'Time must be in HH:mm format'),
   meetLink: z.string().url(),
 });
