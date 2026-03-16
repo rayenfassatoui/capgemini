@@ -182,7 +182,7 @@ export const executors: Record<string, ToolHandler> = {
       extractedSkills: extraction.extractedSkills,
       extractedLanguages: extraction.extractedLanguages,
       extractedSummary: extraction.extractedSummary,
-      embeddingGenerated,
+
       message: 'CV uploaded and parsed successfully',
       duplicateWarning:
         duplicates.length > 0

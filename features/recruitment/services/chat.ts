@@ -502,7 +502,7 @@ export async function getChatHistory(conversationId: string, userId: string) {
 export async function saveChatMessage(
   conversationId: string,
   userId: string,
-  role: 'user' | 'assistant',
+  role: "user" | "assistant",
   content: string
 ) {
   const [message] = await db
@@ -510,29 +510,33 @@ export async function saveChatMessage(
     .values({ conversationId, role, content })
     .returning();
 
-  if (role === 'user') {
+  if (role === "user") {
     const [convo] = await db
       .select({ title: chatConversations.title })
       .from(chatConversations)
-        .where(and(eq(chatConversations.id, conversationId), eq(chatConversations.userId, userId)));
+      .where(and(eq(chatConversations.id, conversationId), eq(chatConversations.userId, userId)));
 
-      if (convo?.title === 'New Chat' || convo?.title === 'Analytics Chat') {
-        const title = content.length > 40 ? content.slice(0, 40) + '...' : content;
-        await db
-          .update(chatConversations)
-          .set({ title, updatedAt: new Date() })
-          .where(and(eq(chatConversations.id, conversationId), eq(chatConversations.userId, userId)));
-      } else {
-        await db
-          .update(chatConversations)
-          .set({ updatedAt: new Date() })
-          .where(and(eq(chatConversations.id, conversationId), eq(chatConversations.userId, userId)));
-      }
+    if (convo?.title === "New Chat" || convo?.title === "Analytics Chat") {
+      const title = content.length > 40 ? content.slice(0, 40) + "..." : content;
+      await db
+        .update(chatConversations)
+        .set({ title, updatedAt: new Date() })
+        .where(and(eq(chatConversations.id, conversationId), eq(chatConversations.userId, userId)));
     } else {
       await db
         .update(chatConversations)
         .set({ updatedAt: new Date() })
         .where(and(eq(chatConversations.id, conversationId), eq(chatConversations.userId, userId)));
+    }
+  } else {
+    await db
+      .update(chatConversations)
+      .set({ updatedAt: new Date() })
+      .where(and(eq(chatConversations.id, conversationId), eq(chatConversations.userId, userId)));
+  }
+
+  return message;
+}
 
 export async function deleteChatConversation(conversationId: string, userId: string) {
   await db
