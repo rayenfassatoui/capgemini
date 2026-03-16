@@ -1,4 +1,5 @@
 import type { AgentToolDefinition, ToolHandler } from './types';
+import { waitUntil } from '@vercel/functions';
 
 // ==================== CV POOL + SEARCH + DUPLICATE DETECTION ====================
 
@@ -167,7 +168,7 @@ export const executors: Record<string, ToolHandler> = {
     await services.updateCvRawText(cv.id, rawText);
 
     // Generate and store semantic embedding (non-blocking — failure is logged, not thrown)
-    const embeddingGenerated = await services.generateCvEmbeddingAfterUpload(cv.id);
+    waitUntil(services.generateCvEmbeddingAfterUpload(cv.id));
 
 
     const { checkDuplicateCv } = await import('../duplicate-detection');

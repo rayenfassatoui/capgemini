@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { requireRole } from '@/lib/auth';
+import { waitUntil } from '@vercel/functions';
 import { ZodError } from 'zod';
 import type {
   CreateJobInput,
@@ -61,8 +62,9 @@ export async function uploadCvAction(input: UploadCvInput) {
       // Also store rawText on the CV
       await services.updateCvRawText(cv.id, rawText);
 
-      // Generate semantic embedding (non-blocking — failure is logged, not thrown)
-      await services.generateCvEmbeddingAfterUpload(cv.id);
+      // Generate semantic embedding asynchronously in the background
+      // This prevents UI blocking and slow uploads
+      waitUntil(services.generateCvEmbeddingAfterUpload(cv.id));
 
       // Check for duplicates after extraction
       const duplicates = await services.checkDuplicateCv(cv.id, session.user.id);

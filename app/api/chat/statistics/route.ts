@@ -41,8 +41,12 @@ export async function GET(request: Request) {
   const conversationId = url.searchParams.get('conversationId');
 
   if (conversationId) {
-    const history = await getChatHistory(conversationId);
-    return Response.json(history);
+    try {
+      const history = await getChatHistory(conversationId, session.user.id);
+      return Response.json(history);
+    } catch (e) {
+      return new Response('Not found or unauthorized', { status: 404 });
+    }
   }
 
   const conversations = await listChatConversations(session.user.id);
@@ -150,11 +154,11 @@ export async function POST(request: Request) {
   );
   const lastUserMessage = messages[messages.length - 1];
   if (lastUserMessage?.role === 'user') {
-    await saveChatMessage(conversation.id, 'user', lastUserMessage.content);
+    await saveChatMessage(conversation.id, session.user.id, 'user', lastUserMessage.content);
   }
 
   // Load full conversation history from DB so the model always has complete memory
-  const { messages: dbHistory } = await getChatHistory(conversation.id);
+    const { messages: dbHistory } = await getChatHistory(conversation.id, session.user.id);
 
   const dataContext = await getStatisticsChatContext(session.user.id, role);
   const today = new Date().toISOString().split('T')[0];
@@ -581,7 +585,7 @@ ${attachments && attachments.length > 0 ? `\n═══════════�
 
         // Save assistant response
         if (fullResponse.trim()) {
-          await saveChatMessage(conversationId, 'assistant', fullResponse);
+          await saveChatMessage(conversationId, session.user.id, 'assistant', fullResponse);
         }
       } catch {
         if (!fullResponse) {
@@ -592,11 +596,7 @@ ${attachments && attachments.length > 0 ? `\n═══════════�
           );
         }
         if (fullResponse.trim()) {
-          await saveChatMessage(
-            conversationId,
-            'assistant',
-            fullResponse
-          ).catch(() => {});
+          await saveChatMessage(conversationId, session.user.id, 'assistant', fullResponse).catch(() => {});
         }
       } finally {
         controller.close();
@@ -612,3 +612,4 @@ ${attachments && attachments.length > 0 ? `\n═══════════�
     },
   });
 }
+
