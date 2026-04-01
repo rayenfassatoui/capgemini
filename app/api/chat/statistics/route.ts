@@ -2,7 +2,6 @@ import { auth } from '@/lib/auth';
 import { headers } from 'next/headers';
 import { statisticsChatRequestSchema } from '@/features/recruitment/schemas';
 import {
-  getStatisticsChatContext,
   getOrCreateChatConversation,
   saveChatMessage,
   getChatHistory,
@@ -14,12 +13,26 @@ import {
   getToolsForRole,
   executeAgentTool,
 } from '@/features/recruitment/services/agent-tools';
+import { compactToolResult } from '@/features/recruitment/services/agent-tools/utils';
 import { getModelForTask } from '@/features/recruitment/services/ai';
 import type { UserRole } from '@/features/recruitment/types';
 import { SlidingWindowRateLimiter } from '@/lib/rate-limit';
 
-// Max tool-call iterations before we force a final answer
-const MAX_AGENT_STEPS = 15;
+// ---------------------------------------------------------------------------
+// Phase 1 AI Guardrails
+// ---------------------------------------------------------------------------
+
+// Max tool-call iterations before we force a final answer (reduced for cost control)
+const MAX_AGENT_STEPS = 8;
+
+// Max output tokens for model responses (prevents runaway generation)
+const MAX_OUTPUT_TOKENS = 2048;
+
+// Timeout for each LLM request (prevents hanging)
+const LLM_REQUEST_TIMEOUT_MS = 30_000;
+
+// Max consecutive tool failures before forcing a text response
+const MAX_CONSECUTIVE_TOOL_FAILURES = 3;
 const chatLimiter = new SlidingWindowRateLimiter(15, 60_000);
 
 async function getAuthSession() {
@@ -157,10 +170,10 @@ export async function POST(request: Request) {
     await saveChatMessage(conversation.id, session.user.id, 'user', lastUserMessage.content);
   }
 
-  // Load full conversation history from DB so the model always has complete memory
-    const { messages: dbHistory } = await getChatHistory(conversation.id, session.user.id);
+  // Load conversation history (bounded to recent messages for cost control)
+  const { messages: dbHistory } = await getChatHistory(conversation.id, session.user.id);
 
-  const dataContext = await getStatisticsChatContext(session.user.id, role);
+  // Phase 1: Remove context stuffing — all data is fetched on-demand via tools
   const today = new Date().toISOString().split('T')[0];
 
   const roleDescriptions: Record<string, string> = {
@@ -357,21 +370,25 @@ SECTION 8: RESPONSE QUALITY
 
 - Be concise, data-driven, and actionable — no filler text
 - Use markdown formatting: tables for lists, **bold** for key numbers, headers for sections
-- Never invent data — every number must come from a tool result or the context below
+- Never invent data — every number must come from a tool result
 - Round percentages to whole numbers
 - For mutating actions (create, delete, update), confirm the result after the tool completes
 - Highlight the most actionable insights first
 - After showing results, always suggest 2-3 possible next steps
 
 ═══════════════════════════════════════
-SECTION 9: LIVE DATA SNAPSHOT
+SECTION 9: DATA ACCESS (ON-DEMAND ONLY)
 ═══════════════════════════════════════
-Fetched: ${today} (may be stale — always prefer tool calls for actions)
 
-${dataContext}
+All business data is fetched through tools at runtime. You have NO pre-loaded data.
+For any query about CVs, jobs, candidates, or statistics, you MUST call the appropriate tool first.
 
-NOTE: The data above is a SNAPSHOT for context. For any action that modifies state
-(assign, update, delete, create), ALWAYS call the relevant tool first for fresh data.
+Quick reference:
+- CVs: list_cv_pool, search_cv_pool, semantic_search_cvs, get_cv_details
+- Jobs: list_jobs, get_job
+- Candidates: get_candidates_by_job, get_candidates_by_stage, get_candidate
+- Matching: match_cvs_to_job, hybrid_search_cvs
+- Dashboard: get_dashboard_stats, get_smart_insights
 ${attachments && attachments.length > 0 ? `\n═══════════════════════════════════════\nATTACHMENTS\n═══════════════════════════════════════\nThe user has attached ${attachments.length} file(s). Process them with upload_cv(attachmentIndex).\n${attachments.map((a, i) => `[${i}] ${a.filename} (${a.contentType}, ${Math.round(a.size / 1024)}KB)`).join('\n')}` : ''}`;
 
   // Build LLM messages with conversation history
@@ -406,6 +423,7 @@ ${attachments && attachments.length > 0 ? `\n═══════════�
   const stream = new ReadableStream({
     async start(controller) {
       let fullResponse = '';
+      let consecutiveToolFailures = 0;
 
       try {
         // Agent loop: iterate until we get a text response or hit max steps
@@ -413,25 +431,48 @@ ${attachments && attachments.length > 0 ? `\n═══════════�
         while (step < MAX_AGENT_STEPS) {
           step++;
 
-          // Call LLM (non-streaming for tool-call steps)
-          const llmResponse = await fetch(
-            'https://openrouter.ai/api/v1/chat/completions',
-            {
-              method: 'POST',
-              headers: {
-                Authorization: `Bearer ${apiKey}`,
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                model: getModelForTask('agent'),
-                messages: llmMessages,
-                tools: tools.length > 0 ? tools : undefined,
-                tool_choice: 'auto',
-                temperature: 0.15,
-                stream: false,
-              }),
+          // Phase 1 guardrail: timeout protection for LLM requests
+          const abortController = new AbortController();
+          const timeoutId = setTimeout(() => abortController.abort(), LLM_REQUEST_TIMEOUT_MS);
+
+          let llmResponse: Response;
+          try {
+            // Call LLM (non-streaming for tool-call steps)
+            llmResponse = await fetch(
+              'https://openrouter.ai/api/v1/chat/completions',
+              {
+                method: 'POST',
+                headers: {
+                  Authorization: `Bearer ${apiKey}`,
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  model: getModelForTask('agent'),
+                  messages: llmMessages,
+                  tools: tools.length > 0 ? tools : undefined,
+                  tool_choice: 'auto',
+                  temperature: 0.15,
+                  max_tokens: MAX_OUTPUT_TOKENS,
+                  stream: false,
+                }),
+                signal: abortController.signal,
+              }
+            );
+          } catch (fetchError) {
+            clearTimeout(timeoutId);
+            if (fetchError instanceof Error && fetchError.name === 'AbortError') {
+              controller.enqueue(
+                encoder.encode('The AI service took too long to respond. Please try a simpler query.')
+              );
+            } else {
+              controller.enqueue(
+                encoder.encode('Failed to connect to AI service. Please try again.')
+              );
             }
-          );
+            break;
+          } finally {
+            clearTimeout(timeoutId);
+          }
 
           if (!llmResponse.ok) {
             controller.enqueue(
@@ -560,9 +601,25 @@ ${attachments && attachments.length > 0 ? `\n═══════════�
               )
             );
 
-            // Add tool result to LLM history
+            // Phase 1 guardrail: fail-fast for repeated tool failures
+            if (!result.success) {
+              consecutiveToolFailures++;
+              if (consecutiveToolFailures >= MAX_CONSECUTIVE_TOOL_FAILURES) {
+                controller.enqueue(
+                  encoder.encode(
+                    `\n\nI encountered ${consecutiveToolFailures} consecutive tool failures. Stopping to avoid further errors. Please try rephrasing your request.`
+                  )
+                );
+                fullResponse = `Tool execution failed after ${consecutiveToolFailures} attempts.`;
+                break;
+              }
+            } else {
+              consecutiveToolFailures = 0; // Reset on success
+            }
+
+            // Phase 1: Compact tool result before injecting to model (token efficiency)
             const toolResultContent = result.success
-              ? JSON.stringify(result.data)
+              ? JSON.stringify(compactToolResult(result.data))
               : JSON.stringify({ error: result.error });
 
             llmMessages.push({
@@ -570,6 +627,11 @@ ${attachments && attachments.length > 0 ? `\n═══════════�
               tool_call_id: tc.id,
               content: toolResultContent,
             });
+          }
+
+          // Break outer loop if we hit fail-fast
+          if (consecutiveToolFailures >= MAX_CONSECUTIVE_TOOL_FAILURES) {
+            break;
           }
 
           // Continue loop - the LLM will see tool results and decide next step

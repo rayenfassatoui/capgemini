@@ -170,9 +170,12 @@ export const definitions: AgentToolDefinition[] = [
 // ---- Executors ----
 
 export const executors: Record<string, ToolHandler> = {
-  match_cvs_to_job: async (args, { services, resolveId, sanitizeForJson, truncateArray }) => {
+  match_cvs_to_job: async (args, { services, resolveId, sanitizeForJson, truncateArray, ctx }) => {
+    // Phase 1: Pass scope for consistent access control
+    const scope = { userId: ctx.userId, role: ctx.role };
     const matches = await services.matchCvsToJob(
-      await resolveId(args.jobId, 'jobId')
+      await resolveId(args.jobId, 'jobId'),
+      scope
     );
     return truncateArray(
       matches.map((m) => sanitizeForJson(m)),
@@ -180,11 +183,14 @@ export const executors: Record<string, ToolHandler> = {
     );
   },
 
-  hybrid_search_cvs: async (args, { resolveId, sanitizeForJson, truncateArray }) => {
+  hybrid_search_cvs: async (args, { resolveId, sanitizeForJson, truncateArray, ctx }) => {
+    // Phase 1: Pass scope for consistent access control
+    const scope = { userId: ctx.userId, role: ctx.role };
     const limit = args.limit ? parseInt(String(args.limit), 10) : 20;
     const matches = await hybridMatchCvsToJob(
       await resolveId(args.jobId, 'jobId'),
-      limit
+      limit,
+      scope
     );
     return truncateArray(
       matches.map((m) => sanitizeForJson(m)),
@@ -192,14 +198,17 @@ export const executors: Record<string, ToolHandler> = {
     );
   },
 
-  match_cvs_to_job_with_filters: async (args, { services, resolveId, sanitizeForJson, truncateArray }) => {
+  match_cvs_to_job_with_filters: async (args, { services, resolveId, sanitizeForJson, truncateArray, ctx }) => {
+    // Phase 1: Pass scope for consistent access control
+    const scope = { userId: ctx.userId, role: ctx.role };
     const matches = await services.matchCvsToJobWithFilters(
       await resolveId(args.jobId, 'jobId'),
       {
         skills: (args.skills as string[]) ?? [],
         languages: (args.languages as string[]) ?? [],
         minPositions: Number(args.minPositions ?? 0),
-      }
+      },
+      scope
     );
     return truncateArray(
       matches.map((m) => sanitizeForJson(m)),
@@ -225,9 +234,11 @@ export const executors: Record<string, ToolHandler> = {
   },
 
   bulk_assign_cvs_to_job: async (args, { services, resolveId, sanitizeForJson, ctx }) => {
+    // Phase 1: Pass scope for consistent access control
+    const scope = { userId: ctx.userId, role: ctx.role };
     const jobId = await resolveId(args.jobId, 'jobId');
     const count = Math.min(Math.max(Number(args.count ?? 5), 1), 20);
-    const matches = await services.matchCvsToJob(jobId);
+    const matches = await services.matchCvsToJob(jobId, scope);
     const toAssign = matches
       .filter((m) => !m.alreadyAssigned)
       .slice(0, count);
@@ -253,7 +264,9 @@ export const executors: Record<string, ToolHandler> = {
     };
   },
 
-  semantic_search_cvs: async (args, { sanitizeForJson, truncateArray }) => {
+  semantic_search_cvs: async (args, { sanitizeForJson, truncateArray, ctx }) => {
+    // Phase 1: Pass scope for consistent access control
+    const scope = { userId: ctx.userId, role: ctx.role };
     const query = String(args.query ?? '').trim();
     if (!query) {
       throw new Error('A search query is required for semantic search');
@@ -262,7 +275,7 @@ export const executors: Record<string, ToolHandler> = {
     const limit = Math.min(Math.max(Number(args.limit ?? 10), 1), 30);
     const threshold = Math.min(Math.max(Number(args.threshold ?? 0.6), 0.1), 1.0);
 
-    const results = await searchCvsSemantically(query, { threshold, limit });
+    const results = await searchCvsSemantically(query, { threshold, limit, scope });
 
     return {
       query,

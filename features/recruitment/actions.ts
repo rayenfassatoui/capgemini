@@ -138,18 +138,22 @@ export async function closeJobAction(jobId: string) {
 // ==================== CV MATCHING ACTIONS ====================
 
 export async function matchCvsToJobAction(jobId: string) {
-  await requireRole(['ta', 'admin']);
+  const session = await requireRole(['ta', 'admin']);
   const services = await getServices();
-  return services.matchCvsToJob(jobId);
+  // Phase 1: Pass scope for consistent access control
+  const scope = { userId: session.user.id, role: session.user.role as 'ta' | 'admin' };
+  return services.matchCvsToJob(jobId, scope);
 }
 
 export async function matchCvsToJobWithFiltersAction(
   jobId: string,
   filters: { skills: string[]; languages: string[]; minPositions: number }
 ) {
-  await requireRole(['ta', 'admin']);
+  const session = await requireRole(['ta', 'admin']);
   const services = await getServices();
-  return services.matchCvsToJobWithFilters(jobId, filters);
+  // Phase 1: Pass scope for consistent access control
+  const scope = { userId: session.user.id, role: session.user.role as 'ta' | 'admin' };
+  return services.matchCvsToJobWithFilters(jobId, filters, scope);
 }
 
 // ==================== CANDIDATE PIPELINE ACTIONS ====================

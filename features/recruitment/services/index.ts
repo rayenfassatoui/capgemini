@@ -18,6 +18,7 @@ export {
 export { createJob, listJobs, getJob, closeJob, saveJobAsTemplate, listJobTemplates, createJobFromTemplate } from './jobs';
 
 export { matchCvsToJob, matchCvsToJobWithFilters, searchCvsSemantically } from './cv-matching';
+export type { RetrievalScope } from './cv-matching';
 
 export {
   assignCvToJob,
@@ -79,7 +80,6 @@ export { getDashboardStats, getTodayInterviewSchedule } from './dashboard';
 export { getCvPoolStats, getJobsStats, getSmartInsights } from './statistics';
 
 export {
-  getStatisticsChatContext,
   askAiAboutStatistics,
   listChatConversations,
   createChatConversation,

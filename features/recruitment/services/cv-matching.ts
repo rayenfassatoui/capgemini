@@ -1,4 +1,4 @@
-import { eq, sql, isNotNull, asc } from 'drizzle-orm';
+import { eq, sql, asc } from 'drizzle-orm';
 import { db } from '@/lib/db';
 import { candidates, cvPool } from '@/db/schema';
 import { cvMatchFiltersSchema, aiMatchRecommendationOutputSchema } from '../schemas';
@@ -23,9 +23,17 @@ function skillsMatch(cvSkill: string, jobSkill: string): boolean {
   return false;
 }
 
-export async function matchCvsToJob(jobId: string): Promise<CvMatchResult[]> {
+export async function matchCvsToJob(
+  jobId: string,
+  scope?: RetrievalScope
+): Promise<CvMatchResult[]> {
   const job = await getJob(jobId);
   if (!job) throw new Error('Job not found');
+
+  // Apply scope: admin sees all CVs, non-admin sees own CVs only
+  const scopeCondition = scope && scope.role !== 'admin'
+    ? eq(cvPool.uploadedBy, scope.userId)
+    : undefined;
 
   const allCvs = await db.select({
     id: cvPool.id,
@@ -36,7 +44,7 @@ export async function matchCvsToJob(jobId: string): Promise<CvMatchResult[]> {
     extractedExperiences: cvPool.extractedExperiences,
     extractedLanguages: cvPool.extractedLanguages,
     extractedSummary: cvPool.extractedSummary,
-  }).from(cvPool);
+  }).from(cvPool).where(scopeCondition);
 
   const existingCandidates = await db
     .select({ cvId: candidates.cvId })
@@ -99,11 +107,17 @@ export async function matchCvsToJob(jobId: string): Promise<CvMatchResult[]> {
 
 export async function matchCvsToJobWithFilters(
   jobId: string,
-  filters: CvMatchFilters
+  filters: CvMatchFilters,
+  scope?: RetrievalScope
 ): Promise<CvMatchResult[]> {
   const validated = cvMatchFiltersSchema.parse(filters);
   const job = await getJob(jobId);
   if (!job) throw new Error('Job not found');
+
+  // Apply scope: admin sees all CVs, non-admin sees own CVs only
+  const scopeCondition = scope && scope.role !== 'admin'
+    ? eq(cvPool.uploadedBy, scope.userId)
+    : undefined;
 
   let allCvs = await db.select({
     id: cvPool.id,
@@ -114,7 +128,7 @@ export async function matchCvsToJobWithFilters(
     extractedExperiences: cvPool.extractedExperiences,
     extractedLanguages: cvPool.extractedLanguages,
     extractedSummary: cvPool.extractedSummary,
-  }).from(cvPool);
+  }).from(cvPool).where(scopeCondition);
 
   const existingCandidates = await db
     .select({ cvId: candidates.cvId })
@@ -289,28 +303,41 @@ export interface SemanticSearchResult {
   experienceCount: number;
 }
 
+/**
+ * Scope options for retrieval - ensures consistent access control across all retrieval paths.
+ * Admin users get global access; non-admin users only see their own CVs.
+ */
+export interface RetrievalScope {
+  userId: string;
+  role: 'ta' | 'manager' | 'hr' | 'admin';
+}
+
 export async function searchCvsSemantically(
   queryText: string,
-  options: { threshold?: number; limit?: number } = {}
+  options: { threshold?: number; limit?: number; scope?: RetrievalScope } = {}
 ): Promise<SemanticSearchResult[]> {
-  const { threshold = 0.6, limit = 15 } = options;
+  const { threshold = 0.6, limit = 15, scope } = options;
 
   // 1. Generate a query embedding via NVIDIA NV-EmbedQA E5 V5
   const { generateTextEmbedding } = await import('./embeddings');
   const queryEmbedding = await generateTextEmbedding(queryText, 'query');
 
   if (!queryEmbedding) {
-    throw new Error('Failed to generate query embedding \u2014 check NVIDIA_API_KEY and API availability');
+    throw new Error('Failed to generate query embedding — check NVIDIA_API_KEY and API availability');
   }
 
   // 2. Serialize the embedding array to a pgvector-compatible string
-  //    This avoids Drizzle array serialization issues with cosineDistance()
   const embeddingStr = JSON.stringify(queryEmbedding);
 
-  // 3. Perform cosine distance search using raw SQL <=> operator
-  //    <=> returns cosine distance (0 = identical, 2 = opposite)
-  //    Filter out rows with NULL embeddings and apply distance threshold
+  // 3. Build scope-aware WHERE clause
+  //    Admin users: all CVs with embeddings
+  //    Non-admin users: only their own CVs
   const distance = sql<number>`(${cvPool.embedding} <=> ${embeddingStr}::vector)`;
+  
+  const baseCondition = sql`${cvPool.embedding} IS NOT NULL AND (${cvPool.embedding} <=> ${embeddingStr}::vector) < ${threshold}`;
+  const scopeCondition = scope && scope.role !== 'admin'
+    ? sql`${baseCondition} AND ${cvPool.uploadedBy} = ${scope.userId}`
+    : baseCondition;
 
   const results = await db
     .select({
@@ -325,9 +352,7 @@ export async function searchCvsSemantically(
       distance,
     })
     .from(cvPool)
-    .where(
-      sql`${cvPool.embedding} IS NOT NULL AND (${cvPool.embedding} <=> ${embeddingStr}::vector) < ${threshold}`
-    )
+    .where(scopeCondition)
     .orderBy(asc(distance))
     .limit(limit);
 
@@ -351,25 +376,26 @@ export async function searchCvsSemantically(
 }
 
 // ---------------------------------------------------------------------------
-// Advanced: Hybrid Search combining Keyword Mathing and Semantic Search
+// Advanced: Hybrid Search combining Keyword Matching and Semantic Search
 // Uses Reciprocal Rank Fusion (RRF) to merge the ranked lists.
 // ---------------------------------------------------------------------------
 
 export async function hybridMatchCvsToJob(
   jobId: string,
-  limit: number = 20
+  limit: number = 20,
+  scope?: RetrievalScope
 ): Promise<HybridSearchResult[]> {
   const job = await getJob(jobId);
   if (!job) throw new Error('Job not found');
 
-  // 1. Get Keyword Matches (Lexical)
-  const keywordResults = await matchCvsToJob(jobId);
+  // 1. Get Keyword Matches (Lexical) - scoped
+  const keywordResults = await matchCvsToJob(jobId, scope);
 
   // 2. Build Semantic Query from Job
   const semanticQuery = `Job Title: ${job.title}. Seniority: ${job.seniority}. Skills required: ${job.mustHave.join(', ')}. Domain: ${job.businessUnit ?? 'Technology'}`;
   
-  // 3. Get Semantic Matches (Vector) - we fetch more than limit to ensure good overlap
-  const semanticResults = await searchCvsSemantically(semanticQuery, { limit: 100, threshold: 0.8 });
+  // 3. Get Semantic Matches (Vector) - scoped, fetch more than limit to ensure good overlap
+  const semanticResults = await searchCvsSemantically(semanticQuery, { limit: 100, threshold: 0.8, scope });
 
   // 4. Reciprocal Rank Fusion (RRF) constants
   const K = 60; // Standard constant used in RRF
