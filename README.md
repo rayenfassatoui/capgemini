@@ -12,7 +12,7 @@ AI-powered recruitment platform built for enterprise hiring workflows. Manages t
 | **Styling** | Tailwind CSS v4 + shadcn/ui |
 | **Database** | PostgreSQL (Neon) + Drizzle ORM + pgvector |
 | **Auth** | Better-auth (email/password, role-based) |
-| **AI (LLM)** | OpenRouter (multi-model routing) |
+| **AI (LLM)** | NVIDIA Build API (stepfun-ai/step-3.5-flash) |
 | **AI (Embeddings)** | NVIDIA NV-EmbedQA E5 V5 (1024-dim vectors) |
 | **Email** | Nodemailer (Gmail SMTP) |
 | **Charts** | Recharts |
@@ -48,8 +48,7 @@ CVs uploaded after setup will automatically generate embeddings. The AI agent ca
 | `DATABASE_URL` | Yes | Neon PostgreSQL connection string |
 | `BETTER_AUTH_URL` | Yes | App URL (`http://localhost:3000`) |
 | `BETTER_AUTH_SECRET` | Yes | Random secret for auth sessions |
-| `OPENROUTER_API_KEY` | Yes | OpenRouter API key for LLM agent |
-| `NVIDIA_API_KEY` | No | NVIDIA NIM API key for semantic search |
+| `NVIDIA_API_KEY` | Yes | NVIDIA Build API key for LLM agent + semantic search |
 | `EMAIL_USER` | No | Gmail address for interview invitation emails |
 | `EMAIL_PASSWORD` | No | Gmail App Password for SMTP |
 

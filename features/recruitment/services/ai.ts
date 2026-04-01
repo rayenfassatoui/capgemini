@@ -1,9 +1,14 @@
 /**
- * AI Service — Model Configuration & OpenRouter Client
+ * AI Service — Model Configuration & NVIDIA Build API Client
  *
  * Provides a centralized AI configuration with smart model routing.
  * Models are organized by task type for optimal cost/quality balance.
+ *
+ * Uses NVIDIA Build API (https://integrate.api.nvidia.com/v1) with
+ * OpenAI-compatible SDK for the stepfun-ai/step-3.5-flash model.
  */
+
+import OpenAI from 'openai';
 
 // ---- Environment ----
 
@@ -14,6 +19,27 @@ export function ensureEnv(value: string | undefined, name: string): string {
   return value;
 }
 
+// ---- NVIDIA Build API Client ----
+
+const NVIDIA_BASE_URL = 'https://integrate.api.nvidia.com/v1';
+
+let nvidiaClient: OpenAI | null = null;
+
+/**
+ * Get or create the NVIDIA Build API client singleton.
+ * Uses OpenAI SDK with NVIDIA's base URL.
+ */
+export function getNvidiaClient(): OpenAI {
+  if (!nvidiaClient) {
+    const apiKey = ensureEnv(process.env.NVIDIA_API_KEY, 'NVIDIA_API_KEY');
+    nvidiaClient = new OpenAI({
+      apiKey,
+      baseURL: NVIDIA_BASE_URL,
+    });
+  }
+  return nvidiaClient;
+}
+
 // ---- Model Configuration ----
 
 /**
@@ -21,14 +47,16 @@ export function ensureEnv(value: string | undefined, name: string): string {
  * Each tier is optimized for cost/quality balance.
  *
  * To override globally, set AI_MODEL in .env — all tasks will use that model.
+ *
+ * Model format for NVIDIA Build: org/model-name (e.g., stepfun-ai/step-3.5-flash)
  */
 export const AI_MODELS = {
   /** Primary agent model — best for tool calling, multi-step reasoning */
-  agent: 'stepfun/step-3.5-flash:free',
+  agent: 'stepfun-ai/step-3.5-flash',
   /** Structured output — JSON generation, data extraction, scoring */
-  structured: 'stepfun/step-3.5-flash:free',
+  structured: 'stepfun-ai/step-3.5-flash',
   /** Long-form generation — job descriptions, emails, analysis */
-  generation: 'stepfun/step-3.5-flash:free',
+  generation: 'stepfun-ai/step-3.5-flash',
 } as const;
 
 export type AITaskType = keyof typeof AI_MODELS;
@@ -97,11 +125,14 @@ export function normalizeContent(content: unknown): string {
   return JSON.stringify(content);
 }
 
-// ---- OpenRouter Client ----
+// ---- NVIDIA Build API Client ----
 
 /**
- * Call OpenRouter with a system + user prompt.
+ * Call NVIDIA Build API with a system + user prompt.
  * Uses the model appropriate for the given task type.
+ *
+ * Note: Function name kept as 'callOpenRouter' for backward compatibility
+ * with existing call sites. Actually calls NVIDIA Build API.
  *
  * @param systemPrompt - System instructions
  * @param userPrompt - User message
@@ -112,13 +143,10 @@ export async function callOpenRouter(
   userPrompt: string,
   task: AITaskType = 'structured'
 ): Promise<string> {
-  const apiKey = ensureEnv(process.env.OPENROUTER_API_KEY, 'OPENROUTER_API_KEY');
+  const client = getNvidiaClient();
   const model = getModelForTask(task);
 
-  const { OpenRouter } = await import('@openrouter/sdk');
-  const client = new OpenRouter({ apiKey });
-
-  const response = await client.chat.send({
+  const response = await client.chat.completions.create({
     model,
     messages: [
       { role: 'system', content: systemPrompt },
@@ -127,7 +155,10 @@ export async function callOpenRouter(
     temperature: 0.3,
   });
 
-  const raw = (response as { choices?: Array<{ message?: { content?: unknown } }> }).choices?.[0]?.message?.content;
+  const message = response.choices?.[0]?.message;
+  // Handle NVIDIA's potential reasoning_content field (chain-of-thought)
+  // Prefer content, fall back to reasoning_content if present
+  const raw = message?.content ?? (message as { reasoning_content?: string })?.reasoning_content;
   if (!raw) throw new Error('Empty AI response');
   return normalizeContent(raw);
 }

@@ -266,3 +266,19 @@ export async function generateCvEmbeddingAfterUpload(cvId: string): Promise<bool
     return false;
   }
 }
+
+/**
+ * Generate chunked embeddings for RAG retrieval (Phase 2).
+ * This should be called after CV extraction is complete.
+ * Failures are logged but do not throw — chunking is non-critical.
+ */
+export async function generateCvChunksAfterExtraction(cvId: string): Promise<number> {
+  try {
+    const { generateAndStoreCvChunks } = await import('./chunking');
+    return await generateAndStoreCvChunks(cvId);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.warn(`[cv-pool] Failed to generate chunks for CV ${cvId}: ${message}`);
+    return 0;
+  }
+}

@@ -11,8 +11,21 @@ import {
   date,
   index,
   vector,
+  customType,
 } from 'drizzle-orm/pg-core';
-import { relations } from 'drizzle-orm';
+import { relations, sql } from 'drizzle-orm';
+
+// ============ CUSTOM TYPES ============
+
+/**
+ * Custom tsvector type for PostgreSQL full-text search.
+ * Drizzle ORM doesn't natively support tsvector, so we define it manually.
+ */
+export const tsvector = customType<{ data: string }>({
+  dataType() {
+    return 'tsvector';
+  },
+});
 
 // ============ AUTH TABLES (Better-Auth managed) ============
 
@@ -100,6 +113,14 @@ export const interviewStatusEnum = pgEnum('interview_status', [
   'cancelled',
 ]);
 
+export const chunkSectionTypeEnum = pgEnum('chunk_section_type', [
+  'experience',
+  'skills',
+  'education',
+  'summary',
+  'languages',
+]);
+
 // ============ BUSINESS TABLES ============
 
 export const jobs = pgTable('jobs', {
@@ -146,6 +167,43 @@ export const cvPool = pgTable('cv_pool', {
 }, (table) => [
   index('cv_pool_embedding_hnsw_cosine_idx')
     .using('hnsw', table.embedding.op('vector_cosine_ops')),
+]);
+
+/**
+ * CV Chunks: Sectioned embeddings for improved RAG retrieval.
+ * Each CV is split into chunks by section type (experience, skills, etc.)
+ * for more precise semantic matching.
+ * 
+ * Includes tsvector column for PostgreSQL full-text search (FTS).
+ */
+export const cvChunks = pgTable('cv_chunks', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  cvId: uuid('cv_id')
+    .notNull()
+    .references(() => cvPool.id, { onDelete: 'cascade' }),
+  uploadedBy: text('uploaded_by')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  sectionType: chunkSectionTypeEnum('section_type').notNull(),
+  sectionOrder: integer('section_order').default(0).notNull(),
+  chunkText: text('chunk_text').notNull(),
+  tokenEstimate: integer('token_estimate').notNull(),
+  embedding: vector('embedding', { dimensions: 1024 }).$type<number[]>(),
+  // Full-text search vector - generated from chunkText
+  searchVector: tsvector('search_vector'),
+  metadata: jsonb('metadata').$type<Record<string, unknown>>().default({}),
+  indexVersion: integer('index_version').default(1).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => [
+  index('cv_chunks_embedding_hnsw_cosine_idx')
+    .using('hnsw', table.embedding.op('vector_cosine_ops')),
+  index('cv_chunks_cv_id_idx').on(table.cvId),
+  index('cv_chunks_uploaded_by_idx').on(table.uploadedBy),
+  index('cv_chunks_section_type_idx').on(table.sectionType),
+  // GIN index for full-text search on searchVector column
+  index('cv_chunks_search_vector_gin_idx')
+    .using('gin', table.searchVector),
 ]);
 
 /**
@@ -423,6 +481,12 @@ export const jobsRelations = relations(jobs, ({ one, many }) => ({
 export const cvPoolRelations = relations(cvPool, ({ one, many }) => ({
   uploadedByUser: one(users, { fields: [cvPool.uploadedBy], references: [users.id] }),
   candidates: many(candidates),
+  chunks: many(cvChunks),
+}));
+
+export const cvChunksRelations = relations(cvChunks, ({ one }) => ({
+  cv: one(cvPool, { fields: [cvChunks.cvId], references: [cvPool.id] }),
+  uploadedByUser: one(users, { fields: [cvChunks.uploadedBy], references: [users.id] }),
 }));
 
 export const candidatesRelations = relations(candidates, ({ one, many }) => ({

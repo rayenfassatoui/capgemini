@@ -167,6 +167,12 @@ export const TOOL_ARG_SCHEMAS: Record<string, z.ZodType> = {
       threshold: z.coerce.number().optional(),
     })
     .passthrough(),
+  rag_search_cvs: z
+    .object({
+      query: z.string().min(1),
+      limit: z.coerce.number().min(1).max(20).optional(),
+    })
+    .passthrough(),
 
   // Interviews
   generate_interview_questions: z

@@ -66,6 +66,10 @@ export async function uploadCvAction(input: UploadCvInput) {
       // This prevents UI blocking and slow uploads
       waitUntil(services.generateCvEmbeddingAfterUpload(cv.id));
 
+      // Generate CV chunks for improved RAG retrieval (Phase 2)
+      // Runs asynchronously after extraction is complete
+      waitUntil(services.generateAndStoreCvChunks(cv.id));
+
       // Check for duplicates after extraction
       const duplicates = await services.checkDuplicateCv(cv.id, session.user.id);
       revalidatePath('/ta/cv-pool');

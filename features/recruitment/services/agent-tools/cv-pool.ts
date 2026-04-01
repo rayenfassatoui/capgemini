@@ -170,6 +170,8 @@ export const executors: Record<string, ToolHandler> = {
     // Generate and store semantic embedding (non-blocking — failure is logged, not thrown)
     waitUntil(services.generateCvEmbeddingAfterUpload(cv.id));
 
+    // Generate chunked index for RAG (non-blocking, async — failure is logged only)
+    waitUntil(services.generateCvChunksAfterExtraction(cv.id));
 
     const { checkDuplicateCv } = await import('../duplicate-detection');
     const duplicates = await checkDuplicateCv(cv.id, ctx.userId);

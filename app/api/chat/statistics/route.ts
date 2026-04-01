@@ -14,7 +14,7 @@ import {
   executeAgentTool,
 } from '@/features/recruitment/services/agent-tools';
 import { compactToolResult } from '@/features/recruitment/services/agent-tools/utils';
-import { getModelForTask } from '@/features/recruitment/services/ai';
+import { getModelForTask, getNvidiaClient } from '@/features/recruitment/services/ai';
 import type { UserRole } from '@/features/recruitment/types';
 import { SlidingWindowRateLimiter } from '@/lib/rate-limit';
 
@@ -116,10 +116,6 @@ interface LLMChoice {
   };
 }
 
-interface LLMResponse {
-  choices?: LLMChoice[];
-}
-
 // ============ POST: Agentic chat with tool calling ============
 
 export async function POST(request: Request) {
@@ -216,7 +212,7 @@ Every tool that needs an ID follows this strict resolution:
 
 | Entity      | Valid sources for its ID                                                    |
 |-------------|----------------------------------------------------------------------------|
-| cvId        | list_cv_pool, get_cv_details, semantic_search_cvs, search_cv_pool          |
+| cvId        | list_cv_pool, get_cv_details, rag_search_cvs, semantic_search_cvs, search_cv_pool |
 | jobId       | list_jobs, get_job                                                          |
 | candidateId | get_candidates_by_job, get_candidates_by_stage, get_candidate              |
 | interviewId | get_today_interviews, get_interview_calendar, schedule_interview            |
@@ -236,8 +232,14 @@ SECTION 4: INTENT → TOOL MAPPING
 Match user intent to the correct tool. Follow DO/NEVER rules:
 
 "search for [skill] developers" or "find me [role] candidates"
-  → DO: semantic_search_cvs(query="[skill] developer", limit=10)
+  → DO: rag_search_cvs(query="[skill] developer", limit=15)
+  → FALLBACK: semantic_search_cvs if rag_search_cvs fails
   → NEVER: list_cv_pool (it doesn't search by meaning)
+
+"find candidates with [specific experience]" or "search CVs for [complex query]"
+  → DO: rag_search_cvs(query="[full description]") — best for complex multi-criteria searches
+  → FALLBACK: semantic_search_cvs for simpler queries
+  → NEVER: list_cv_pool alone
 
 "top candidates for [job]" or "best matches for [job]"
   → DO: list_jobs → hybrid_search_cvs(jobId) → present ranked table
@@ -245,7 +247,7 @@ Match user intent to the correct tool. Follow DO/NEVER rules:
 
 "who should I interview next?"
   → DO: get_candidates_by_stage("ta_screening" or "ta_accepted") → present with scores
-  → NEVER: semantic_search_cvs (wrong tool — this is about pipeline, not search)
+  → NEVER: rag_search_cvs (wrong tool — this is about pipeline, not search)
 
 "create a job" or "create a [title] job"
   → DO: generate_job_description(title, seniority) → create_job(using AI output)
@@ -384,7 +386,7 @@ All business data is fetched through tools at runtime. You have NO pre-loaded da
 For any query about CVs, jobs, candidates, or statistics, you MUST call the appropriate tool first.
 
 Quick reference:
-- CVs: list_cv_pool, search_cv_pool, semantic_search_cvs, get_cv_details
+- CVs/Search: rag_search_cvs (preferred for search), semantic_search_cvs (fallback), list_cv_pool, search_cv_pool, get_cv_details
 - Jobs: list_jobs, get_job
 - Candidates: get_candidates_by_job, get_candidates_by_stage, get_candidate
 - Matching: match_cvs_to_job, hybrid_search_cvs
@@ -406,8 +408,11 @@ ${attachments && attachments.length > 0 ? `\n═══════════�
     })),
   ];
 
-  const apiKey = process.env.OPENROUTER_API_KEY;
-  if (!apiKey) {
+  // Get NVIDIA client (throws if NVIDIA_API_KEY not set)
+  let nvidiaClient: ReturnType<typeof getNvidiaClient>;
+  try {
+    nvidiaClient = getNvidiaClient();
+  } catch {
     return new Response('AI service not configured', { status: 503 });
   }
 
@@ -431,36 +436,26 @@ ${attachments && attachments.length > 0 ? `\n═══════════�
         while (step < MAX_AGENT_STEPS) {
           step++;
 
-          // Phase 1 guardrail: timeout protection for LLM requests
-          const abortController = new AbortController();
-          const timeoutId = setTimeout(() => abortController.abort(), LLM_REQUEST_TIMEOUT_MS);
-
-          let llmResponse: Response;
+          let llmResponse: Awaited<ReturnType<typeof nvidiaClient.chat.completions.create>>;
           try {
-            // Call LLM (non-streaming for tool-call steps)
-            llmResponse = await fetch(
-              'https://openrouter.ai/api/v1/chat/completions',
-              {
-                method: 'POST',
-                headers: {
-                  Authorization: `Bearer ${apiKey}`,
-                  'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                  model: getModelForTask('agent'),
-                  messages: llmMessages,
-                  tools: tools.length > 0 ? tools : undefined,
-                  tool_choice: 'auto',
-                  temperature: 0.15,
-                  max_tokens: MAX_OUTPUT_TOKENS,
-                  stream: false,
-                }),
-                signal: abortController.signal,
-              }
+            // Call LLM via NVIDIA Build API (non-streaming for tool-call steps)
+            const completionPromise = nvidiaClient.chat.completions.create({
+              model: getModelForTask('agent'),
+              messages: llmMessages as Parameters<typeof nvidiaClient.chat.completions.create>[0]['messages'],
+              tools: tools.length > 0 ? tools : undefined,
+              tool_choice: 'auto',
+              temperature: 0.15,
+              max_tokens: MAX_OUTPUT_TOKENS,
+            });
+
+            // Phase 1 guardrail: timeout protection
+            const timeoutPromise = new Promise<never>((_, reject) =>
+              setTimeout(() => reject(new Error('TIMEOUT')), LLM_REQUEST_TIMEOUT_MS)
             );
-          } catch (fetchError) {
-            clearTimeout(timeoutId);
-            if (fetchError instanceof Error && fetchError.name === 'AbortError') {
+
+            llmResponse = await Promise.race([completionPromise, timeoutPromise]);
+          } catch (error) {
+            if (error instanceof Error && error.message === 'TIMEOUT') {
               controller.enqueue(
                 encoder.encode('The AI service took too long to respond. Please try a simpler query.')
               );
@@ -470,21 +465,9 @@ ${attachments && attachments.length > 0 ? `\n═══════════�
               );
             }
             break;
-          } finally {
-            clearTimeout(timeoutId);
           }
 
-          if (!llmResponse.ok) {
-            controller.enqueue(
-              encoder.encode(
-                `Sorry, the AI service returned an error (${llmResponse.status}). Please try again.`
-              )
-            );
-            break;
-          }
-
-          const llmJson = (await llmResponse.json()) as LLMResponse;
-          const choice = llmJson.choices?.[0];
+          const choice = llmResponse.choices?.[0];
           if (!choice) {
             controller.enqueue(
               encoder.encode('No response from AI. Please try again.')
@@ -493,7 +476,12 @@ ${attachments && attachments.length > 0 ? `\n═══════════�
           }
 
           const message = choice.message;
-          const toolCalls = message?.tool_calls;
+          // Filter to only function-type tool calls (OpenAI SDK returns union type)
+          const rawToolCalls = message?.tool_calls;
+          const toolCalls = rawToolCalls?.filter(
+            (tc): tc is typeof tc & { type: 'function'; function: { name: string; arguments: string } } =>
+              tc.type === 'function' && 'function' in tc
+          );
 
           // If no tool calls, we have a final text response
           if (!toolCalls || toolCalls.length === 0) {

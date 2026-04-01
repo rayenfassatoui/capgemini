@@ -13,6 +13,7 @@ export {
   getCvFile,
   searchCvPool,
   generateCvEmbeddingAfterUpload,
+  generateCvChunksAfterExtraction,
 } from './cv-pool';
 
 export { createJob, listJobs, getJob, closeJob, saveJobAsTemplate, listJobTemplates, createJobFromTemplate } from './jobs';
@@ -150,3 +151,69 @@ export {
   buildCvEmbeddingText,
   EMBEDDING_DIMENSIONS,
 } from './embeddings';
+
+export {
+  generateCvChunks,
+  generateAndStoreCvChunks,
+  deleteCvChunks,
+  getLatestIndexVersion,
+  getNextIndexVersion,
+} from './chunking';
+export type { CvChunk, ChunkSectionType } from './chunking';
+
+export {
+  rewriteQuery,
+  normalizeQueryForCache,
+  extractKeywordsSimple,
+} from './query-rewrite';
+export type { RewrittenQuery } from './query-rewrite';
+
+export {
+  retrieveChunks,
+  assembleContext,
+} from './retrieval-pipeline';
+export type {
+  RetrievalOptions,
+  RetrievedChunk,
+  RetrievalResult,
+  RetrievalMetrics,
+  AssembledContext,
+} from './retrieval-pipeline';
+
+export {
+  TtlCache,
+  embeddingCache,
+  retrievalCache,
+  rewriteCache,
+  buildEmbeddingCacheKey,
+  buildRetrievalCacheKey,
+  buildRewriteCacheKey,
+  buildScopeKey,
+  invalidateCvCaches,
+  invalidateAllCaches,
+  getAllCacheMetrics,
+} from './cache';
+export type { CacheMetrics } from './cache';
+
+export {
+  runEvaluation,
+  runComparisonEvaluation,
+  printEvalReport,
+  printComparisonReport,
+  generateMarkdownSummary,
+  discoverGroundTruth,
+  EVAL_QUERIES,
+  mergeGroundTruth,
+  calculateCoverage,
+} from './evaluation';
+export type { 
+  EvalQuery, 
+  EvalResult, 
+  EvalReport, 
+  EvalMetrics,
+  FailureType,
+  FailureSummary,
+  EvalMode,
+  CoverageMetrics,
+  ComparisonReport,
+} from './evaluation';

@@ -1,5 +1,6 @@
 import type { AgentToolDefinition, ToolHandler } from './types';
 import { searchCvsSemantically, hybridMatchCvsToJob } from '../cv-matching';
+import { retrieveChunks, assembleContext } from '../retrieval-pipeline';
 
 // ==================== CV MATCHING + SCREENING + BULK ASSIGN ====================
 
@@ -165,6 +166,27 @@ export const definitions: AgentToolDefinition[] = [
     allowedRoles: ['ta', 'admin'],
     mutating: false,
   },
+  {
+    name: 'rag_search_cvs',
+    description:
+      'Advanced RAG (Retrieval Augmented Generation) search using chunked CV embeddings. Provides more precise matching by searching individual CV sections (skills, experience, education, summary) rather than whole CVs. Returns cited context with source sections. Use this for complex queries requiring specific section matching.',
+    parameters: {
+      type: 'object',
+      properties: {
+        query: {
+          type: 'string',
+          description: 'Natural language search query describing the ideal candidate',
+        },
+        limit: {
+          type: 'string',
+          description: 'Maximum number of chunks to return (default: 15, max: 20)',
+        },
+      },
+      required: ['query'],
+    },
+    allowedRoles: ['ta', 'admin'],
+    mutating: false,
+  },
 ];
 
 // ---- Executors ----
@@ -285,6 +307,45 @@ export const executors: Record<string, ToolHandler> = {
         results.map((r) => sanitizeForJson(r)),
         limit
       ),
+    };
+  },
+
+  rag_search_cvs: async (args, { sanitizeForJson, ctx }) => {
+    const scope = { userId: ctx.userId, role: ctx.role };
+    const query = String(args.query ?? '').trim();
+    if (!query) {
+      throw new Error('A search query is required for RAG search');
+    }
+
+    const limit = Math.min(Math.max(Number(args.limit ?? 15), 1), 20);
+
+    const result = await retrieveChunks(query, scope, {
+      finalTopK: limit,
+      enableRewrite: true,
+      enableCache: true,
+    });
+
+    const context = assembleContext(result.chunks, 6000);
+
+    return {
+      query,
+      rewrittenQuery: result.rewrittenQuery?.semanticQuery ?? query,
+      totalChunks: result.chunks.length,
+      totalCvs: context.cvCount,
+      metrics: {
+        vectorMs: result.metrics.vectorMs,
+        lexicalMs: result.metrics.lexicalMs,
+        totalMs: result.metrics.totalMs,
+        cacheHit: result.metrics.cacheHit,
+      },
+      citations: context.citations,
+      chunks: result.chunks.slice(0, limit).map(c => sanitizeForJson({
+        cvId: c.cvId,
+        candidateName: c.candidateName,
+        sectionType: c.sectionType,
+        chunkText: c.chunkText.slice(0, 500),
+        score: Math.round(c.finalScore * 100) / 100,
+      })),
     };
   },
 };
