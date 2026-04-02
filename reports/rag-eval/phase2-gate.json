@@ -1,0 +1,2020 @@
+{
+  "timestamp": "2026-04-02T00:39:48.121Z",
+  "queryCount": 40,
+  "coverage": {
+    "totalQueries": 40,
+    "queriesWithCvIds": 34,
+    "queriesWithChunkIds": 34,
+    "cvIdCoverage": 0.85,
+    "chunkIdCoverage": 0.85
+  },
+  "baseline": {
+    "timestamp": "2026-04-02T00:22:09.287Z",
+    "mode": "baseline",
+    "totalQueries": 40,
+    "coverage": {
+      "totalQueries": 40,
+      "queriesWithCvIds": 34,
+      "queriesWithChunkIds": 34,
+      "cvIdCoverage": 0.85,
+      "chunkIdCoverage": 0.85
+    },
+    "avgMetrics": {
+      "precision5": 0.039999999999999994,
+      "precision10": 0.019999999999999997,
+      "mrr10": 0.175,
+      "ndcg10": 0.04198762019900289,
+      "emptyResultRate": 0.825,
+      "avgLatencyMs": 368.725,
+      "errorRate": 0
+    },
+    "byDifficulty": {
+      "easy": {
+        "precision5": 0.1142857142857143,
+        "precision10": 0.05714285714285715,
+        "mrr10": 0.42857142857142855,
+        "ndcg10": 0.11416253468111358,
+        "emptyResultRate": 0.5714285714285714,
+        "avgLatencyMs": 401.2857142857143,
+        "errorRate": 0
+      },
+      "medium": {
+        "precision5": 0.02727272727272728,
+        "precision10": 0.01363636363636364,
+        "mrr10": 0.13636363636363635,
+        "ndcg10": 0.030012513586101842,
+        "emptyResultRate": 0.8636363636363636,
+        "avgLatencyMs": 358.40909090909093,
+        "errorRate": 0
+      },
+      "hard": {
+        "precision5": 0.018181818181818184,
+        "precision10": 0.009090909090909092,
+        "mrr10": 0.09090909090909091,
+        "ndcg10": 0.02000834239073456,
+        "emptyResultRate": 0.9090909090909091,
+        "avgLatencyMs": 368.6363636363636,
+        "errorRate": 0
+      }
+    },
+    "byCategory": {
+      "skills": {
+        "precision5": 0.09333333333333332,
+        "precision10": 0.04666666666666666,
+        "mrr10": 0.4,
+        "ndcg10": 0.09729420277746903,
+        "emptyResultRate": 0.6,
+        "avgLatencyMs": 386.26666666666665,
+        "errorRate": 0
+      },
+      "experience": {
+        "precision5": 0,
+        "precision10": 0,
+        "mrr10": 0,
+        "ndcg10": 0,
+        "emptyResultRate": 1,
+        "avgLatencyMs": 344.875,
+        "errorRate": 0
+      },
+      "education": {
+        "precision5": 0,
+        "precision10": 0,
+        "mrr10": 0,
+        "ndcg10": 0,
+        "emptyResultRate": 1,
+        "avgLatencyMs": 372.5,
+        "errorRate": 0
+      },
+      "mixed": {
+        "precision5": 0.06666666666666667,
+        "precision10": 0.03333333333333333,
+        "mrr10": 0.3333333333333333,
+        "ndcg10": 0.07336392209936006,
+        "emptyResultRate": 0.6666666666666666,
+        "avgLatencyMs": 391.6666666666667,
+        "errorRate": 0
+      },
+      "seniority": {
+        "precision5": 0,
+        "precision10": 0,
+        "mrr10": 0,
+        "ndcg10": 0,
+        "emptyResultRate": 1,
+        "avgLatencyMs": 360.8333333333333,
+        "errorRate": 0
+      },
+      "language": {
+        "precision5": 0,
+        "precision10": 0,
+        "mrr10": 0,
+        "ndcg10": 0,
+        "emptyResultRate": 1,
+        "avgLatencyMs": 363,
+        "errorRate": 0
+      },
+      "certification": {
+        "precision5": 0,
+        "precision10": 0,
+        "mrr10": 0,
+        "ndcg10": 0,
+        "emptyResultRate": 1,
+        "avgLatencyMs": 340.6666666666667,
+        "errorRate": 0
+      }
+    },
+    "results": [
+      {
+        "queryId": "skill-1",
+        "query": "Find Java developers",
+        "patterns": [
+          "java"
+        ],
+        "hasGroundTruth": true,
+        "resultCount": 0,
+        "precision5": 0,
+        "precision10": 0,
+        "mrr10": 0,
+        "ndcg10": 0,
+        "latencyMs": 637,
+        "matchedCount": 0,
+        "failures": [
+          "empty_result",
+          "missed_relevance"
+        ],
+        "isError": false
+      },
+      {
+        "queryId": "skill-2",
+        "query": "React and TypeScript frontend engineers",
+        "patterns": [
+          "react",
+          "typescript"
+        ],
+        "hasGroundTruth": true,
+        "resultCount": 2,
+        "precision5": 0.4,
+        "precision10": 0.2,
+        "mrr10": 1,
+        "ndcg10": 0.3589542101716347,
+        "latencyMs": 365,
+        "matchedCount": 2,
+        "failures": [
+          "missed_relevance"
+        ],
+        "isError": false
+      },
+      {
+        "queryId": "skill-3",
+        "query": "Python machine learning engineers",
+        "patterns": [
+          "python",
+          "machine learning",
+          "ml"
+        ],
+        "hasGroundTruth": true,
+        "resultCount": 1,
+        "precision5": 0.2,
+        "precision10": 0.1,
+        "mrr10": 1,
+        "ndcg10": 0.22009176629808017,
+        "latencyMs": 367,
+        "matchedCount": 1,
+        "failures": [
+          "missed_relevance"
+        ],
+        "isError": false
+      },
+      {
+        "queryId": "skill-4",
+        "query": "DevOps engineers with Kubernetes",
+        "patterns": [
+          "devops",
+          "kubernetes",
+          "k8s"
+        ],
+        "hasGroundTruth": true,
+        "resultCount": 0,
+        "precision5": 0,
+        "precision10": 0,
+        "mrr10": 0,
+        "ndcg10": 0,
+        "latencyMs": 407,
+        "matchedCount": 0,
+        "failures": [
+          "empty_result",
+          "missed_relevance"
+        ],
+        "isError": false
+      },
+      {
+        "queryId": "skill-5",
+        "query": "Full stack developers Node.js",
+        "patterns": [
+          "node",
+          "full stack",
+          "fullstack"
+        ],
+        "hasGroundTruth": true,
+        "resultCount": 3,
+        "precision5": 0.2,
+        "precision10": 0.1,
+        "mrr10": 1,
+        "ndcg10": 0.22009176629808017,
+        "latencyMs": 384,
+        "matchedCount": 1,
+        "failures": [
+          "missed_relevance"
+        ],
+        "isError": false
+      },
+      {
+        "queryId": "skill-6",
+        "query": "Cloud architects AWS",
+        "patterns": [
+          "aws",
+          "cloud",
+          "architect"
+        ],
+        "hasGroundTruth": true,
+        "resultCount": 0,
+        "precision5": 0,
+        "precision10": 0,
+        "mrr10": 0,
+        "ndcg10": 0,
+        "latencyMs": 373,
+        "matchedCount": 0,
+        "failures": [
+          "empty_result",
+          "missed_relevance"
+        ],
+        "isError": false
+      },
+      {
+        "queryId": "skill-7",
+        "query": "Mobile developers React Native",
+        "patterns": [
+          "react native",
+          "mobile"
+        ],
+        "hasGroundTruth": true,
+        "resultCount": 0,
+        "precision5": 0,
+        "precision10": 0,
+        "mrr10": 0,
+        "ndcg10": 0,
+        "latencyMs": 416,
+        "matchedCount": 0,
+        "failures": [
+          "empty_result",
+          "missed_relevance"
+        ],
+        "isError": false
+      },
+      {
+        "queryId": "skill-8",
+        "query": "Data engineers Spark",
+        "patterns": [
+          "spark",
+          "data engineer"
+        ],
+        "hasGroundTruth": false,
+        "resultCount": 0,
+        "precision5": 0,
+        "precision10": 0,
+        "mrr10": 0,
+        "ndcg10": 0,
+        "latencyMs": 349,
+        "matchedCount": 0,
+        "failures": [
+          "empty_result"
+        ],
+        "isError": false
+      },
+      {
+        "queryId": "skill-9",
+        "query": "Backend microservices",
+        "patterns": [
+          "microservices",
+          "backend"
+        ],
+        "hasGroundTruth": true,
+        "resultCount": 0,
+        "precision5": 0,
+        "precision10": 0,
+        "mrr10": 0,
+        "ndcg10": 0,
+        "latencyMs": 362,
+        "matchedCount": 0,
+        "failures": [
+          "empty_result",
+          "missed_relevance"
+        ],
+        "isError": false
+      },
+      {
+        "queryId": "skill-10",
+        "query": "GraphQL API developers",
+        "patterns": [
+          "graphql",
+          "api"
+        ],
+        "hasGroundTruth": true,
+        "resultCount": 1,
+        "precision5": 0.2,
+        "precision10": 0.1,
+        "mrr10": 1,
+        "ndcg10": 0.22009176629808017,
+        "latencyMs": 337,
+        "matchedCount": 1,
+        "failures": [
+          "missed_relevance"
+        ],
+        "isError": false
+      },
+      {
+        "queryId": "skill-11",
+        "query": "Engineers with Docker",
+        "patterns": [
+          "docker",
+          "container"
+        ],
+        "hasGroundTruth": true,
+        "resultCount": 0,
+        "precision5": 0,
+        "precision10": 0,
+        "mrr10": 0,
+        "ndcg10": 0,
+        "latencyMs": 341,
+        "matchedCount": 0,
+        "failures": [
+          "empty_result",
+          "missed_relevance"
+        ],
+        "isError": false
+      },
+      {
+        "queryId": "skill-12",
+        "query": "Vue.js frontend developers",
+        "patterns": [
+          "vue",
+          "frontend"
+        ],
+        "hasGroundTruth": true,
+        "resultCount": 1,
+        "precision5": 0.2,
+        "precision10": 0.1,
+        "mrr10": 1,
+        "ndcg10": 0.22009176629808017,
+        "latencyMs": 385,
+        "matchedCount": 1,
+        "failures": [
+          "missed_relevance"
+        ],
+        "isError": false
+      },
+      {
+        "queryId": "skill-13",
+        "query": "CI/CD pipeline engineers",
+        "patterns": [
+          "ci",
+          "cd",
+          "pipeline",
+          "jenkins",
+          "github actions"
+        ],
+        "hasGroundTruth": true,
+        "resultCount": 0,
+        "precision5": 0,
+        "precision10": 0,
+        "mrr10": 0,
+        "ndcg10": 0,
+        "latencyMs": 333,
+        "matchedCount": 0,
+        "failures": [
+          "empty_result",
+          "missed_relevance"
+        ],
+        "isError": false
+      },
+      {
+        "queryId": "skill-14",
+        "query": "SQL database developers",
+        "patterns": [
+          "sql",
+          "database",
+          "postgresql",
+          "mysql"
+        ],
+        "hasGroundTruth": true,
+        "resultCount": 0,
+        "precision5": 0,
+        "precision10": 0,
+        "mrr10": 0,
+        "ndcg10": 0,
+        "latencyMs": 386,
+        "matchedCount": 0,
+        "failures": [
+          "empty_result",
+          "missed_relevance"
+        ],
+        "isError": false
+      },
+      {
+        "queryId": "skill-15",
+        "query": "Angular frontend engineers",
+        "patterns": [
+          "angular",
+          "frontend"
+        ],
+        "hasGroundTruth": true,
+        "resultCount": 1,
+        "precision5": 0.2,
+        "precision10": 0.1,
+        "mrr10": 1,
+        "ndcg10": 0.22009176629808017,
+        "latencyMs": 352,
+        "matchedCount": 1,
+        "failures": [
+          "missed_relevance"
+        ],
+        "isError": false
+      },
+      {
+        "queryId": "exp-1",
+        "query": "Developers with consulting experience",
+        "patterns": [
+          "consult"
+        ],
+        "hasGroundTruth": true,
+        "resultCount": 0,
+        "precision5": 0,
+        "precision10": 0,
+        "mrr10": 0,
+        "ndcg10": 0,
+        "latencyMs": 366,
+        "matchedCount": 0,
+        "failures": [
+          "empty_result",
+          "missed_relevance"
+        ],
+        "isError": false
+      },
+      {
+        "queryId": "exp-2",
+        "query": "Engineers who worked at startups",
+        "patterns": [
+          "startup"
+        ],
+        "hasGroundTruth": false,
+        "resultCount": 0,
+        "precision5": 0,
+        "precision10": 0,
+        "mrr10": 0,
+        "ndcg10": 0,
+        "latencyMs": 352,
+        "matchedCount": 0,
+        "failures": [
+          "empty_result"
+        ],
+        "isError": false
+      },
+      {
+        "queryId": "exp-3",
+        "query": "Project managers agile",
+        "patterns": [
+          "project manager",
+          "agile",
+          "scrum"
+        ],
+        "hasGroundTruth": false,
+        "resultCount": 0,
+        "precision5": 0,
+        "precision10": 0,
+        "mrr10": 0,
+        "ndcg10": 0,
+        "latencyMs": 338,
+        "matchedCount": 0,
+        "failures": [
+          "empty_result"
+        ],
+        "isError": false
+      },
+      {
+        "queryId": "exp-4",
+        "query": "Tech leads who managed teams",
+        "patterns": [
+          "tech lead",
+          "team lead",
+          "manager"
+        ],
+        "hasGroundTruth": true,
+        "resultCount": 0,
+        "precision5": 0,
+        "precision10": 0,
+        "mrr10": 0,
+        "ndcg10": 0,
+        "latencyMs": 331,
+        "matchedCount": 0,
+        "failures": [
+          "empty_result",
+          "missed_relevance"
+        ],
+        "isError": false
+      },
+      {
+        "queryId": "exp-5",
+        "query": "Banking finance industry",
+        "patterns": [
+          "bank",
+          "financ"
+        ],
+        "hasGroundTruth": true,
+        "resultCount": 0,
+        "precision5": 0,
+        "precision10": 0,
+        "mrr10": 0,
+        "ndcg10": 0,
+        "latencyMs": 338,
+        "matchedCount": 0,
+        "failures": [
+          "empty_result",
+          "missed_relevance"
+        ],
+        "isError": false
+      },
+      {
+        "queryId": "exp-6",
+        "query": "Healthcare industry experience",
+        "patterns": [
+          "healthcare",
+          "health",
+          "medical"
+        ],
+        "hasGroundTruth": false,
+        "resultCount": 0,
+        "precision5": 0,
+        "precision10": 0,
+        "mrr10": 0,
+        "ndcg10": 0,
+        "latencyMs": 350,
+        "matchedCount": 0,
+        "failures": [
+          "empty_result"
+        ],
+        "isError": false
+      },
+      {
+        "queryId": "exp-7",
+        "query": "E-commerce platform experience",
+        "patterns": [
+          "e-commerce",
+          "ecommerce",
+          "commerce",
+          "retail"
+        ],
+        "hasGroundTruth": false,
+        "resultCount": 0,
+        "precision5": 0,
+        "precision10": 0,
+        "mrr10": 0,
+        "ndcg10": 0,
+        "latencyMs": 341,
+        "matchedCount": 0,
+        "failures": [
+          "empty_result"
+        ],
+        "isError": false
+      },
+      {
+        "queryId": "exp-8",
+        "query": "API integration experience",
+        "patterns": [
+          "api",
+          "integration"
+        ],
+        "hasGroundTruth": true,
+        "resultCount": 0,
+        "precision5": 0,
+        "precision10": 0,
+        "mrr10": 0,
+        "ndcg10": 0,
+        "latencyMs": 343,
+        "matchedCount": 0,
+        "failures": [
+          "empty_result",
+          "missed_relevance"
+        ],
+        "isError": false
+      },
+      {
+        "queryId": "senior-1",
+        "query": "Senior Java developers",
+        "patterns": [
+          "java",
+          "senior"
+        ],
+        "hasGroundTruth": true,
+        "resultCount": 0,
+        "precision5": 0,
+        "precision10": 0,
+        "mrr10": 0,
+        "ndcg10": 0,
+        "latencyMs": 364,
+        "matchedCount": 0,
+        "failures": [
+          "empty_result",
+          "missed_relevance"
+        ],
+        "isError": false
+      },
+      {
+        "queryId": "senior-2",
+        "query": "Junior frontend developers",
+        "patterns": [
+          "junior",
+          "frontend",
+          "entry"
+        ],
+        "hasGroundTruth": true,
+        "resultCount": 0,
+        "precision5": 0,
+        "precision10": 0,
+        "mrr10": 0,
+        "ndcg10": 0,
+        "latencyMs": 347,
+        "matchedCount": 0,
+        "failures": [
+          "empty_result",
+          "missed_relevance"
+        ],
+        "isError": false
+      },
+      {
+        "queryId": "senior-3",
+        "query": "Principal engineers",
+        "patterns": [
+          "principal",
+          "staff",
+          "architect"
+        ],
+        "hasGroundTruth": true,
+        "resultCount": 0,
+        "precision5": 0,
+        "precision10": 0,
+        "mrr10": 0,
+        "ndcg10": 0,
+        "latencyMs": 347,
+        "matchedCount": 0,
+        "failures": [
+          "empty_result",
+          "missed_relevance"
+        ],
+        "isError": false
+      },
+      {
+        "queryId": "senior-4",
+        "query": "Lead developers",
+        "patterns": [
+          "lead",
+          "senior"
+        ],
+        "hasGroundTruth": true,
+        "resultCount": 0,
+        "precision5": 0,
+        "precision10": 0,
+        "mrr10": 0,
+        "ndcg10": 0,
+        "latencyMs": 378,
+        "matchedCount": 0,
+        "failures": [
+          "empty_result",
+          "missed_relevance"
+        ],
+        "isError": false
+      },
+      {
+        "queryId": "senior-5",
+        "query": "QA engineers automation",
+        "patterns": [
+          "qa",
+          "test",
+          "automation"
+        ],
+        "hasGroundTruth": true,
+        "resultCount": 0,
+        "precision5": 0,
+        "precision10": 0,
+        "mrr10": 0,
+        "ndcg10": 0,
+        "latencyMs": 340,
+        "matchedCount": 0,
+        "failures": [
+          "empty_result",
+          "missed_relevance"
+        ],
+        "isError": false
+      },
+      {
+        "queryId": "senior-6",
+        "query": "Engineering managers",
+        "patterns": [
+          "engineering manager",
+          "team lead",
+          "manager"
+        ],
+        "hasGroundTruth": true,
+        "resultCount": 0,
+        "precision5": 0,
+        "precision10": 0,
+        "mrr10": 0,
+        "ndcg10": 0,
+        "latencyMs": 389,
+        "matchedCount": 0,
+        "failures": [
+          "empty_result",
+          "missed_relevance"
+        ],
+        "isError": false
+      },
+      {
+        "queryId": "edu-1",
+        "query": "Masters degree computer science",
+        "patterns": [
+          "master",
+          "msc",
+          "computer science",
+          "cs"
+        ],
+        "hasGroundTruth": true,
+        "resultCount": 0,
+        "precision5": 0,
+        "precision10": 0,
+        "mrr10": 0,
+        "ndcg10": 0,
+        "latencyMs": 368,
+        "matchedCount": 0,
+        "failures": [
+          "empty_result",
+          "missed_relevance"
+        ],
+        "isError": false
+      },
+      {
+        "queryId": "edu-2",
+        "query": "PhD machine learning",
+        "patterns": [
+          "phd",
+          "doctor",
+          "machine learning"
+        ],
+        "hasGroundTruth": true,
+        "resultCount": 0,
+        "precision5": 0,
+        "precision10": 0,
+        "mrr10": 0,
+        "ndcg10": 0,
+        "latencyMs": 377,
+        "matchedCount": 0,
+        "failures": [
+          "empty_result",
+          "missed_relevance"
+        ],
+        "isError": false
+      },
+      {
+        "queryId": "lang-1",
+        "query": "French speaking developers",
+        "patterns": [
+          "french",
+          "francais"
+        ],
+        "hasGroundTruth": true,
+        "resultCount": 0,
+        "precision5": 0,
+        "precision10": 0,
+        "mrr10": 0,
+        "ndcg10": 0,
+        "latencyMs": 368,
+        "matchedCount": 0,
+        "failures": [
+          "empty_result",
+          "missed_relevance"
+        ],
+        "isError": false
+      },
+      {
+        "queryId": "lang-2",
+        "query": "German speaking engineers",
+        "patterns": [
+          "german",
+          "deutsch"
+        ],
+        "hasGroundTruth": true,
+        "resultCount": 0,
+        "precision5": 0,
+        "precision10": 0,
+        "mrr10": 0,
+        "ndcg10": 0,
+        "latencyMs": 377,
+        "matchedCount": 0,
+        "failures": [
+          "empty_result",
+          "missed_relevance"
+        ],
+        "isError": false
+      },
+      {
+        "queryId": "lang-3",
+        "query": "Spanish bilingual",
+        "patterns": [
+          "spanish",
+          "espanol"
+        ],
+        "hasGroundTruth": true,
+        "resultCount": 0,
+        "precision5": 0,
+        "precision10": 0,
+        "mrr10": 0,
+        "ndcg10": 0,
+        "latencyMs": 344,
+        "matchedCount": 0,
+        "failures": [
+          "empty_result",
+          "missed_relevance"
+        ],
+        "isError": false
+      },
+      {
+        "queryId": "cert-1",
+        "query": "AWS certified architects",
+        "patterns": [
+          "aws certified",
+          "solutions architect",
+          "aws"
+        ],
+        "hasGroundTruth": true,
+        "resultCount": 0,
+        "precision5": 0,
+        "precision10": 0,
+        "mrr10": 0,
+        "ndcg10": 0,
+        "latencyMs": 340,
+        "matchedCount": 0,
+        "failures": [
+          "empty_result",
+          "missed_relevance"
+        ],
+        "isError": false
+      },
+      {
+        "queryId": "cert-2",
+        "query": "PMP certified",
+        "patterns": [
+          "pmp",
+          "project management"
+        ],
+        "hasGroundTruth": true,
+        "resultCount": 0,
+        "precision5": 0,
+        "precision10": 0,
+        "mrr10": 0,
+        "ndcg10": 0,
+        "latencyMs": 329,
+        "matchedCount": 0,
+        "failures": [
+          "empty_result",
+          "missed_relevance"
+        ],
+        "isError": false
+      },
+      {
+        "queryId": "cert-3",
+        "query": "Scrum master certified",
+        "patterns": [
+          "scrum master",
+          "csm",
+          "scrum"
+        ],
+        "hasGroundTruth": false,
+        "resultCount": 0,
+        "precision5": 0,
+        "precision10": 0,
+        "mrr10": 0,
+        "ndcg10": 0,
+        "latencyMs": 353,
+        "matchedCount": 0,
+        "failures": [
+          "empty_result"
+        ],
+        "isError": false
+      },
+      {
+        "queryId": "mix-1",
+        "query": "French speaking Java developers",
+        "patterns": [
+          "french",
+          "java"
+        ],
+        "hasGroundTruth": true,
+        "resultCount": 0,
+        "precision5": 0,
+        "precision10": 0,
+        "mrr10": 0,
+        "ndcg10": 0,
+        "latencyMs": 363,
+        "matchedCount": 0,
+        "failures": [
+          "empty_result",
+          "missed_relevance"
+        ],
+        "isError": false
+      },
+      {
+        "queryId": "mix-2",
+        "query": "Senior React developers TypeScript",
+        "patterns": [
+          "senior",
+          "react",
+          "typescript"
+        ],
+        "hasGroundTruth": true,
+        "resultCount": 1,
+        "precision5": 0.2,
+        "precision10": 0.1,
+        "mrr10": 1,
+        "ndcg10": 0.22009176629808017,
+        "latencyMs": 398,
+        "matchedCount": 1,
+        "failures": [
+          "missed_relevance"
+        ],
+        "isError": false
+      },
+      {
+        "queryId": "mix-3",
+        "query": "AWS DevOps engineers Terraform",
+        "patterns": [
+          "aws",
+          "devops",
+          "terraform"
+        ],
+        "hasGroundTruth": true,
+        "resultCount": 0,
+        "precision5": 0,
+        "precision10": 0,
+        "mrr10": 0,
+        "ndcg10": 0,
+        "latencyMs": 414,
+        "matchedCount": 0,
+        "failures": [
+          "empty_result",
+          "missed_relevance"
+        ],
+        "isError": false
+      }
+    ],
+    "failureSummary": {
+      "missedRelevance": 34,
+      "wrongRanking": 0,
+      "scopeViolation": 0,
+      "hallucinatedGrounding": 0,
+      "emptyResult": 33,
+      "latencyTimeout": 0,
+      "total": 67
+    },
+    "systemInfo": {
+      "totalCvs": 12,
+      "totalChunks": 130
+    }
+  },
+  "phase2": {
+    "timestamp": "2026-04-02T00:39:48.121Z",
+    "mode": "phase2",
+    "totalQueries": 40,
+    "coverage": {
+      "totalQueries": 40,
+      "queriesWithCvIds": 34,
+      "queriesWithChunkIds": 34,
+      "cvIdCoverage": 0.85,
+      "chunkIdCoverage": 0.85
+    },
+    "avgMetrics": {
+      "precision5": 0.05500000000000001,
+      "precision10": 0.05500000000000001,
+      "mrr10": 0.2,
+      "ndcg10": 0.07076580761919113,
+      "emptyResultRate": 0.575,
+      "avgLatencyMs": 26463.125,
+      "errorRate": 0
+    },
+    "byDifficulty": {
+      "easy": {
+        "precision5": 0.05714285714285715,
+        "precision10": 0.028571428571428574,
+        "mrr10": 0.21428571428571427,
+        "ndcg10": 0.0512791728816621,
+        "emptyResultRate": 0.42857142857142855,
+        "avgLatencyMs": 25506.285714285714,
+        "errorRate": 0
+      },
+      "medium": {
+        "precision5": 0.08181818181818182,
+        "precision10": 0.09090909090909091,
+        "mrr10": 0.29545454545454547,
+        "ndcg10": 0.11234900429981867,
+        "emptyResultRate": 0.5909090909090909,
+        "avgLatencyMs": 27825,
+        "errorRate": 0
+      },
+      "hard": {
+        "precision5": 0,
+        "precision10": 0,
+        "mrr10": 0,
+        "ndcg10": 0,
+        "emptyResultRate": 0.6363636363636364,
+        "avgLatencyMs": 24348.272727272728,
+        "errorRate": 0
+      }
+    },
+    "byCategory": {
+      "skills": {
+        "precision5": 0.04000000000000001,
+        "precision10": 0.020000000000000004,
+        "mrr10": 0.16666666666666666,
+        "ndcg10": 0.03860306509798099,
+        "emptyResultRate": 0.6,
+        "avgLatencyMs": 21764.4,
+        "errorRate": 0
+      },
+      "experience": {
+        "precision5": 0.025,
+        "precision10": 0.0125,
+        "mrr10": 0.125,
+        "ndcg10": 0.02751147078726002,
+        "emptyResultRate": 0.875,
+        "avgLatencyMs": 26089.75,
+        "errorRate": 0
+      },
+      "education": {
+        "precision5": 0,
+        "precision10": 0,
+        "mrr10": 0,
+        "ndcg10": 0,
+        "emptyResultRate": 0.5,
+        "avgLatencyMs": 43137,
+        "errorRate": 0
+      },
+      "mixed": {
+        "precision5": 0,
+        "precision10": 0,
+        "mrr10": 0,
+        "ndcg10": 0,
+        "emptyResultRate": 0.3333333333333333,
+        "avgLatencyMs": 23495,
+        "errorRate": 0
+      },
+      "seniority": {
+        "precision5": 0.06666666666666667,
+        "precision10": 0.08333333333333333,
+        "mrr10": 0.25,
+        "ndcg10": 0.0946672629436935,
+        "emptyResultRate": 0.3333333333333333,
+        "avgLatencyMs": 28375,
+        "errorRate": 0
+      },
+      "language": {
+        "precision5": 0.3333333333333333,
+        "precision10": 0.43333333333333335,
+        "mrr10": 1,
+        "ndcg10": 0.4878303281125631,
+        "emptyResultRate": 0,
+        "avgLatencyMs": 40032.333333333336,
+        "errorRate": 0
+      },
+      "certification": {
+        "precision5": 0,
+        "precision10": 0,
+        "mrr10": 0,
+        "ndcg10": 0,
+        "emptyResultRate": 1,
+        "avgLatencyMs": 25411.666666666668,
+        "errorRate": 0
+      }
+    },
+    "results": [
+      {
+        "queryId": "skill-1",
+        "query": "Find Java developers",
+        "patterns": [
+          "java"
+        ],
+        "hasGroundTruth": true,
+        "resultCount": 1,
+        "precision5": 0,
+        "precision10": 0,
+        "mrr10": 0,
+        "ndcg10": 0,
+        "latencyMs": 29991,
+        "matchedCount": 0,
+        "failures": [
+          "latency_timeout",
+          "hallucinated_grounding",
+          "missed_relevance"
+        ],
+        "isError": false
+      },
+      {
+        "queryId": "skill-2",
+        "query": "React and TypeScript frontend engineers",
+        "patterns": [
+          "react",
+          "typescript"
+        ],
+        "hasGroundTruth": true,
+        "resultCount": 0,
+        "precision5": 0,
+        "precision10": 0,
+        "mrr10": 0,
+        "ndcg10": 0,
+        "latencyMs": 14283,
+        "matchedCount": 0,
+        "failures": [
+          "empty_result",
+          "latency_timeout",
+          "missed_relevance"
+        ],
+        "isError": false
+      },
+      {
+        "queryId": "skill-3",
+        "query": "Python machine learning engineers",
+        "patterns": [
+          "python",
+          "machine learning",
+          "ml"
+        ],
+        "hasGroundTruth": true,
+        "resultCount": 1,
+        "precision5": 0.2,
+        "precision10": 0.1,
+        "mrr10": 1,
+        "ndcg10": 0.22009176629808017,
+        "latencyMs": 27479,
+        "matchedCount": 1,
+        "failures": [
+          "latency_timeout",
+          "missed_relevance"
+        ],
+        "isError": false
+      },
+      {
+        "queryId": "skill-4",
+        "query": "DevOps engineers with Kubernetes",
+        "patterns": [
+          "devops",
+          "kubernetes",
+          "k8s"
+        ],
+        "hasGroundTruth": true,
+        "resultCount": 0,
+        "precision5": 0,
+        "precision10": 0,
+        "mrr10": 0,
+        "ndcg10": 0,
+        "latencyMs": 22930,
+        "matchedCount": 0,
+        "failures": [
+          "empty_result",
+          "latency_timeout",
+          "missed_relevance"
+        ],
+        "isError": false
+      },
+      {
+        "queryId": "skill-5",
+        "query": "Full stack developers Node.js",
+        "patterns": [
+          "node",
+          "full stack",
+          "fullstack"
+        ],
+        "hasGroundTruth": true,
+        "resultCount": 1,
+        "precision5": 0.2,
+        "precision10": 0.1,
+        "mrr10": 1,
+        "ndcg10": 0.22009176629808017,
+        "latencyMs": 15597,
+        "matchedCount": 1,
+        "failures": [
+          "latency_timeout",
+          "missed_relevance"
+        ],
+        "isError": false
+      },
+      {
+        "queryId": "skill-6",
+        "query": "Cloud architects AWS",
+        "patterns": [
+          "aws",
+          "cloud",
+          "architect"
+        ],
+        "hasGroundTruth": true,
+        "resultCount": 0,
+        "precision5": 0,
+        "precision10": 0,
+        "mrr10": 0,
+        "ndcg10": 0,
+        "latencyMs": 12544,
+        "matchedCount": 0,
+        "failures": [
+          "empty_result",
+          "latency_timeout",
+          "missed_relevance"
+        ],
+        "isError": false
+      },
+      {
+        "queryId": "skill-7",
+        "query": "Mobile developers React Native",
+        "patterns": [
+          "react native",
+          "mobile"
+        ],
+        "hasGroundTruth": true,
+        "resultCount": 0,
+        "precision5": 0,
+        "precision10": 0,
+        "mrr10": 0,
+        "ndcg10": 0,
+        "latencyMs": 15931,
+        "matchedCount": 0,
+        "failures": [
+          "empty_result",
+          "latency_timeout",
+          "missed_relevance"
+        ],
+        "isError": false
+      },
+      {
+        "queryId": "skill-8",
+        "query": "Data engineers Spark",
+        "patterns": [
+          "spark",
+          "data engineer"
+        ],
+        "hasGroundTruth": false,
+        "resultCount": 0,
+        "precision5": 0,
+        "precision10": 0,
+        "mrr10": 0,
+        "ndcg10": 0,
+        "latencyMs": 20721,
+        "matchedCount": 0,
+        "failures": [
+          "empty_result",
+          "latency_timeout"
+        ],
+        "isError": false
+      },
+      {
+        "queryId": "skill-9",
+        "query": "Backend microservices",
+        "patterns": [
+          "microservices",
+          "backend"
+        ],
+        "hasGroundTruth": true,
+        "resultCount": 0,
+        "precision5": 0,
+        "precision10": 0,
+        "mrr10": 0,
+        "ndcg10": 0,
+        "latencyMs": 23629,
+        "matchedCount": 0,
+        "failures": [
+          "empty_result",
+          "latency_timeout",
+          "missed_relevance"
+        ],
+        "isError": false
+      },
+      {
+        "queryId": "skill-10",
+        "query": "GraphQL API developers",
+        "patterns": [
+          "graphql",
+          "api"
+        ],
+        "hasGroundTruth": true,
+        "resultCount": 0,
+        "precision5": 0,
+        "precision10": 0,
+        "mrr10": 0,
+        "ndcg10": 0,
+        "latencyMs": 35440,
+        "matchedCount": 0,
+        "failures": [
+          "empty_result",
+          "latency_timeout",
+          "missed_relevance"
+        ],
+        "isError": false
+      },
+      {
+        "queryId": "skill-11",
+        "query": "Engineers with Docker",
+        "patterns": [
+          "docker",
+          "container"
+        ],
+        "hasGroundTruth": true,
+        "resultCount": 2,
+        "precision5": 0.2,
+        "precision10": 0.1,
+        "mrr10": 0.5,
+        "ndcg10": 0.13886244387355454,
+        "latencyMs": 38349,
+        "matchedCount": 1,
+        "failures": [
+          "latency_timeout",
+          "missed_relevance"
+        ],
+        "isError": false
+      },
+      {
+        "queryId": "skill-12",
+        "query": "Vue.js frontend developers",
+        "patterns": [
+          "vue",
+          "frontend"
+        ],
+        "hasGroundTruth": true,
+        "resultCount": 0,
+        "precision5": 0,
+        "precision10": 0,
+        "mrr10": 0,
+        "ndcg10": 0,
+        "latencyMs": 22020,
+        "matchedCount": 0,
+        "failures": [
+          "empty_result",
+          "latency_timeout",
+          "missed_relevance"
+        ],
+        "isError": false
+      },
+      {
+        "queryId": "skill-13",
+        "query": "CI/CD pipeline engineers",
+        "patterns": [
+          "ci",
+          "cd",
+          "pipeline",
+          "jenkins",
+          "github actions"
+        ],
+        "hasGroundTruth": true,
+        "resultCount": 1,
+        "precision5": 0,
+        "precision10": 0,
+        "mrr10": 0,
+        "ndcg10": 0,
+        "latencyMs": 18757,
+        "matchedCount": 0,
+        "failures": [
+          "latency_timeout",
+          "hallucinated_grounding",
+          "missed_relevance"
+        ],
+        "isError": false
+      },
+      {
+        "queryId": "skill-14",
+        "query": "SQL database developers",
+        "patterns": [
+          "sql",
+          "database",
+          "postgresql",
+          "mysql"
+        ],
+        "hasGroundTruth": true,
+        "resultCount": 1,
+        "precision5": 0,
+        "precision10": 0,
+        "mrr10": 0,
+        "ndcg10": 0,
+        "latencyMs": 14730,
+        "matchedCount": 0,
+        "failures": [
+          "latency_timeout",
+          "hallucinated_grounding",
+          "missed_relevance"
+        ],
+        "isError": false
+      },
+      {
+        "queryId": "skill-15",
+        "query": "Angular frontend engineers",
+        "patterns": [
+          "angular",
+          "frontend"
+        ],
+        "hasGroundTruth": true,
+        "resultCount": 0,
+        "precision5": 0,
+        "precision10": 0,
+        "mrr10": 0,
+        "ndcg10": 0,
+        "latencyMs": 14065,
+        "matchedCount": 0,
+        "failures": [
+          "empty_result",
+          "latency_timeout",
+          "missed_relevance"
+        ],
+        "isError": false
+      },
+      {
+        "queryId": "exp-1",
+        "query": "Developers with consulting experience",
+        "patterns": [
+          "consult"
+        ],
+        "hasGroundTruth": true,
+        "resultCount": 0,
+        "precision5": 0,
+        "precision10": 0,
+        "mrr10": 0,
+        "ndcg10": 0,
+        "latencyMs": 25863,
+        "matchedCount": 0,
+        "failures": [
+          "empty_result",
+          "latency_timeout",
+          "missed_relevance"
+        ],
+        "isError": false
+      },
+      {
+        "queryId": "exp-2",
+        "query": "Engineers who worked at startups",
+        "patterns": [
+          "startup"
+        ],
+        "hasGroundTruth": false,
+        "resultCount": 0,
+        "precision5": 0,
+        "precision10": 0,
+        "mrr10": 0,
+        "ndcg10": 0,
+        "latencyMs": 10799,
+        "matchedCount": 0,
+        "failures": [
+          "empty_result",
+          "latency_timeout"
+        ],
+        "isError": false
+      },
+      {
+        "queryId": "exp-3",
+        "query": "Project managers agile",
+        "patterns": [
+          "project manager",
+          "agile",
+          "scrum"
+        ],
+        "hasGroundTruth": false,
+        "resultCount": 0,
+        "precision5": 0,
+        "precision10": 0,
+        "mrr10": 0,
+        "ndcg10": 0,
+        "latencyMs": 19062,
+        "matchedCount": 0,
+        "failures": [
+          "empty_result",
+          "latency_timeout"
+        ],
+        "isError": false
+      },
+      {
+        "queryId": "exp-4",
+        "query": "Tech leads who managed teams",
+        "patterns": [
+          "tech lead",
+          "team lead",
+          "manager"
+        ],
+        "hasGroundTruth": true,
+        "resultCount": 0,
+        "precision5": 0,
+        "precision10": 0,
+        "mrr10": 0,
+        "ndcg10": 0,
+        "latencyMs": 26727,
+        "matchedCount": 0,
+        "failures": [
+          "empty_result",
+          "latency_timeout",
+          "missed_relevance"
+        ],
+        "isError": false
+      },
+      {
+        "queryId": "exp-5",
+        "query": "Banking finance industry",
+        "patterns": [
+          "bank",
+          "financ"
+        ],
+        "hasGroundTruth": true,
+        "resultCount": 0,
+        "precision5": 0,
+        "precision10": 0,
+        "mrr10": 0,
+        "ndcg10": 0,
+        "latencyMs": 12551,
+        "matchedCount": 0,
+        "failures": [
+          "empty_result",
+          "latency_timeout",
+          "missed_relevance"
+        ],
+        "isError": false
+      },
+      {
+        "queryId": "exp-6",
+        "query": "Healthcare industry experience",
+        "patterns": [
+          "healthcare",
+          "health",
+          "medical"
+        ],
+        "hasGroundTruth": false,
+        "resultCount": 0,
+        "precision5": 0,
+        "precision10": 0,
+        "mrr10": 0,
+        "ndcg10": 0,
+        "latencyMs": 24465,
+        "matchedCount": 0,
+        "failures": [
+          "empty_result",
+          "latency_timeout"
+        ],
+        "isError": false
+      },
+      {
+        "queryId": "exp-7",
+        "query": "E-commerce platform experience",
+        "patterns": [
+          "e-commerce",
+          "ecommerce",
+          "commerce",
+          "retail"
+        ],
+        "hasGroundTruth": false,
+        "resultCount": 0,
+        "precision5": 0,
+        "precision10": 0,
+        "mrr10": 0,
+        "ndcg10": 0,
+        "latencyMs": 44145,
+        "matchedCount": 0,
+        "failures": [
+          "empty_result",
+          "latency_timeout"
+        ],
+        "isError": false
+      },
+      {
+        "queryId": "exp-8",
+        "query": "API integration experience",
+        "patterns": [
+          "api",
+          "integration"
+        ],
+        "hasGroundTruth": true,
+        "resultCount": 3,
+        "precision5": 0.2,
+        "precision10": 0.1,
+        "mrr10": 1,
+        "ndcg10": 0.22009176629808017,
+        "latencyMs": 45106,
+        "matchedCount": 1,
+        "failures": [
+          "latency_timeout",
+          "missed_relevance"
+        ],
+        "isError": false
+      },
+      {
+        "queryId": "senior-1",
+        "query": "Senior Java developers",
+        "patterns": [
+          "java",
+          "senior"
+        ],
+        "hasGroundTruth": true,
+        "resultCount": 1,
+        "precision5": 0,
+        "precision10": 0,
+        "mrr10": 0,
+        "ndcg10": 0,
+        "latencyMs": 28011,
+        "matchedCount": 0,
+        "failures": [
+          "latency_timeout",
+          "hallucinated_grounding",
+          "missed_relevance"
+        ],
+        "isError": false
+      },
+      {
+        "queryId": "senior-2",
+        "query": "Junior frontend developers",
+        "patterns": [
+          "junior",
+          "frontend",
+          "entry"
+        ],
+        "hasGroundTruth": true,
+        "resultCount": 1,
+        "precision5": 0.2,
+        "precision10": 0.1,
+        "mrr10": 1,
+        "ndcg10": 0.22009176629808017,
+        "latencyMs": 53142,
+        "matchedCount": 1,
+        "failures": [
+          "latency_timeout",
+          "missed_relevance"
+        ],
+        "isError": false
+      },
+      {
+        "queryId": "senior-3",
+        "query": "Principal engineers",
+        "patterns": [
+          "principal",
+          "staff",
+          "architect"
+        ],
+        "hasGroundTruth": true,
+        "resultCount": 0,
+        "precision5": 0,
+        "precision10": 0,
+        "mrr10": 0,
+        "ndcg10": 0,
+        "latencyMs": 20214,
+        "matchedCount": 0,
+        "failures": [
+          "empty_result",
+          "latency_timeout",
+          "missed_relevance"
+        ],
+        "isError": false
+      },
+      {
+        "queryId": "senior-4",
+        "query": "Lead developers",
+        "patterns": [
+          "lead",
+          "senior"
+        ],
+        "hasGroundTruth": true,
+        "resultCount": 15,
+        "precision5": 0.2,
+        "precision10": 0.4,
+        "mrr10": 0.5,
+        "ndcg10": 0.3479118113640809,
+        "latencyMs": 32594,
+        "matchedCount": 4,
+        "failures": [
+          "latency_timeout",
+          "missed_relevance"
+        ],
+        "isError": false
+      },
+      {
+        "queryId": "senior-5",
+        "query": "QA engineers automation",
+        "patterns": [
+          "qa",
+          "test",
+          "automation"
+        ],
+        "hasGroundTruth": true,
+        "resultCount": 0,
+        "precision5": 0,
+        "precision10": 0,
+        "mrr10": 0,
+        "ndcg10": 0,
+        "latencyMs": 26797,
+        "matchedCount": 0,
+        "failures": [
+          "empty_result",
+          "latency_timeout",
+          "missed_relevance"
+        ],
+        "isError": false
+      },
+      {
+        "queryId": "senior-6",
+        "query": "Engineering managers",
+        "patterns": [
+          "engineering manager",
+          "team lead",
+          "manager"
+        ],
+        "hasGroundTruth": true,
+        "resultCount": 2,
+        "precision5": 0,
+        "precision10": 0,
+        "mrr10": 0,
+        "ndcg10": 0,
+        "latencyMs": 9492,
+        "matchedCount": 0,
+        "failures": [
+          "hallucinated_grounding",
+          "missed_relevance"
+        ],
+        "isError": false
+      },
+      {
+        "queryId": "edu-1",
+        "query": "Masters degree computer science",
+        "patterns": [
+          "master",
+          "msc",
+          "computer science",
+          "cs"
+        ],
+        "hasGroundTruth": true,
+        "resultCount": 1,
+        "precision5": 0,
+        "precision10": 0,
+        "mrr10": 0,
+        "ndcg10": 0,
+        "latencyMs": 11804,
+        "matchedCount": 0,
+        "failures": [
+          "latency_timeout",
+          "hallucinated_grounding",
+          "missed_relevance"
+        ],
+        "isError": false
+      },
+      {
+        "queryId": "edu-2",
+        "query": "PhD machine learning",
+        "patterns": [
+          "phd",
+          "doctor",
+          "machine learning"
+        ],
+        "hasGroundTruth": true,
+        "resultCount": 0,
+        "precision5": 0,
+        "precision10": 0,
+        "mrr10": 0,
+        "ndcg10": 0,
+        "latencyMs": 74470,
+        "matchedCount": 0,
+        "failures": [
+          "empty_result",
+          "latency_timeout",
+          "missed_relevance"
+        ],
+        "isError": false
+      },
+      {
+        "queryId": "lang-1",
+        "query": "French speaking developers",
+        "patterns": [
+          "french",
+          "francais"
+        ],
+        "hasGroundTruth": true,
+        "resultCount": 15,
+        "precision5": 0.4,
+        "precision10": 0.7,
+        "mrr10": 1,
+        "ndcg10": 0.7100226348397882,
+        "latencyMs": 59050,
+        "matchedCount": 8,
+        "failures": [
+          "latency_timeout",
+          "missed_relevance"
+        ],
+        "isError": false
+      },
+      {
+        "queryId": "lang-2",
+        "query": "German speaking engineers",
+        "patterns": [
+          "german",
+          "deutsch"
+        ],
+        "hasGroundTruth": true,
+        "resultCount": 15,
+        "precision5": 0.4,
+        "precision10": 0.5,
+        "mrr10": 1,
+        "ndcg10": 0.533376583199821,
+        "latencyMs": 19507,
+        "matchedCount": 7,
+        "failures": [
+          "latency_timeout",
+          "missed_relevance"
+        ],
+        "isError": false
+      },
+      {
+        "queryId": "lang-3",
+        "query": "Spanish bilingual",
+        "patterns": [
+          "spanish",
+          "espanol"
+        ],
+        "hasGroundTruth": true,
+        "resultCount": 1,
+        "precision5": 0.2,
+        "precision10": 0.1,
+        "mrr10": 1,
+        "ndcg10": 0.22009176629808017,
+        "latencyMs": 41540,
+        "matchedCount": 1,
+        "failures": [
+          "latency_timeout",
+          "missed_relevance"
+        ],
+        "isError": false
+      },
+      {
+        "queryId": "cert-1",
+        "query": "AWS certified architects",
+        "patterns": [
+          "aws certified",
+          "solutions architect",
+          "aws"
+        ],
+        "hasGroundTruth": true,
+        "resultCount": 0,
+        "precision5": 0,
+        "precision10": 0,
+        "mrr10": 0,
+        "ndcg10": 0,
+        "latencyMs": 44982,
+        "matchedCount": 0,
+        "failures": [
+          "empty_result",
+          "latency_timeout",
+          "missed_relevance"
+        ],
+        "isError": false
+      },
+      {
+        "queryId": "cert-2",
+        "query": "PMP certified",
+        "patterns": [
+          "pmp",
+          "project management"
+        ],
+        "hasGroundTruth": true,
+        "resultCount": 0,
+        "precision5": 0,
+        "precision10": 0,
+        "mrr10": 0,
+        "ndcg10": 0,
+        "latencyMs": 17157,
+        "matchedCount": 0,
+        "failures": [
+          "empty_result",
+          "latency_timeout",
+          "missed_relevance"
+        ],
+        "isError": false
+      },
+      {
+        "queryId": "cert-3",
+        "query": "Scrum master certified",
+        "patterns": [
+          "scrum master",
+          "csm",
+          "scrum"
+        ],
+        "hasGroundTruth": false,
+        "resultCount": 0,
+        "precision5": 0,
+        "precision10": 0,
+        "mrr10": 0,
+        "ndcg10": 0,
+        "latencyMs": 14096,
+        "matchedCount": 0,
+        "failures": [
+          "empty_result",
+          "latency_timeout"
+        ],
+        "isError": false
+      },
+      {
+        "queryId": "mix-1",
+        "query": "French speaking Java developers",
+        "patterns": [
+          "french",
+          "java"
+        ],
+        "hasGroundTruth": true,
+        "resultCount": 1,
+        "precision5": 0,
+        "precision10": 0,
+        "mrr10": 0,
+        "ndcg10": 0,
+        "latencyMs": 37592,
+        "matchedCount": 0,
+        "failures": [
+          "latency_timeout",
+          "hallucinated_grounding",
+          "missed_relevance"
+        ],
+        "isError": false
+      },
+      {
+        "queryId": "mix-2",
+        "query": "Senior React developers TypeScript",
+        "patterns": [
+          "senior",
+          "react",
+          "typescript"
+        ],
+        "hasGroundTruth": true,
+        "resultCount": 1,
+        "precision5": 0,
+        "precision10": 0,
+        "mrr10": 0,
+        "ndcg10": 0,
+        "latencyMs": 23990,
+        "matchedCount": 0,
+        "failures": [
+          "latency_timeout",
+          "hallucinated_grounding",
+          "missed_relevance"
+        ],
+        "isError": false
+      },
+      {
+        "queryId": "mix-3",
+        "query": "AWS DevOps engineers Terraform",
+        "patterns": [
+          "aws",
+          "devops",
+          "terraform"
+        ],
+        "hasGroundTruth": true,
+        "resultCount": 0,
+        "precision5": 0,
+        "precision10": 0,
+        "mrr10": 0,
+        "ndcg10": 0,
+        "latencyMs": 8903,
+        "matchedCount": 0,
+        "failures": [
+          "empty_result",
+          "missed_relevance"
+        ],
+        "isError": false
+      }
+    ],
+    "failureSummary": {
+      "missedRelevance": 34,
+      "wrongRanking": 0,
+      "scopeViolation": 0,
+      "hallucinatedGrounding": 8,
+      "emptyResult": 23,
+      "latencyTimeout": 38,
+      "total": 103
+    },
+    "systemInfo": {
+      "totalCvs": 12,
+      "totalChunks": 130
+    }
+  },
+  "deltas": {
+    "precision5": 0.015000000000000013,
+    "precision5Pct": 37.500000000000036,
+    "precision10": 0.03500000000000001,
+    "precision10Pct": 175.00000000000009,
+    "mrr10": 0.025000000000000022,
+    "mrr10Pct": 14.285714285714299,
+    "ndcg10": 0.028778187420188242,
+    "ndcg10Pct": 68.53969642430856,
+    "errorRate": 0,
+    "errorRatePct": 0,
+    "latencyMs": 26094.4,
+    "latencyPct": 7076.927249305038
+  },
+  "summary": "Precision@5: improved by 37.5%; MRR@10: improved by 14.3%; Latency: slower by 7076.9%"
+}

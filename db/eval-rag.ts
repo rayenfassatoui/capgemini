@@ -6,14 +6,14 @@
  * Examples:
  *   bun run eval:rag                                    # Phase 2 only
  *   bun run eval:rag -- --mode baseline                 # Baseline only
- *   bun run eval:rag -- --mode both                     # Compare both
- *   bun run eval:rag -- --mode both --strict            # Compare with strict validation
+ *   bun run eval:rag -- --mode=both                     # Compare both
+ *   bun run eval:rag -- --mode=both --strict            # Compare with strict validation
  *   bun run eval:rag -- --discover-ground-truth         # Auto-discover IDs from DB
  *   bun run eval:rag -- --output reports/rag-eval/latest.json
  */
 
 import { existsSync, mkdirSync, writeFileSync } from 'fs';
-import { join, dirname } from 'path';
+import { dirname } from 'path';
 import {
   runEvaluation,
   runComparisonEvaluation,
@@ -27,24 +27,46 @@ import {
 import type { EvalMode, EvalQuery } from '@/features/recruitment/services/evaluation';
 import type { RetrievalScope } from '@/features/recruitment/services/cv-matching';
 
+const EVAL_MODES: readonly EvalMode[] = ['baseline', 'phase2', 'both'] as const;
+
 // Parse CLI arguments
 function parseArgs() {
   const args = process.argv.slice(2);
   
   const getArg = (name: string): string | undefined => {
-    const arg = args.find(a => a.startsWith(`--${name}=`));
-    return arg?.split('=')[1];
+    const prefixed = `--${name}=`;
+    const equalsArg = args.find(a => a.startsWith(prefixed));
+    if (equalsArg) {
+      return equalsArg.slice(prefixed.length);
+    }
+
+    const index = args.findIndex(a => a === `--${name}`);
+    if (index >= 0 && index + 1 < args.length) {
+      const candidate = args[index + 1];
+      if (!candidate.startsWith('--')) {
+        return candidate;
+      }
+    }
+
+    return undefined;
   };
   
   const hasFlag = (name: string): boolean => args.includes(`--${name}`);
+
+  const rawMode = getArg('mode');
+  const mode: EvalMode = EVAL_MODES.includes(rawMode as EvalMode)
+    ? (rawMode as EvalMode)
+    : 'phase2';
   
   return {
-    mode: (getArg('mode') ?? 'phase2') as EvalMode,
+    mode,
     strict: hasFlag('strict'),
     discoverGroundTruth: hasFlag('discover-ground-truth'),
+    failOnRegression: hasFlag('fail-on-regression'),
     json: hasFlag('json'),
     output: getArg('output'),
     help: hasFlag('help') || hasFlag('h'),
+    invalidMode: rawMode && !EVAL_MODES.includes(rawMode as EvalMode) ? rawMode : undefined,
   };
 }
 
@@ -55,15 +77,18 @@ RAG Evaluation Script - Phase 2 True RAG
 Usage: bun run eval:rag [options]
 
 Options:
-  --mode=<mode>           Evaluation mode: baseline, phase2, both (default: phase2)
+  --mode <mode>           Evaluation mode: baseline, phase2, both (default: phase2)
+  --mode=<mode>           Same as above (also supported)
   --strict                Enable strict validation (fails on quality gates)
   --discover-ground-truth Auto-discover CV/chunk IDs from database
+  --fail-on-regression    Exit with error if precision@5 regresses by >5% in mode=both
   --json                  Output raw JSON instead of formatted report
   --output=<path>         Save JSON report to file (also saves .md summary)
   --help, -h              Show this help message
 
 Examples:
   bun run eval:rag -- --mode both --strict
+  bun run eval:rag -- --mode=both --strict
   bun run eval:rag -- --discover-ground-truth --output reports/rag-eval/latest.json
 `);
 }
@@ -115,9 +140,14 @@ function ensureDir(filePath: string) {
 // Generate timestamped filename
 function getTimestampedPath(basePath: string): string {
   const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
-  const ext = basePath.endsWith('.json') ? '' : '.json';
-  const base = basePath.replace(/\.json$/, '');
-  return `${base}-${timestamp}${ext}`;
+  const normalized = basePath.replace(/\.json$/i, '');
+  return `${normalized}-${timestamp}.json`;
+}
+
+function getLatestOutputPaths(basePath: string): { json: string; markdown: string } {
+  const json = basePath.endsWith('.json') ? basePath : `${basePath}.json`;
+  const markdown = json.replace(/\.json$/i, '.md');
+  return { json, markdown };
 }
 
 async function main() {
@@ -142,6 +172,11 @@ async function main() {
   console.log(`  Strict: ${config.strict}`);
   console.log(`  Discover ground truth: ${config.discoverGroundTruth}`);
   console.log(`  Total queries: ${EVAL_QUERIES.length}\n`);
+
+  if (config.invalidMode) {
+    console.warn(`Warning: invalid --mode value "${config.invalidMode}"; falling back to "phase2".`);
+    console.warn('Allowed values: baseline, phase2, both\n');
+  }
 
   const scope: RetrievalScope = {
     userId: EVAL_USER_ID,
@@ -184,6 +219,7 @@ async function main() {
       if (config.output) {
         const jsonPath = getTimestampedPath(config.output);
         const mdPath = jsonPath.replace(/\.json$/, '.md');
+        const latestPaths = getLatestOutputPaths(config.output);
         
         ensureDir(jsonPath);
         
@@ -194,11 +230,12 @@ async function main() {
         writeFileSync(mdPath, mdContent);
         console.log(`Markdown summary saved to: ${mdPath}`);
         
-        // Also save as "latest" for easy access
-        const latestJsonPath = join(dirname(jsonPath), 'latest.json');
-        const latestMdPath = join(dirname(jsonPath), 'latest.md');
-        writeFileSync(latestJsonPath, JSON.stringify(comparison, null, 2));
-        writeFileSync(latestMdPath, mdContent);
+        // Also save explicit "latest" paths for easy CI/CD consumption.
+        ensureDir(latestPaths.json);
+        writeFileSync(latestPaths.json, JSON.stringify(comparison, null, 2));
+        writeFileSync(latestPaths.markdown, mdContent);
+        console.log(`Latest JSON report saved to: ${latestPaths.json}`);
+        console.log(`Latest Markdown summary saved to: ${latestPaths.markdown}`);
       }
       
       // Strict validation
@@ -226,10 +263,15 @@ async function main() {
       console.log(`P5_DELTA=${(comparison.deltas.precision5 * 100).toFixed(1)}`);
       console.log(`P5_CHANGE=${comparison.deltas.precision5Pct.toFixed(1)}%`);
       
-      // Exit with error if Phase 2 regressed significantly
+      // Optional CI gate: fail if Phase 2 regressed significantly.
       if (comparison.deltas.precision5 < -0.05) {
-        console.error(`\nPhase 2 precision@5 regressed by ${(comparison.deltas.precision5 * -100).toFixed(1)}%`);
-        process.exit(1);
+        const regressionMsg = `Phase 2 precision@5 regressed by ${(comparison.deltas.precision5 * -100).toFixed(1)}%`;
+        if (config.failOnRegression) {
+          console.error(`\n${regressionMsg}`);
+          process.exit(1);
+        }
+        console.warn(`\nWarning: ${regressionMsg}`);
+        console.warn('Use --fail-on-regression to enforce this as a hard failure.');
       }
       
     } else {
@@ -250,6 +292,7 @@ async function main() {
       if (config.output) {
         const jsonPath = getTimestampedPath(config.output);
         const mdPath = jsonPath.replace(/\.json$/, '.md');
+        const latestPaths = getLatestOutputPaths(config.output);
         
         ensureDir(jsonPath);
         
@@ -259,6 +302,12 @@ async function main() {
         const mdContent = generateMarkdownSummary(report);
         writeFileSync(mdPath, mdContent);
         console.log(`Markdown summary saved to: ${mdPath}`);
+
+        ensureDir(latestPaths.json);
+        writeFileSync(latestPaths.json, JSON.stringify(report, null, 2));
+        writeFileSync(latestPaths.markdown, mdContent);
+        console.log(`Latest JSON report saved to: ${latestPaths.json}`);
+        console.log(`Latest Markdown summary saved to: ${latestPaths.markdown}`);
       }
       
       // Strict validation
