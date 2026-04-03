@@ -8,7 +8,7 @@
 
 ```
 app/                                    # Next.js App Router — ROUTING ONLY
-├── (auth)/                             # Auth pages (sign-in, sign-up)
+├── (auth)/                             # Auth pages (sign-in, sign-up redirects to sign-in)
 ├── (dashboard)/                        # Protected dashboard routes
 │   ├── ta/                             # Talent Acquisition views
 │   │   ├── dashboard/                  # TA dashboard

@@ -50,9 +50,9 @@ export default function LandingPage() {
             <Link href="/sign-in">
               <Button variant="ghost" className="text-muted-foreground hover:text-foreground hidden sm:flex">Sign In</Button>
             </Link>
-            <Link href="/sign-up">
+            <Link href="/sign-in">
               <Button className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/20 transition-all hover:scale-105">
-                Get Started
+                Access Platform
               </Button>
             </Link>
           </div>
@@ -99,9 +99,9 @@ export default function LandingPage() {
               variants={fadeInUp}
               className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-20"
             >
-              <Link href="/sign-up" className="w-full sm:w-auto">
+              <Link href="/sign-in" className="w-full sm:w-auto">
                 <Button size="lg" className="w-full h-14 text-lg px-8 bg-primary hover:bg-primary/90 shadow-xl shadow-primary/20 transition-all hover:scale-105 hover:-translate-y-1 rounded-xl">
-                  Start Free Trial
+                  Sign In to Continue
                   <IconArrowRight className="w-5 h-5 ml-2" />
                 </Button>
               </Link>
@@ -263,9 +263,9 @@ export default function LandingPage() {
             <p className="text-xl text-muted-foreground mb-10 max-w-2xl mx-auto">
               Join thousands of modern recruiting teams who are hiring faster and smarter. Start your 14-day free trial today.
             </p>
-            <Link href="/sign-up">
+            <Link href="/sign-in">
               <Button size="lg" className="h-14 px-10 text-lg bg-primary hover:bg-primary/90 shadow-2xl shadow-primary/30 hover:shadow-primary/40 transition-all hover:-translate-y-1 rounded-xl">
-                Get Started Now
+                Go to Sign In
               </Button>
             </Link>
             <p className="mt-6 text-sm text-muted-foreground">No credit card required. Cancel anytime.</p>
