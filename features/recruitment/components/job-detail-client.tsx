@@ -5,15 +5,10 @@ import { toast } from 'sonner';
 import {
   IconArrowLeft,
   IconPlus,
-  IconSearch,
   IconSend,
-  IconCheck,
-  IconX,
-  IconFileText,
   IconCalendar,
   IconEdit,
   IconEye,
-  IconTrash,
   IconBrain,
 } from '@tabler/icons-react';
 
@@ -43,7 +38,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from '@/components/ui/dialog';
 import {
   AlertDialog,
@@ -60,7 +54,6 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 
 import {
-  assignCvToJobAction,
   closeJobAction,
   generateScreeningAction,
   getScreeningAction,
@@ -74,14 +67,13 @@ import {
   assignManagerToCandidateAction,
 } from '@/features/recruitment/actions';
 
-import { MatchCvsDialog, InlineCvMatching } from '@/features/recruitment/components/match-cvs-dialog';
+import { InlineCvMatching } from '@/features/recruitment/components/match-cvs-dialog';
 import { InterviewAutoPilotGuideView } from '@/features/recruitment/components/interview-autopilot-guide';
 
 import type {
   CandidateStage,
   InterviewStage,
   ScheduleInterviewInput,
-  InterviewReportInput,
   InterviewDecision,
 } from '@/features/recruitment/types';
 
@@ -199,7 +191,7 @@ export function JobDetailClient({
   const [currentGuideId, setCurrentGuideId] = React.useState<string>('');
 
   const [autoPilotDialogOpen, setAutoPilotDialogOpen] = React.useState(false);
-  const [autoPilotCandidateId, setAutoPilotCandidateId] = React.useState<string>('');
+  const [autoPilotCandidateId] = React.useState<string>('');
 
   const [reportDialogOpen, setReportDialogOpen] = React.useState(false);
   const [reportInterviewId, setReportInterviewId] = React.useState('');
@@ -211,18 +203,6 @@ export function JobDetailClient({
   const [assigningManager, setAssigningManager] = React.useState<string | null>(null);
 
   // ---------- Helpers ----------
-
-  const getStageColor = (stage: CandidateStage) => {
-    if (stage === 'new') return 'secondary'; // gray
-    if (stage === 'ta_screening') return 'default'; // blue-ish default
-    if (stage === 'ta_interview') return 'outline'; // indigo-ish custom needed? using outline as proxy
-    if (stage === 'ta_accepted') return 'default'; // green - need custom class
-    if (stage === 'ta_rejected') return 'destructive';
-    if (stage.startsWith('manager')) return 'secondary'; // purple proxy
-    if (stage.startsWith('hr')) return 'secondary'; // orange proxy
-    if (stage === 'hired') return 'default'; // emerald proxy
-    return 'outline';
-  };
 
   const getStageBadgeClass = (stage: CandidateStage) => {
     switch (stage) {
@@ -247,7 +227,7 @@ export function JobDetailClient({
       await generateScreeningAction(candidateId, jobId);
       toast.success('Screening generated');
       // Force refresh or update local state would be ideal
-    } catch (error) {
+    } catch {
       toast.error('Failed to generate screening');
     }
   };
@@ -261,7 +241,7 @@ export function JobDetailClient({
       } else {
         toast.error('No screening found');
       }
-    } catch (error) {
+    } catch {
       toast.error('Failed to fetch screening');
     }
   };
@@ -289,13 +269,13 @@ export function JobDetailClient({
           } else {
             toast.error('Failed to retrieve generated questions', { id: loadingToastId });
           }
-        } catch (error) {
+        } catch {
           toast.error('Failed to generate AI questions', { id: loadingToastId });
         } finally {
           setIsGeneratingQuestions(false);
         }
       }
-    } catch (error) {
+    } catch {
       toast.error('Failed to fetch questions');
     }
   };
@@ -305,7 +285,7 @@ export function JobDetailClient({
       await updateInterviewQuestionsAction(currentGuideId, currentQuestions);
       setQuestionsDialogOpen(false);
       toast.success('Questions updated');
-    } catch (error) {
+    } catch {
       toast.error('Failed to update questions');
     }
   };
@@ -332,7 +312,7 @@ export function JobDetailClient({
       setScheduleTime('');
       setMeetLink('');
       setSelectedCandidateId('');
-    } catch (error) {
+    } catch {
       toast.error('Failed to schedule interview');
     }
   };
@@ -357,7 +337,7 @@ export function JobDetailClient({
         stage: interview.stage,
       });
       toast.success('Email sent');
-    } catch (error) {
+    } catch {
       toast.error('Failed to send email');
     }
   };
@@ -366,7 +346,7 @@ export function JobDetailClient({
     try {
       await updateCandidateStageAction(candidateId, stage);
       toast.success(`Candidate moved to ${stage}`);
-    } catch (error) {
+    } catch {
       toast.error('Failed to update stage');
     }
   };
@@ -391,7 +371,7 @@ export function JobDetailClient({
       });
       setReportDialogOpen(false);
       toast.success('Report saved');
-    } catch (error) {
+    } catch {
       toast.error('Failed to save report');
     }
   };
@@ -417,7 +397,7 @@ export function JobDetailClient({
       setAssigningManager(candidateId);
       await assignManagerToCandidateAction(candidateId, managerId);
       toast.success('Candidate assigned to manager');
-    } catch (error) {
+    } catch {
       toast.error('Failed to assign manager');
     } finally {
       setAssigningManager(null);

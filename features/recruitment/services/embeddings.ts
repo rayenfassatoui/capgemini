@@ -11,11 +11,6 @@ const NVIDIA_MODEL_ID = 'nvidia/nv-embedqa-e5-v5';
 export const EMBEDDING_DIMENSIONS = 1024;
 const MAX_RETRIES = 3;
 
-/** Approximate token count heuristic (1 token ~ 4 chars). */
-function estimateTokens(text: string): number {
-  return Math.ceil(text.length / 4);
-}
-
 /**
  * Truncate text to fit within the 512-token context window of E5 V5.
  * Uses a conservative 4-chars-per-token heuristic and leaves a small margin.

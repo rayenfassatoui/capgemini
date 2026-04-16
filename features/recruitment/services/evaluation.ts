@@ -6,7 +6,7 @@
 import { db } from '@/lib/db';
 import { cvPool, cvChunks } from '@/db/schema';
 import { count, inArray, sql as drizzleSql } from 'drizzle-orm';
-import { retrieveChunks, type RetrievalResult } from './retrieval-pipeline';
+import { retrieveChunks } from './retrieval-pipeline';
 import { searchCvsSemantically } from './cv-matching';
 import type { RetrievalScope } from './cv-matching';
 

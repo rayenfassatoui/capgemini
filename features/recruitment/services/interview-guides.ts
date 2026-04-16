@@ -108,8 +108,9 @@ export async function getInterviewGuide(
 export async function updateInterviewQuestions(
   guideId: string,
   questions: string[],
-  _userId: string
+  userId: string
 ) {
+  void userId;
   const validated = updateQuestionsSchema.parse({ guideId, questions });
   const [updated] = await db
     .update(interviewGuides)

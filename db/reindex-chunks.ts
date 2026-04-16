@@ -5,8 +5,8 @@
 
 import { db } from '@/lib/db';
 import { cvPool, cvChunks } from '@/db/schema';
-import { eq, isNotNull, count } from 'drizzle-orm';
-import { generateAndStoreCvChunks, deleteCvChunks } from '@/features/recruitment/services/chunking';
+import { isNotNull, count } from 'drizzle-orm';
+import { generateAndStoreCvChunks } from '@/features/recruitment/services/chunking';
 
 const BATCH_SIZE = 10;
 const DELAY_BETWEEN_BATCHES_MS = 1000;

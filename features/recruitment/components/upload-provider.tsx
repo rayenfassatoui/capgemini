@@ -129,7 +129,6 @@ export function UploadProvider({ children }: { children: ReactNode }) {
     processingRef.current = true;
     setIsProcessing(true);
 
-    // eslint-disable-next-line no-constant-condition
     while (true) {
       // Find next queued item
       const current = itemsRef.current.find((i) => i.status === 'queued');

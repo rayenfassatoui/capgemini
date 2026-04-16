@@ -44,7 +44,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import { Progress } from '@/components/ui/progress';
-import { deleteCvAction, exportCvPoolAction, exportSingleCvExcelAction, exportMultipleCvsZipAction, getCvDetailsAction, getCvFileAction } from '../actions';
+import { deleteCvAction, exportSingleCvExcelAction, exportMultipleCvsZipAction, getCvDetailsAction, getCvFileAction } from '../actions';
 import { useUploadQueue } from './upload-provider';
 import type { CvPoolStats } from '../types';
 

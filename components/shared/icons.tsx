@@ -15,7 +15,7 @@ export const CapgeminiIcons = (props: React.SVGProps<SVGSVGElement>) => (
     />
   </svg>
 );
-
+ 
 export const CapgeminiLogo = (props: React.SVGProps<SVGSVGElement>) => (
   <svg
     width="285"

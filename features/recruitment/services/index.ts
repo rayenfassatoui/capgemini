@@ -1,5 +1,20 @@
 // Barrel re-export from all service modules
-export { ensureEnv, cleanJsonResponse, normalizeContent, callOpenRouter } from './ai';
+export {
+  ensureEnv,
+  cleanJsonResponse,
+  normalizeContent,
+  callOpenRouter,
+} from "./ai";
+
+export {
+  classifyChatIntent,
+  buildGreetingResponse,
+  compareCandidatesDirect,
+  searchResumesByName,
+  buildDeterministicToolFallback,
+  summarizeResolvedProfiles,
+  hasMeaningfulNameMatch,
+} from "./chat-orchestration";
 
 export {
   uploadCv,
@@ -14,12 +29,24 @@ export {
   searchCvPool,
   generateCvEmbeddingAfterUpload,
   generateCvChunksAfterExtraction,
-} from './cv-pool';
+} from "./cv-pool";
 
-export { createJob, listJobs, getJob, closeJob, saveJobAsTemplate, listJobTemplates, createJobFromTemplate } from './jobs';
+export {
+  createJob,
+  listJobs,
+  getJob,
+  closeJob,
+  saveJobAsTemplate,
+  listJobTemplates,
+  createJobFromTemplate,
+} from "./jobs";
 
-export { matchCvsToJob, matchCvsToJobWithFilters, searchCvsSemantically } from './cv-matching';
-export type { RetrievalScope } from './cv-matching';
+export {
+  matchCvsToJob,
+  matchCvsToJobWithFilters,
+  searchCvsSemantically,
+} from "./cv-matching";
+export type { RetrievalScope } from "./cv-matching";
 
 export {
   assignCvToJob,
@@ -31,9 +58,9 @@ export {
   assignManagerToCandidate,
   assignHrToCandidate,
   getCandidatesByStageAndAssignee,
-} from './candidates';
+} from "./candidates";
 
-export { generateScreeningWithAI, getScreening } from './screening';
+export { generateScreeningWithAI, getScreening } from "./screening";
 
 export {
   generateInterviewQuestionsWithAI,
@@ -41,7 +68,7 @@ export {
   updateInterviewQuestions,
   generateInterviewAutoPilotGuide,
   getInterviewAutoPilotGuide,
-} from './interview-guides';
+} from "./interview-guides";
 
 export {
   scheduleInterview,
@@ -51,19 +78,19 @@ export {
   markInterviewCompleted,
   cancelInterview,
   rescheduleInterview,
-} from './interviews';
+} from "./interviews";
 
 export {
   saveInterviewReport,
   getInterviewReport,
   getInterviewReportsByCandidate,
-} from './interview-reports';
+} from "./interview-reports";
 
 export {
   sendInterviewEmail,
   generateHRDecisionEmailWithAI,
   sendHRDecisionEmail,
-} from './email';
+} from "./email";
 
 export {
   exportAcceptedCandidatesToExcel,
@@ -74,11 +101,11 @@ export {
   exportActivityLogToExcel,
   exportOnboardingToExcel,
   generateCandidateAcceptExcel,
-} from './export';
+} from "./export";
 
-export { getDashboardStats, getTodayInterviewSchedule } from './dashboard';
+export { getDashboardStats, getTodayInterviewSchedule } from "./dashboard";
 
-export { getCvPoolStats, getJobsStats, getSmartInsights } from './statistics';
+export { getCvPoolStats, getJobsStats, getSmartInsights } from "./statistics";
 
 export {
   askAiAboutStatistics,
@@ -89,7 +116,7 @@ export {
   saveChatMessage,
   deleteChatConversation,
   clearChatConversation,
-} from './chat';
+} from "./chat";
 
 export {
   generateInterviewDebrief,
@@ -101,7 +128,7 @@ export {
   analyzeTalentInsights,
   generateFollowupQuestions,
   optimizeJobRequirements,
-} from './ai-features';
+} from "./ai-features";
 
 export {
   createNotification,
@@ -111,38 +138,47 @@ export {
   markAllNotificationsRead,
   notifyStageChange,
   notifyInterviewScheduled,
-} from './notifications';
+} from "./notifications";
 
 export {
   addCandidateNote,
   getCandidateNotes,
   deleteCandidateNote,
-} from './candidate-notes';
+} from "./candidate-notes";
 
 export {
   logActivity,
   getActivityLog,
   getActivityByEntity,
   getActivityLogEnriched,
-} from './activity-log';
+} from "./activity-log";
 
 export {
   createOnboardingChecklist,
   getOnboardingChecklist,
   toggleOnboardingTask,
   addOnboardingTask,
-} from './onboarding';
+} from "./onboarding";
+
+export { checkDuplicateCv, scanPoolForDuplicates } from "./duplicate-detection";
+
+export { listUsersByRole } from "./users";
 
 export {
-  checkDuplicateCv,
-  scanPoolForDuplicates,
-} from './duplicate-detection';
-
-export { listUsersByRole } from './users';
-
-export { getSystemOverview, getRecruitmentAnalytics, getEmailLogs, getHiredCandidatesOnboarding, getHiredCandidatesOnboardingDetailed } from './admin';
-export type { SystemOverview, RecruitmentAnalytics, EmailLogEntry, OnboardingOverviewEntry, OnboardingDetailedEntry } from './admin';
-export type { EnrichedActivityEntry } from './activity-log';
+  getSystemOverview,
+  getRecruitmentAnalytics,
+  getEmailLogs,
+  getHiredCandidatesOnboarding,
+  getHiredCandidatesOnboardingDetailed,
+} from "./admin";
+export type {
+  SystemOverview,
+  RecruitmentAnalytics,
+  EmailLogEntry,
+  OnboardingOverviewEntry,
+  OnboardingDetailedEntry,
+} from "./admin";
+export type { EnrichedActivityEntry } from "./activity-log";
 
 export {
   generateTextEmbedding,
@@ -150,7 +186,7 @@ export {
   generateAndStoreCvEmbedding,
   buildCvEmbeddingText,
   EMBEDDING_DIMENSIONS,
-} from './embeddings';
+} from "./embeddings";
 
 export {
   generateCvChunks,
@@ -158,27 +194,24 @@ export {
   deleteCvChunks,
   getLatestIndexVersion,
   getNextIndexVersion,
-} from './chunking';
-export type { CvChunk, ChunkSectionType } from './chunking';
+} from "./chunking";
+export type { CvChunk, ChunkSectionType } from "./chunking";
 
 export {
   rewriteQuery,
   normalizeQueryForCache,
   extractKeywordsSimple,
-} from './query-rewrite';
-export type { RewrittenQuery } from './query-rewrite';
+} from "./query-rewrite";
+export type { RewrittenQuery } from "./query-rewrite";
 
-export {
-  retrieveChunks,
-  assembleContext,
-} from './retrieval-pipeline';
+export { retrieveChunks, assembleContext } from "./retrieval-pipeline";
 export type {
   RetrievalOptions,
   RetrievedChunk,
   RetrievalResult,
   RetrievalMetrics,
   AssembledContext,
-} from './retrieval-pipeline';
+} from "./retrieval-pipeline";
 
 export {
   TtlCache,
@@ -192,8 +225,8 @@ export {
   invalidateCvCaches,
   invalidateAllCaches,
   getAllCacheMetrics,
-} from './cache';
-export type { CacheMetrics } from './cache';
+} from "./cache";
+export type { CacheMetrics } from "./cache";
 
 export {
   runEvaluation,
@@ -205,15 +238,15 @@ export {
   EVAL_QUERIES,
   mergeGroundTruth,
   calculateCoverage,
-} from './evaluation';
-export type { 
-  EvalQuery, 
-  EvalResult, 
-  EvalReport, 
+} from "./evaluation";
+export type {
+  EvalQuery,
+  EvalResult,
+  EvalReport,
   EvalMetrics,
   FailureType,
   FailureSummary,
   EvalMode,
   CoverageMetrics,
   ComparisonReport,
-} from './evaluation';
+} from "./evaluation";

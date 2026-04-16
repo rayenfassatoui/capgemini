@@ -1,4 +1,4 @@
-import { count, eq, desc, sql, and, gte, inArray } from 'drizzle-orm';
+import { count, eq, desc, inArray } from 'drizzle-orm';
 import { db } from '@/lib/db';
 import {
   users,

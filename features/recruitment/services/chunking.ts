@@ -19,7 +19,6 @@ export interface CvChunk {
 }
 
 // Target chunk size: 200-350 tokens (~800-1400 chars)
-const TARGET_MIN_TOKENS = 200;
 const TARGET_MAX_TOKENS = 350;
 const CHARS_PER_TOKEN = 4;
 

@@ -1,6 +1,6 @@
 import { desc, eq, inArray } from 'drizzle-orm';
 import { db } from '@/lib/db';
-import { candidates, cvPool, interviews, interviewReports, jobs, onboardingTasks } from '@/db/schema';
+import { candidates, cvPool } from '@/db/schema';
 import { getJob } from './jobs';
 import { getInterviewReportsByCandidate } from './interview-reports';
 import { zipSync } from 'fflate';
@@ -330,6 +330,7 @@ export async function generateCandidateAcceptExcel(
     ['Email', candidate.email],
     ['Phone', candidate.phone ?? ''],
     ['Current Stage', candidate.stage],
+    ['Accepted At Stage', stage.toUpperCase()],
     ['Job Title', job?.title ?? ''],
     ['Job Seniority', job?.seniority ?? ''],
     [],

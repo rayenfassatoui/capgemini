@@ -4,7 +4,6 @@ import { interviewReports } from '@/db/schema';
 import { interviewReportSchema } from '../schemas';
 import type { CandidateStage, InterviewReportInput, InterviewStage } from '../types';
 import { getCandidate, updateCandidateStage } from './candidates';
-import { getJob } from './jobs';
 import { markInterviewCompleted } from './interviews';
 import { logActivity } from './activity-log';
 import { createOnboardingChecklist } from './onboarding';

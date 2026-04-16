@@ -8,7 +8,6 @@ import { Button, buttonVariants } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
-import { Separator } from '@/components/ui/separator';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { 
@@ -20,7 +19,6 @@ import {
   IconCircleCheck,
   IconCircleDashed,
   IconUserCheck,
-  IconFileDescription,
   IconSparkles,
   IconEdit,
   IconSend,
@@ -36,7 +34,7 @@ import {
   sendHRDecisionEmailAction,
 } from '../actions';
 
-import type { InterviewDecision, InterviewAutoPilotGuide } from '../types';
+import type { InterviewAutoPilotGuide } from '../types';
 import { InterviewAutoPilotGuideView } from './interview-autopilot-guide';
 
 interface Candidate {
@@ -112,7 +110,6 @@ export function HRCandidateDetailClient({
   const hasDecided = candidate.stage === 'hr_accepted' || candidate.stage === 'hr_rejected' || candidate.stage === 'hired';
   const isAccepted = candidate.stage === 'hr_accepted' || candidate.stage === 'hired';
   const isHired = candidate.stage === 'hired';
-  const isRejected = candidate.stage === 'hr_rejected';
 
   const handleDecision = async (decision: 'hr_accepted' | 'hr_rejected') => {
     try {
@@ -120,7 +117,7 @@ export function HRCandidateDetailClient({
       await updateCandidateStageAction(candidate.id, decision);
       toast.success(decision === 'hr_accepted' ? 'Candidate accepted!' : 'Candidate rejected');
       router.refresh();
-    } catch (error) {
+    } catch {
       toast.error('Failed to update decision');
     } finally {
       setIsDeciding(false);
@@ -133,7 +130,7 @@ export function HRCandidateDetailClient({
       await updateCandidateStageAction(candidate.id, 'hired');
       toast.success('Candidate marked as hired!');
       router.refresh();
-    } catch (error) {
+    } catch {
       toast.error('Failed to mark candidate as hired');
     } finally {
       setIsHiring(false);
@@ -149,7 +146,7 @@ export function HRCandidateDetailClient({
       setEmailBody(result.body);
       setIsEditingEmail(true);
       toast.success('Email generated! You can edit it before sending.', { id: toastId });
-    } catch (error) {
+    } catch {
       toast.error('Failed to generate email');
     } finally {
       setIsGeneratingEmail(false);
@@ -172,7 +169,7 @@ export function HRCandidateDetailClient({
       setEmailSent(true);
       setIsEditingEmail(false);
       toast.success('Email sent successfully!');
-    } catch (error) {
+    } catch {
       toast.error('Failed to send email');
     } finally {
       setIsSendingEmail(false);
@@ -211,7 +208,7 @@ export function HRCandidateDetailClient({
       setScheduleData({ date: '', time: '', link: '' });
       setShowScheduleDialog(false);
       router.refresh();
-    } catch (error) {
+    } catch {
       toast.error('Failed to schedule meeting');
     } finally {
       setIsScheduling(false);
@@ -224,7 +221,7 @@ export function HRCandidateDetailClient({
       await markInterviewCompletedAction(currentInterview.id);
       toast.success('Meeting marked as completed');
       router.refresh();
-    } catch (error) {
+    } catch {
       toast.error('Failed to mark meeting as completed');
     }
   };
@@ -243,6 +240,9 @@ export function HRCandidateDetailClient({
             <Badge variant="outline" className="capitalize">{candidate.stage.replace(/_/g, ' ')}</Badge>
             {(candidate.job?.title || candidate.jobTitle) && (
               <Badge variant="secondary">{candidate.job?.title || candidate.jobTitle}</Badge>
+            )}
+            {interviewGuide && (
+              <Badge variant="outline">Guide ready</Badge>
             )}
           </div>
         </div>

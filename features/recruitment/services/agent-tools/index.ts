@@ -6,14 +6,14 @@
  * monolithic file so all consumers remain unchanged.
  */
 
-import type { UserRole } from '../../types';
+import type { UserRole } from "../../types";
 import type {
   AgentToolDefinition,
   AgentToolContext,
   ToolHandler,
-} from './types';
-import { sanitizeForJson, truncateArray, createResolveId } from './utils';
-import { TOOL_ARG_SCHEMAS } from './schemas';
+} from "./types";
+import { sanitizeForJson, truncateArray, createResolveId } from "./utils";
+import { TOOL_ARG_SCHEMAS } from "./schemas";
 
 // Re-export types for consumers
 export type {
@@ -21,50 +21,41 @@ export type {
   AgentToolDefinition,
   AgentToolContext,
   ToolExecutor,
-} from './types';
+} from "./types";
 
 // ---- Import domain modules ----
 
-import {
-  definitions as cvPoolDefs,
-  executors as cvPoolExec,
-} from './cv-pool';
-import {
-  definitions as jobsDefs,
-  executors as jobsExec,
-} from './jobs';
+import { definitions as cvPoolDefs, executors as cvPoolExec } from "./cv-pool";
+import { definitions as jobsDefs, executors as jobsExec } from "./jobs";
 import {
   definitions as candidatesDefs,
   executors as candidatesExec,
-} from './candidates';
+} from "./candidates";
 import {
   definitions as matchingDefs,
   executors as matchingExec,
-} from './matching';
+} from "./matching";
 import {
   definitions as interviewsDefs,
   executors as interviewsExec,
-} from './interviews';
+} from "./interviews";
 import {
   definitions as communicationDefs,
   executors as communicationExec,
-} from './communication';
+} from "./communication";
 import {
   definitions as aiFeaturesDefs,
   executors as aiFeaturesExec,
-} from './ai-features';
+} from "./ai-features";
 import {
   definitions as dashboardDefs,
   executors as dashboardExec,
-} from './dashboard';
+} from "./dashboard";
 import {
   definitions as activityDefs,
   executors as activityExec,
-} from './activity';
-import {
-  definitions as adminDefs,
-  executors as adminExec,
-} from './admin';
+} from "./activity";
+import { definitions as adminDefs, executors as adminExec } from "./admin";
 
 // ---- Combined registry ----
 
@@ -99,7 +90,7 @@ const ALL_EXECUTORS: Record<string, ToolHandler> = {
 export async function executeAgentTool(
   toolName: string,
   args: Record<string, unknown>,
-  ctx: AgentToolContext
+  ctx: AgentToolContext,
 ): Promise<{ success: boolean; data?: unknown; error?: string }> {
   const def = TOOL_DEFINITIONS.find((t) => t.name === toolName);
   if (!def) {
@@ -121,13 +112,13 @@ export async function executeAgentTool(
     if (!result.success) {
       return {
         success: false,
-        error: `Invalid arguments for ${toolName}: ${result.error.issues.map((i) => i.message).join(', ')}`,
+        error: `Invalid arguments for ${toolName}: ${result.error.issues.map((i) => i.message).join(", ")}`,
       };
     }
   }
 
   try {
-    const services = await import('..');
+    const services = await import("..");
     const resolveId = createResolveId(services, ctx);
 
     const handler = ALL_EXECUTORS[toolName];
@@ -154,11 +145,21 @@ export async function executeAgentTool(
  * Build the OpenAI-compatible `tools` array for the LLM request,
  * filtered to only include tools the user's role can access.
  */
+export function getToolDefinition(
+  toolName: string,
+): AgentToolDefinition | undefined {
+  return TOOL_DEFINITIONS.find((tool) => tool.name === toolName);
+}
+
+export function isToolMutating(toolName: string): boolean {
+  return getToolDefinition(toolName)?.mutating ?? false;
+}
+
 export function getToolsForRole(role: UserRole) {
   return TOOL_DEFINITIONS.filter(
-    (t) => t.allowedRoles.length === 0 || t.allowedRoles.includes(role)
+    (t) => t.allowedRoles.length === 0 || t.allowedRoles.includes(role),
   ).map((t) => ({
-    type: 'function' as const,
+    type: "function" as const,
     function: {
       name: t.name,
       description: t.description,

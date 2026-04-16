@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { IconBell, IconCheck, IconChecks } from '@tabler/icons-react';
-import { Badge } from '@/components/ui/badge';
 import {
   getNotificationsAction,
   getUnreadNotificationCountAction,

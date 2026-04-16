@@ -23,7 +23,7 @@ import {
 } from '@/features/recruitment/actions';
 import { toast } from 'sonner';
 import { IconMail, IconCalendar, IconCheck, IconX, IconExternalLink, IconCircleCheck, IconCircleDashed, IconPlus, IconTrash, IconSparkles, IconEdit, IconDeviceFloppy } from '@tabler/icons-react';
-import type { InterviewDecision, CandidateStage, InterviewAutoPilotGuide } from '@/features/recruitment/types';
+import type { InterviewDecision, InterviewAutoPilotGuide } from '@/features/recruitment/types';
 import { InterviewAutoPilotGuideView } from './interview-autopilot-guide';
 
 interface InterviewGuide {
@@ -132,7 +132,7 @@ export function ManagerCandidateDetailClient({
         setEditableQuestions(guide.questions ?? []);
       }
       router.refresh();
-    } catch (error) {
+    } catch {
       toast.error('Failed to generate questions');
     } finally {
       setIsGeneratingQuestions(false);
@@ -156,7 +156,7 @@ export function ManagerCandidateDetailClient({
       setIsEditingQuestions(false);
       toast.success('Questions saved');
       router.refresh();
-    } catch (error) {
+    } catch {
       toast.error('Failed to save questions');
     } finally {
       setIsSavingQuestions(false);
@@ -211,7 +211,7 @@ export function ManagerCandidateDetailClient({
       toast.success('Interview scheduled and email sent');
       setScheduleData({ date: '', time: '', link: '' });
       router.refresh();
-    } catch (error) {
+    } catch {
       toast.error('Failed to schedule interview');
     } finally {
       setIsScheduling(false);
@@ -224,7 +224,7 @@ export function ManagerCandidateDetailClient({
       await markInterviewCompletedAction(currentInterview.id);
       toast.success('Interview marked as completed');
       router.refresh();
-    } catch (error) {
+    } catch {
       toast.error('Failed to mark interview as completed');
     }
   };
@@ -252,7 +252,7 @@ export function ManagerCandidateDetailClient({
       });
       toast.success('Report saved');
       router.refresh();
-    } catch (error) {
+    } catch {
       toast.error('Failed to save report');
     } finally {
       setIsSubmittingReport(false);
@@ -270,7 +270,7 @@ export function ManagerCandidateDetailClient({
         await assignHrToCandidateAction(candidate.id, selectedHrId);
         toast.success('Candidate accepted and assigned to HR');
         router.refresh();
-      } catch (error) {
+      } catch {
         toast.error('Failed to assign HR');
       } finally {
         setIsDeciding(false);
@@ -281,7 +281,7 @@ export function ManagerCandidateDetailClient({
         await updateCandidateStageAction(candidate.id, decision);
         toast.success('Candidate rejected');
         router.refresh();
-      } catch (error) {
+      } catch {
         toast.error('Failed to update decision');
       } finally {
         setIsDeciding(false);

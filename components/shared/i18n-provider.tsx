@@ -47,19 +47,12 @@ interface I18nProviderProps {
 }
 
 export function I18nProvider({ children, defaultLocale = 'en' }: I18nProviderProps) {
-  const [locale, setLocaleState] = useState<Locale>(() => {
-    if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem(LOCALE_STORAGE_KEY);
-      if (stored === 'en' || stored === 'fr') {
-        return stored;
-      }
-    }
-    return defaultLocale;
-  });
+  const [locale, setLocaleState] = useState<Locale>(defaultLocale);
 
   const setLocale = useCallback((newLocale: Locale) => {
     setLocaleState(newLocale);
     localStorage.setItem(LOCALE_STORAGE_KEY, newLocale);
+    document.cookie = `${LOCALE_STORAGE_KEY}=${newLocale}; path=/; max-age=31536000; samesite=lax`;
     document.documentElement.lang = newLocale;
   }, []);
 

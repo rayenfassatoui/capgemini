@@ -2,13 +2,19 @@
  * AI Service — Model Configuration & NVIDIA Build API Client
  *
  * Provides a centralized AI configuration with smart model routing.
+ *
  * Models are organized by task type for optimal cost/quality balance.
  *
  * Uses NVIDIA Build API (https://integrate.api.nvidia.com/v1) with
  * OpenAI-compatible SDK for the stepfun-ai/step-3.5-flash model.
  */
 
-import OpenAI from 'openai';
+import OpenAI from "openai";
+
+export interface AiCallOptions {
+  timeoutMs?: number;
+  retryOnTimeout?: boolean;
+}
 
 // ---- Environment ----
 
@@ -21,7 +27,7 @@ export function ensureEnv(value: string | undefined, name: string): string {
 
 // ---- NVIDIA Build API Client ----
 
-const NVIDIA_BASE_URL = 'https://integrate.api.nvidia.com/v1';
+const NVIDIA_BASE_URL = "https://integrate.api.nvidia.com/v1";
 
 let nvidiaClient: OpenAI | null = null;
 
@@ -31,7 +37,7 @@ let nvidiaClient: OpenAI | null = null;
  */
 export function getNvidiaClient(): OpenAI {
   if (!nvidiaClient) {
-    const apiKey = ensureEnv(process.env.NVIDIA_API_KEY, 'NVIDIA_API_KEY');
+    const apiKey = ensureEnv(process.env.NVIDIA_API_KEY, "NVIDIA_API_KEY");
     nvidiaClient = new OpenAI({
       apiKey,
       baseURL: NVIDIA_BASE_URL,
@@ -52,11 +58,11 @@ export function getNvidiaClient(): OpenAI {
  */
 export const AI_MODELS = {
   /** Primary agent model — best for tool calling, multi-step reasoning */
-  agent: 'stepfun-ai/step-3.5-flash',
+  agent: "stepfun-ai/step-3.5-flash",
   /** Structured output — JSON generation, data extraction, scoring */
-  structured: 'stepfun-ai/step-3.5-flash',
+  structured: "stepfun-ai/step-3.5-flash",
   /** Long-form generation — job descriptions, emails, analysis */
-  generation: 'stepfun-ai/step-3.5-flash',
+  generation: "stepfun-ai/step-3.5-flash",
 } as const;
 
 export type AITaskType = keyof typeof AI_MODELS;
@@ -75,10 +81,12 @@ export function getModelForTask(task: AITaskType): string {
 
 export function cleanJsonResponse(text: string): string {
   let cleaned = text.trim();
-  cleaned = cleaned.replace(/^```(?:json)?\s*\n?/i, '').replace(/\n?```\s*$/i, '');
+  cleaned = cleaned
+    .replace(/^```(?:json)?\s*\n?/i, "")
+    .replace(/\n?```\s*$/i, "");
 
-  const objectStart = cleaned.indexOf('{');
-  const arrayStart = cleaned.indexOf('[');
+  const objectStart = cleaned.indexOf("{");
+  const arrayStart = cleaned.indexOf("[");
 
   if (objectStart === -1 && arrayStart === -1) {
     return cleaned;
@@ -91,9 +99,9 @@ export function cleanJsonResponse(text: string): string {
         ? objectStart
         : Math.min(objectStart, arrayStart);
 
-  const isObject = cleaned[start] === '{';
-  const openChar = isObject ? '{' : '[';
-  const closeChar = isObject ? '}' : ']';
+  const isObject = cleaned[start] === "{";
+  const openChar = isObject ? "{" : "[";
+  const closeChar = isObject ? "}" : "]";
   let depth = 0;
   let end = start;
 
@@ -110,17 +118,17 @@ export function cleanJsonResponse(text: string): string {
 }
 
 export function normalizeContent(content: unknown): string {
-  if (typeof content === 'string') return content;
+  if (typeof content === "string") return content;
   if (Array.isArray(content)) {
     return content
       .map((part) => {
-        if (typeof part === 'string') return part;
-        if (part && typeof part === 'object' && 'text' in part) {
+        if (typeof part === "string") return part;
+        if (part && typeof part === "object" && "text" in part) {
           return String((part as { text: unknown }).text);
         }
         return JSON.stringify(part);
       })
-      .join('');
+      .join("");
   }
   return JSON.stringify(content);
 }
@@ -141,24 +149,56 @@ export function normalizeContent(content: unknown): string {
 export async function callOpenRouter(
   systemPrompt: string,
   userPrompt: string,
-  task: AITaskType = 'structured'
+  task: AITaskType = "structured",
+  options: AiCallOptions = {},
 ): Promise<string> {
   const client = getNvidiaClient();
   const model = getModelForTask(task);
+  const { timeoutMs, retryOnTimeout = false } = options;
 
-  const response = await client.chat.completions.create({
-    model,
-    messages: [
-      { role: 'system', content: systemPrompt },
-      { role: 'user', content: userPrompt },
-    ],
-    temperature: 0.3,
-  });
+  const createRequest = () =>
+    client.chat.completions.create({
+      model,
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt },
+      ],
+      temperature: 0.3,
+    });
+
+  const runWithTimeout = async (): Promise<
+    ReturnType<typeof createRequest> extends Promise<infer T> ? T : never
+  > => {
+    if (!timeoutMs || timeoutMs <= 0) {
+      return await createRequest();
+    }
+
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      setTimeout(() => reject(new Error("TIMEOUT")), timeoutMs);
+    });
+
+    return await Promise.race([createRequest(), timeoutPromise]);
+  };
+
+  let response: Awaited<ReturnType<typeof createRequest>>;
+
+  try {
+    response = await runWithTimeout();
+  } catch (error) {
+    const isTimeout = error instanceof Error && error.message === "TIMEOUT";
+    if (!isTimeout || !retryOnTimeout) {
+      throw error;
+    }
+
+    response = await runWithTimeout();
+  }
 
   const message = response.choices?.[0]?.message;
   // Handle NVIDIA's potential reasoning_content field (chain-of-thought)
   // Prefer content, fall back to reasoning_content if present
-  const raw = message?.content ?? (message as { reasoning_content?: string })?.reasoning_content;
-  if (!raw) throw new Error('Empty AI response');
+  const raw =
+    message?.content ??
+    (message as { reasoning_content?: string })?.reasoning_content;
+  if (!raw) throw new Error("Empty AI response");
   return normalizeContent(raw);
 }

@@ -1,6 +1,6 @@
-import { auth } from '@/lib/auth';
-import { headers } from 'next/headers';
-import { statisticsChatRequestSchema } from '@/features/recruitment/schemas';
+import { auth } from "@/lib/auth";
+import { headers } from "next/headers";
+import { statisticsChatRequestSchema } from "@/features/recruitment/schemas";
 import {
   getOrCreateChatConversation,
   saveChatMessage,
@@ -8,57 +8,86 @@ import {
   listChatConversations,
   createChatConversation,
   deleteChatConversation,
-} from '@/features/recruitment/services';
+  classifyChatIntent,
+  buildGreetingResponse,
+  compareCandidatesDirect,
+  searchResumesByName,
+  buildDeterministicToolFallback,
+} from "@/features/recruitment/services";
 import {
   getToolsForRole,
   executeAgentTool,
-} from '@/features/recruitment/services/agent-tools';
-import { compactToolResult } from '@/features/recruitment/services/agent-tools/utils';
-import { getModelForTask, getNvidiaClient } from '@/features/recruitment/services/ai';
-import type { UserRole } from '@/features/recruitment/types';
-import { SlidingWindowRateLimiter } from '@/lib/rate-limit';
+  getToolDefinition,
+} from "@/features/recruitment/services/agent-tools";
+import {
+  compactToolResult,
+  makeToolCallCacheKey,
+} from "@/features/recruitment/services/agent-tools/utils";
+import {
+  getModelForTask,
+  getNvidiaClient,
+} from "@/features/recruitment/services/ai";
+import type { UserRole } from "@/features/recruitment/types";
+import { SlidingWindowRateLimiter } from "@/lib/rate-limit";
 
-// ---------------------------------------------------------------------------
-// Phase 1 AI Guardrails
-// ---------------------------------------------------------------------------
-
-// Max tool-call iterations before we force a final answer (reduced for cost control)
 const MAX_AGENT_STEPS = 8;
-
-// Max output tokens for model responses (prevents runaway generation)
 const MAX_OUTPUT_TOKENS = 2048;
-
-// Timeout for each LLM request (prevents hanging)
 const LLM_REQUEST_TIMEOUT_MS = 30_000;
-
-// Max consecutive tool failures before forcing a text response
 const MAX_CONSECUTIVE_TOOL_FAILURES = 3;
+const STREAM_CHUNK_SIZE = 12;
+
 const chatLimiter = new SlidingWindowRateLimiter(15, 60_000);
+
+type AttachmentPayload = {
+  filename: string;
+  contentType: string;
+  size: number;
+  rawBytes: string;
+};
+
+type LLMMessage =
+  | { role: "system"; content: string }
+  | { role: "user"; content: string }
+  | {
+      role: "assistant";
+      content: string | null;
+      tool_calls?: Array<{
+        id: string;
+        type: "function";
+        function: { name: string; arguments: string };
+      }>;
+    }
+  | { role: "tool"; tool_call_id: string; content: string };
+
+interface ToolExecutionRecord {
+  toolName: string;
+  args: Record<string, unknown>;
+  result: { success: boolean; data?: unknown; error?: string };
+  mutating: boolean;
+}
 
 async function getAuthSession() {
   const headersList = await headers();
   const session = await auth.api.getSession({ headers: headersList });
   if (!session) return null;
-  const role = session.user.role ?? 'ta';
-  if (!['ta', 'admin', 'manager', 'hr'].includes(role)) return null;
+  const role = session.user.role ?? "ta";
+  if (!["ta", "admin", "manager", "hr"].includes(role)) return null;
   return session;
 }
 
-// ============ GET: List conversations or load messages ============
-
 export async function GET(request: Request) {
   const session = await getAuthSession();
-  if (!session) return new Response('Unauthorized', { status: 401 });
+  if (!session) return new Response("Unauthorized", { status: 401 });
 
   const url = new URL(request.url);
-  const conversationId = url.searchParams.get('conversationId');
+  const conversationId = url.searchParams.get("conversationId");
 
   if (conversationId) {
     try {
       const history = await getChatHistory(conversationId, session.user.id);
       return Response.json(history);
-    } catch (e) {
-      return new Response('Not found or unauthorized', { status: 404 });
+    } catch {
+      return new Response("Not found or unauthorized", { status: 404 });
     }
   }
 
@@ -66,123 +95,320 @@ export async function GET(request: Request) {
   return Response.json({ conversations });
 }
 
-// ============ DELETE: Delete a specific conversation ============
-
 export async function DELETE(request: Request) {
   const session = await getAuthSession();
-  if (!session) return new Response('Unauthorized', { status: 401 });
+  if (!session) return new Response("Unauthorized", { status: 401 });
 
   const url = new URL(request.url);
-  const conversationId = url.searchParams.get('conversationId');
+  const conversationId = url.searchParams.get("conversationId");
 
   if (!conversationId) {
-    return new Response('conversationId is required', { status: 400 });
+    return new Response("conversationId is required", { status: 400 });
   }
 
   await deleteChatConversation(conversationId, session.user.id);
   return Response.json({ success: true });
 }
 
-// ============ PUT: Create a new conversation ============
-
 export async function PUT() {
   const session = await getAuthSession();
-  if (!session) return new Response('Unauthorized', { status: 401 });
+  if (!session) return new Response("Unauthorized", { status: 401 });
 
   const conversation = await createChatConversation(session.user.id);
   return Response.json(conversation);
 }
 
-// ---- Helpers for SSE streaming ----
-
-interface ToolCallDelta {
-  id?: string;
-  function?: { name?: string; arguments?: string };
+function createTimeoutError(): Error {
+  return new Error("TIMEOUT");
 }
 
-interface LLMChoice {
-  delta?: {
-    content?: string;
-    tool_calls?: ToolCallDelta[];
-  };
-  finish_reason?: string | null;
-  message?: {
-    content?: string | null;
-    tool_calls?: Array<{
-      id: string;
-      type: 'function';
-      function: { name: string; arguments: string };
-    }>;
-  };
+function isTimeoutError(error: unknown): boolean {
+  return (
+    error instanceof Error &&
+    (error.message === "TIMEOUT" ||
+      error.message === "LLM_TIMEOUT" ||
+      error.message === "TOOL_TIMEOUT")
+  );
 }
 
-// ============ POST: Agentic chat with tool calling ============
+async function streamText(
+  controller: ReadableStreamDefaultController<Uint8Array>,
+  encoder: TextEncoder,
+  text: string,
+) {
+  for (let i = 0; i < text.length; i += STREAM_CHUNK_SIZE) {
+    controller.enqueue(encoder.encode(text.slice(i, i + STREAM_CHUNK_SIZE)));
+    await new Promise((resolve) => setTimeout(resolve, 8));
+  }
+}
+
+async function streamImmediateText(
+  controller: ReadableStreamDefaultController<Uint8Array>,
+  encoder: TextEncoder,
+  text: string,
+) {
+  controller.enqueue(encoder.encode(text));
+}
+
+function getToolSummary(result: {
+  success: boolean;
+  data?: unknown;
+  error?: string;
+}): string {
+  if (!result.success) {
+    return result.error ?? "Failed";
+  }
+
+  if (Array.isArray(result.data)) {
+    return `Returned ${result.data.length} result(s)`;
+  }
+
+  if (result.data && typeof result.data === "object") {
+    return "Completed successfully";
+  }
+
+  return "Done";
+}
+
+function buildDeterministicFallbackFromRecords(
+  records: ToolExecutionRecord[],
+): string | null {
+  const successful = records.filter((record) => record.result.success);
+  if (successful.length === 0) {
+    return null;
+  }
+
+  const prioritizedToolNames = [
+    "compare_candidates",
+    "hybrid_search_cvs",
+    "rag_search_cvs",
+    "semantic_search_cvs",
+    "match_cvs_to_job",
+    "match_cvs_to_job_with_filters",
+    "get_dashboard_stats",
+    "get_smart_insights",
+    "get_cv_pool_stats",
+    "get_jobs_stats",
+  ];
+
+  const prioritized =
+    prioritizedToolNames
+      .map((name) =>
+        [...successful].reverse().find((record) => record.toolName === name),
+      )
+      .find(Boolean) ?? [...successful].reverse()[0];
+
+  if (!prioritized || !prioritized.result.data) {
+    return null;
+  }
+
+  const fallback = buildDeterministicToolFallback(
+    prioritized.toolName,
+    prioritized.result.data,
+  );
+
+  if (fallback) {
+    return fallback;
+  }
+
+  return `I’m returning a deterministic fallback summary from the data that was already fetched successfully. Latest successful tool: **${prioritized.toolName}**.`;
+}
+
+type AgentCompletionResponse = {
+  choices?: Array<{
+    message?: {
+      content?: string | null;
+      tool_calls?: ResponseToolCall[];
+    };
+  }>;
+};
+
+type ResponseToolCall = {
+  id: string;
+  type: "function";
+  function: { name: string; arguments: string };
+};
+
+async function callAgentCompletion(
+  nvidiaClient: ReturnType<typeof getNvidiaClient>,
+  messages: LLMMessage[],
+  tools: ReturnType<typeof getToolsForRole>,
+): Promise<AgentCompletionResponse> {
+  const completionPromise = nvidiaClient.chat.completions.create({
+    model: getModelForTask("agent"),
+    messages: messages as Parameters<
+      typeof nvidiaClient.chat.completions.create
+    >[0]["messages"],
+    stream: false,
+    tools: tools.length > 0 ? tools : undefined,
+    tool_choice: "auto",
+    temperature: 0.15,
+    max_tokens: MAX_OUTPUT_TOKENS,
+  }) as Promise<AgentCompletionResponse>;
+
+  const timeoutPromise = new Promise<never>((_, reject) =>
+    setTimeout(() => reject(createTimeoutError()), LLM_REQUEST_TIMEOUT_MS),
+  );
+
+  return Promise.race([completionPromise, timeoutPromise]);
+}
 
 export async function POST(request: Request) {
   const session = await getAuthSession();
-  if (!session) return new Response('Unauthorized', { status: 401 });
+  if (!session) return new Response("Unauthorized", { status: 401 });
 
   if (!chatLimiter.isAllowed(session.user.id)) {
     return Response.json(
-      { error: 'Too many requests. Please wait before sending another message.' },
+      {
+        error: "Too many requests. Please wait before sending another message.",
+      },
       {
         status: 429,
         headers: {
-          'Retry-After': '60',
-          'X-RateLimit-Limit': '15',
-          'X-RateLimit-Remaining': '0',
+          "Retry-After": "60",
+          "X-RateLimit-Limit": "15",
+          "X-RateLimit-Remaining": "0",
         },
-      }
+      },
     );
   }
 
-  const role = (session.user.role ?? 'ta') as UserRole;
+  const role = (session.user.role ?? "ta") as UserRole;
 
   let body: unknown;
   try {
     body = await request.json();
   } catch {
-    return new Response('Invalid JSON', { status: 400 });
+    return new Response("Invalid JSON", { status: 400 });
   }
 
   const parsed = statisticsChatRequestSchema.safeParse(body);
   if (!parsed.success) {
     return new Response(
       JSON.stringify({
-        error: parsed.error.errors.map((e) => e.message).join(', '),
+        error: parsed.error.errors.map((e) => e.message).join(", "),
       }),
-      { status: 400, headers: { 'Content-Type': 'application/json' } }
+      { status: 400, headers: { "Content-Type": "application/json" } },
     );
   }
 
-  const { messages, conversationId: reqConversationId, attachments } = parsed.data;
+  const {
+    messages,
+    conversationId: reqConversationId,
+    attachments,
+  } = parsed.data;
 
   const conversation = await getOrCreateChatConversation(
     session.user.id,
-    reqConversationId
+    reqConversationId,
   );
+
   const lastUserMessage = messages[messages.length - 1];
-  if (lastUserMessage?.role === 'user') {
-    await saveChatMessage(conversation.id, session.user.id, 'user', lastUserMessage.content);
+  if (lastUserMessage?.role === "user") {
+    await saveChatMessage(
+      conversation.id,
+      session.user.id,
+      "user",
+      lastUserMessage.content,
+    );
   }
 
-  // Load conversation history (bounded to recent messages for cost control)
-  const { messages: dbHistory } = await getChatHistory(conversation.id, session.user.id);
+  const { messages: dbHistory } = await getChatHistory(
+    conversation.id,
+    session.user.id,
+  );
 
-  // Phase 1: Remove context stuffing — all data is fetched on-demand via tools
-  const today = new Date().toISOString().split('T')[0];
+  const lastMessageText =
+    lastUserMessage?.role === "user" ? lastUserMessage.content : "";
 
-  const roleDescriptions: Record<string, string> = {
-    ta: 'Talent Acquisition specialist with full access to CV pool, jobs, candidates, screening, interviews, and matching.',
-    manager: 'Hiring Manager who can see candidates at manager-stage and beyond, interviews they conduct, and jobs.',
-    hr: 'HR representative who can see candidates at HR-stage and beyond, hiring decisions, interviews, and recruitment metrics.',
-    admin: 'Admin user with full access to all recruitment data, operations, user management, and analytics.',
-  };
+  const preflight = classifyChatIntent(
+    lastMessageText,
+    Boolean(attachments?.length),
+  );
 
-  // Build tool list for this role
-  const tools = getToolsForRole(role);
+  const encoder = new TextEncoder();
+  const conversationId = conversation.id;
 
-  const systemPrompt = `You are the AI recruitment agent for Capgemini TalentIQ.
+  const stream = new ReadableStream({
+    async start(controller) {
+      let fullResponse = "";
+
+      try {
+        if (preflight.intent === "greeting") {
+          fullResponse = buildGreetingResponse(role);
+          await streamText(controller, encoder, fullResponse);
+          await saveChatMessage(
+            conversationId,
+            session.user.id,
+            "assistant",
+            fullResponse,
+          );
+          return;
+        }
+
+        if (preflight.intent === "named_search" && preflight.requestedName) {
+          const result = await searchResumesByName(
+            session.user.id,
+            preflight.requestedName,
+            preflight.targetRoleQuery,
+          );
+          fullResponse = result.responseText;
+          await streamText(controller, encoder, fullResponse);
+          await saveChatMessage(
+            conversationId,
+            session.user.id,
+            "assistant",
+            fullResponse,
+          );
+          return;
+        }
+
+        if (preflight.intent === "compare" && preflight.candidateRefs?.length) {
+          const result = await compareCandidatesDirect(
+            session.user.id,
+            preflight.candidateRefs,
+            role,
+            preflight.targetRoleQuery,
+          );
+          fullResponse = result.responseText;
+          await streamText(controller, encoder, fullResponse);
+          await saveChatMessage(
+            conversationId,
+            session.user.id,
+            "assistant",
+            fullResponse,
+          );
+          return;
+        }
+
+        let nvidiaClient: ReturnType<typeof getNvidiaClient>;
+        try {
+          nvidiaClient = getNvidiaClient();
+        } catch {
+          fullResponse = "AI service not configured";
+          await streamImmediateText(controller, encoder, fullResponse);
+          await saveChatMessage(
+            conversationId,
+            session.user.id,
+            "assistant",
+            fullResponse,
+          );
+          return;
+        }
+
+        const today = new Date().toISOString().split("T")[0];
+        const roleDescriptions: Record<string, string> = {
+          ta: "Talent Acquisition specialist with full access to CV pool, jobs, candidates, screening, interviews, and matching.",
+          manager:
+            "Hiring Manager who can see candidates at manager-stage and beyond, interviews they conduct, and jobs.",
+          hr: "HR representative who can see candidates at HR-stage and beyond, hiring decisions, interviews, and recruitment metrics.",
+          admin:
+            "Admin user with full access to all recruitment data, operations, user management, and analytics.",
+        };
+
+        const tools = getToolsForRole(role);
+
+        const systemPrompt = `You are the AI recruitment agent for Capgemini TalentIQ.
 
 ═══════════════════════════════════════
 SECTION 1: HARD CONSTRAINTS (never violate)
@@ -195,6 +421,9 @@ SECTION 1: HARD CONSTRAINTS (never violate)
 5. NEVER guess IDs. If a tool call failed because of a bad ID, re-fetch the correct ID from a list tool.
 6. ALL numeric tool arguments (limit, count, threshold, score) must be passed as numbers, not strings.
 7. NEVER invent required parameters. If the user asks you to create/schedule something but omits key details (like job title, or interview date), ASK THEM for the missing info before acting.
+8. Prefer lightweight intent handling. For greetings or small talk, reply directly without tools.
+9. For candidate comparisons, prefer the dedicated compare flow and avoid unnecessary extra tool hops.
+10. If an exact name is unavailable but close matches exist, acknowledge the fuzzy match and use the closest valid result.
 
 ═══════════════════════════════════════
 SECTION 2: ROLE & SESSION
@@ -252,7 +481,7 @@ Match user intent to the correct tool. Follow DO/NEVER rules:
 "create a job" or "create a [title] job"
   → DO: generate_job_description(title, seniority) → create_job(using AI output)
   → NEVER: create_job without description (always generate it first)
-  → IF MISSING DETAILS: If the user didn't specify a title or seniority, ASK them first. Never invent a job title out of nowhere.
+  → IF MISSING DETAILS: If the user didn't specify a title or seniority, ASK THEM for the missing info before acting. Never invent a job title out of nowhere.
 
 "compare these candidates"
   → DO: get_candidates_by_job(jobId) → compare_candidates(candidateIds, jobId)
@@ -350,7 +579,7 @@ FOR ERRORS:
 What I can do instead: [concrete alternative]."
 
 FOR COMPLETED ACTIONS:
-"Done. [What was created/updated/deleted] — [key details]. 
+"Done. [What was created/updated/deleted] — [key details].
 Would you like to [suggested next step]?"
 
 ═══════════════════════════════════════
@@ -391,137 +620,126 @@ Quick reference:
 - Candidates: get_candidates_by_job, get_candidates_by_stage, get_candidate
 - Matching: match_cvs_to_job, hybrid_search_cvs
 - Dashboard: get_dashboard_stats, get_smart_insights
-${attachments && attachments.length > 0 ? `\n═══════════════════════════════════════\nATTACHMENTS\n═══════════════════════════════════════\nThe user has attached ${attachments.length} file(s). Process them with upload_cv(attachmentIndex).\n${attachments.map((a, i) => `[${i}] ${a.filename} (${a.contentType}, ${Math.round(a.size / 1024)}KB)`).join('\n')}` : ''}`;
+${
+  attachments && attachments.length > 0
+    ? `\n═══════════════════════════════════════\nATTACHMENTS\n═══════════════════════════════════════\nThe user has attached ${attachments.length} file(s). Process them with upload_cv(attachmentIndex).\n${attachments
+        .map(
+          (a, i) =>
+            `[${i}] ${a.filename} (${a.contentType}, ${Math.round(a.size / 1024)}KB)`,
+        )
+        .join("\n")}`
+    : ""
+}`;
 
-  // Build LLM messages with conversation history
-  type LLMMessage =
-    | { role: 'system'; content: string }
-    | { role: 'user'; content: string }
-    | { role: 'assistant'; content: string | null; tool_calls?: Array<{ id: string; type: 'function'; function: { name: string; arguments: string } }> }
-    | { role: 'tool'; tool_call_id: string; content: string };
+        const llmMessages: LLMMessage[] = [
+          { role: "system", content: systemPrompt },
+          ...dbHistory.slice(-20).map((message) => ({
+            role: message.role as "user" | "assistant",
+            content: message.content,
+          })),
+        ];
 
-  const llmMessages: LLMMessage[] = [
-    { role: 'system', content: systemPrompt },
-    ...dbHistory.slice(-20).map((m) => ({
-      role: m.role as 'user' | 'assistant',
-      content: m.content,
-    })),
-  ];
+        const toolExecutionCache = new Map<string, ToolExecutionRecord>();
+        const toolExecutionHistory: ToolExecutionRecord[] = [];
+        let consecutiveToolFailures = 0;
+        let sawMutatingTool = false;
+        let llmRetryUsed = false;
 
-  // Get NVIDIA client (throws if NVIDIA_API_KEY not set)
-  let nvidiaClient: ReturnType<typeof getNvidiaClient>;
-  try {
-    nvidiaClient = getNvidiaClient();
-  } catch {
-    return new Response('AI service not configured', { status: 503 });
-  }
-
-  const encoder = new TextEncoder();
-  const conversationId = conversation.id;
-
-  // We use SSE to send: tool events (as JSON lines) then the final streamed text
-  // Format:
-  //   @@TOOL_START@@{"tool":"name","args":{...}}
-  //   @@TOOL_END@@{"tool":"name","success":true,"summary":"..."}
-  //   (then plain text streaming for final response)
-
-  const stream = new ReadableStream({
-    async start(controller) {
-      let fullResponse = '';
-      let consecutiveToolFailures = 0;
-
-      try {
-        // Agent loop: iterate until we get a text response or hit max steps
         let step = 0;
         while (step < MAX_AGENT_STEPS) {
           step++;
 
-          let llmResponse: Awaited<ReturnType<typeof nvidiaClient.chat.completions.create>>;
+          let llmResponse: AgentCompletionResponse | null = null;
           try {
-            // Call LLM via NVIDIA Build API (non-streaming for tool-call steps)
-            const completionPromise = nvidiaClient.chat.completions.create({
-              model: getModelForTask('agent'),
-              messages: llmMessages as Parameters<typeof nvidiaClient.chat.completions.create>[0]['messages'],
-              tools: tools.length > 0 ? tools : undefined,
-              tool_choice: 'auto',
-              temperature: 0.15,
-              max_tokens: MAX_OUTPUT_TOKENS,
-            });
-
-            // Phase 1 guardrail: timeout protection
-            const timeoutPromise = new Promise<never>((_, reject) =>
-              setTimeout(() => reject(new Error('TIMEOUT')), LLM_REQUEST_TIMEOUT_MS)
+            llmResponse = await callAgentCompletion(
+              nvidiaClient,
+              llmMessages,
+              tools,
             );
-
-            llmResponse = await Promise.race([completionPromise, timeoutPromise]);
           } catch (error) {
-            if (error instanceof Error && error.message === 'TIMEOUT') {
-              controller.enqueue(
-                encoder.encode('The AI service took too long to respond. Please try a simpler query.')
-              );
+            if (isTimeoutError(error) && !sawMutatingTool && !llmRetryUsed) {
+              llmRetryUsed = true;
+              try {
+                llmResponse = await callAgentCompletion(
+                  nvidiaClient,
+                  llmMessages,
+                  tools,
+                );
+              } catch {
+                const fallback =
+                  buildDeterministicFallbackFromRecords(toolExecutionHistory) ??
+                  "The AI service took too long to respond. Please try a simpler query.";
+                fullResponse = fallback;
+                await streamImmediateText(controller, encoder, fallback);
+                break;
+              }
             } else {
-              controller.enqueue(
-                encoder.encode('Failed to connect to AI service. Please try again.')
-              );
+              const fallback =
+                buildDeterministicFallbackFromRecords(toolExecutionHistory) ??
+                (isTimeoutError(error)
+                  ? "The AI service took too long to respond. Please try a simpler query."
+                  : "Failed to connect to AI service. Please try again.");
+              fullResponse = fallback;
+              await streamImmediateText(controller, encoder, fallback);
+              break;
             }
+          }
+
+          if (!llmResponse) {
+            const fallback =
+              buildDeterministicFallbackFromRecords(toolExecutionHistory) ??
+              "No response from AI. Please try again.";
+            fullResponse = fallback;
+            await streamImmediateText(controller, encoder, fallback);
             break;
           }
 
           const choice = llmResponse.choices?.[0];
           if (!choice) {
-            controller.enqueue(
-              encoder.encode('No response from AI. Please try again.')
-            );
+            const fallback =
+              buildDeterministicFallbackFromRecords(toolExecutionHistory) ??
+              "No response from AI. Please try again.";
+            fullResponse = fallback;
+            await streamImmediateText(controller, encoder, fallback);
             break;
           }
 
           const message = choice.message;
-          // Filter to only function-type tool calls (OpenAI SDK returns union type)
           const rawToolCalls = message?.tool_calls;
           const toolCalls = rawToolCalls?.filter(
-            (tc): tc is typeof tc & { type: 'function'; function: { name: string; arguments: string } } =>
-              tc.type === 'function' && 'function' in tc
+            (tc: ResponseToolCall): tc is ResponseToolCall =>
+              tc.type === "function" && "function" in tc,
           );
 
-          // If no tool calls, we have a final text response
           if (!toolCalls || toolCalls.length === 0) {
-            const textContent = message?.content ?? '';
-
-            // Now stream this final response to the client
-            // We already have the full text, but we simulate streaming for UI consistency
+            const textContent = message?.content ?? "";
             if (textContent) {
-              // Push the assistant message to llmMessages for context
               llmMessages.push({
-                role: 'assistant',
+                role: "assistant",
                 content: textContent,
               });
               fullResponse = textContent;
-
-              // Stream in chunks for smooth UI
-              const chunkSize = 12;
-              for (let i = 0; i < textContent.length; i += chunkSize) {
-                controller.enqueue(
-                  encoder.encode(textContent.slice(i, i + chunkSize))
-                );
-                // Small delay for stream feel
-                await new Promise((r) => setTimeout(r, 8));
-              }
+              await streamText(controller, encoder, textContent);
+            } else {
+              const fallback =
+                buildDeterministicFallbackFromRecords(toolExecutionHistory) ??
+                "No response from AI. Please try again.";
+              fullResponse = fallback;
+              await streamImmediateText(controller, encoder, fallback);
             }
             break;
           }
 
-          // We have tool calls - execute them
-          // Add assistant message with tool_calls to history
           llmMessages.push({
-            role: 'assistant',
+            role: "assistant",
             content: message?.content ?? null,
             tool_calls: toolCalls,
           });
 
-          // Execute each tool call
           for (const tc of toolCalls) {
             const toolName = tc.function.name;
             let toolArgs: Record<string, unknown> = {};
+
             try {
               toolArgs = JSON.parse(tc.function.arguments) as Record<
                 string,
@@ -531,122 +749,159 @@ ${attachments && attachments.length > 0 ? `\n═══════════�
               toolArgs = {};
             }
 
-            // Send tool start event to client
-            controller.enqueue(
-              encoder.encode(
-                `@@TOOL_START@@${JSON.stringify({ tool: toolName, args: toolArgs })}\n`
-              )
-            );
-
-            // Inject attachment data for upload_cv tool
-            if (toolName === 'upload_cv' && attachments) {
-              const idx = parseInt(String(toolArgs.attachmentIndex ?? '0'), 10);
+            if (toolName === "upload_cv" && attachments) {
+              const idx = parseInt(String(toolArgs.attachmentIndex ?? "0"), 10);
               if (idx >= 0 && idx < attachments.length) {
-                toolArgs._attachment = attachments[idx];
+                toolArgs._attachment = attachments[idx] as AttachmentPayload;
               }
             }
 
-            // Execute tool
+            const cacheKey = makeToolCallCacheKey(toolName, toolArgs);
+            const cached = toolExecutionCache.get(cacheKey);
+
+            if (cached) {
+              llmMessages.push({
+                role: "tool",
+                tool_call_id: tc.id,
+                content: cached.result.success
+                  ? JSON.stringify(compactToolResult(cached.result.data))
+                  : JSON.stringify({ error: cached.result.error }),
+              });
+
+              if (cached.mutating) {
+                sawMutatingTool = true;
+              }
+
+              if (!cached.result.success) {
+                consecutiveToolFailures++;
+              } else {
+                consecutiveToolFailures = 0;
+              }
+
+              continue;
+            }
+
+            controller.enqueue(
+              encoder.encode(
+                `@@TOOL_START@@${JSON.stringify({ tool: toolName, args: toolArgs })}\n`,
+              ),
+            );
+
+            const toolDef = getToolDefinition(toolName);
+            const mutating = toolDef?.mutating ?? false;
+            if (mutating) {
+              sawMutatingTool = true;
+            }
+
             const result = await executeAgentTool(toolName, toolArgs, {
               userId: session.user.id,
               role,
             });
 
-            // If tool returned a file download, send it via SSE
+            const record: ToolExecutionRecord = {
+              toolName,
+              args: toolArgs,
+              result,
+              mutating,
+            };
+
+            toolExecutionCache.set(cacheKey, record);
+            toolExecutionHistory.push(record);
+
             if (
               result.success &&
               result.data &&
-              typeof result.data === 'object' &&
-              '_fileDownload' in (result.data as Record<string, unknown>)
+              typeof result.data === "object" &&
+              "_fileDownload" in (result.data as Record<string, unknown>)
             ) {
-              const fileData = (result.data as Record<string, unknown>)._fileDownload;
+              const fileData = (result.data as Record<string, unknown>)
+                ._fileDownload;
               controller.enqueue(
-                encoder.encode(`@@FILE@@${JSON.stringify(fileData)}\n`)
+                encoder.encode(`@@FILE@@${JSON.stringify(fileData)}\n`),
               );
-              // Strip the binary data before sending to LLM to save tokens
-              const { _fileDownload, ...rest } = result.data as Record<string, unknown>;
+              const { _fileDownload, ...rest } =
+                result.data as Record<string, unknown>;
+              void _fileDownload;
               result.data = rest;
             }
 
-            // Build a compact summary for the UI event
-            let summary: string;
-            if (result.success) {
-              if (Array.isArray(result.data)) {
-                summary = `Returned ${result.data.length} result(s)`;
-              } else if (result.data && typeof result.data === 'object') {
-                summary = 'Completed successfully';
-              } else {
-                summary = 'Done';
-              }
-            } else {
-              summary = result.error ?? 'Failed';
-            }
+            const summary = getToolSummary(result);
 
-            // Send tool end event
             controller.enqueue(
               encoder.encode(
-                `@@TOOL_END@@${JSON.stringify({ tool: toolName, success: result.success, summary })}\n`
-              )
+                `@@TOOL_END@@${JSON.stringify({
+                  tool: toolName,
+                  success: result.success,
+                  summary,
+                })}\n`,
+              ),
             );
 
-            // Phase 1 guardrail: fail-fast for repeated tool failures
             if (!result.success) {
               consecutiveToolFailures++;
               if (consecutiveToolFailures >= MAX_CONSECUTIVE_TOOL_FAILURES) {
-                controller.enqueue(
-                  encoder.encode(
-                    `\n\nI encountered ${consecutiveToolFailures} consecutive tool failures. Stopping to avoid further errors. Please try rephrasing your request.`
-                  )
+                const fallback =
+                  buildDeterministicFallbackFromRecords(toolExecutionHistory) ??
+                  `I encountered ${consecutiveToolFailures} consecutive tool failures. Please try rephrasing your request.`;
+                fullResponse = fallback;
+                await streamImmediateText(
+                  controller,
+                  encoder,
+                  `\n\n${fallback}`,
                 );
-                fullResponse = `Tool execution failed after ${consecutiveToolFailures} attempts.`;
                 break;
               }
             } else {
-              consecutiveToolFailures = 0; // Reset on success
+              consecutiveToolFailures = 0;
             }
 
-            // Phase 1: Compact tool result before injecting to model (token efficiency)
             const toolResultContent = result.success
               ? JSON.stringify(compactToolResult(result.data))
               : JSON.stringify({ error: result.error });
 
             llmMessages.push({
-              role: 'tool',
+              role: "tool",
               tool_call_id: tc.id,
               content: toolResultContent,
             });
           }
 
-          // Break outer loop if we hit fail-fast
           if (consecutiveToolFailures >= MAX_CONSECUTIVE_TOOL_FAILURES) {
             break;
           }
-
-          // Continue loop - the LLM will see tool results and decide next step
         }
 
-        // If we hit max steps without a final response, force one
         if (step >= MAX_AGENT_STEPS && !fullResponse) {
           const fallback =
-            'I reached the maximum number of steps for this request. Here is what I found so far based on the tool calls above. Please ask a more specific question if you need additional details.';
-          controller.enqueue(encoder.encode(fallback));
+            buildDeterministicFallbackFromRecords(toolExecutionHistory) ??
+            "I reached the maximum number of steps for this request. Please ask a more specific question if you need additional details.";
           fullResponse = fallback;
+          await streamImmediateText(controller, encoder, fallback);
         }
 
-        // Save assistant response
         if (fullResponse.trim()) {
-          await saveChatMessage(conversationId, session.user.id, 'assistant', fullResponse);
+          await saveChatMessage(
+            conversationId,
+            session.user.id,
+            "assistant",
+            fullResponse,
+          );
         }
       } catch {
         if (!fullResponse) {
-          controller.enqueue(
-            encoder.encode(
-              'An error occurred while processing your request. Please try again.'
-            )
-          );
+          const fallback =
+            "An error occurred while processing your request. Please try again.";
+          fullResponse = fallback;
+          await streamImmediateText(controller, encoder, fallback);
         }
+
         if (fullResponse.trim()) {
-          await saveChatMessage(conversationId, session.user.id, 'assistant', fullResponse).catch(() => {});
+          await saveChatMessage(
+            conversationId,
+            session.user.id,
+            "assistant",
+            fullResponse,
+          ).catch(() => {});
         }
       } finally {
         controller.close();
@@ -656,10 +911,9 @@ ${attachments && attachments.length > 0 ? `\n═══════════�
 
   return new Response(stream, {
     headers: {
-      'Content-Type': 'text/plain; charset=utf-8',
-      'Cache-Control': 'no-cache',
-      'Transfer-Encoding': 'chunked',
+      "Content-Type": "text/plain; charset=utf-8",
+      "Cache-Control": "no-cache",
+      "Transfer-Encoding": "chunked",
     },
   });
 }
-

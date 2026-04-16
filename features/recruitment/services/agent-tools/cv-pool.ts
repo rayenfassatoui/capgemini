@@ -122,7 +122,7 @@ export const definitions: AgentToolDefinition[] = [
 // ---- Executors ----
 
 export const executors: Record<string, ToolHandler> = {
-  upload_cv: async (args, { services, sanitizeForJson, ctx }) => {
+  upload_cv: async (args, { services, ctx }) => {
     const attachment = args._attachment as
       | {
           filename: string;
