@@ -193,6 +193,43 @@ function LoadingIndication() {
   );
 }
 
+function WorkingIndicator({ toolEvents }: { toolEvents?: ToolEvent[] }) {
+  const runningTool = toolEvents?.find((evt) => evt.status === 'running');
+  const statusText = runningTool
+    ? `Working on ${formatToolName(runningTool.tool)}`
+    : 'Thinking...';
+
+  return (
+    <div className="mt-3 flex items-center gap-2 rounded-[10px] border border-border/70 bg-muted/30 px-3 py-2">
+      <IconLoader2 className="size-3.5 animate-spin text-muted-foreground" />
+      <motion.span
+        animate={{ opacity: [0.55, 1, 0.55] }}
+        transition={{ duration: 1.6, repeat: Infinity, ease: 'easeInOut' }}
+        className="relative text-[12px] font-medium tracking-wide text-muted-foreground"
+      >
+        {statusText}
+      </motion.span>
+      <div className="ml-1 flex items-center gap-1">
+        <motion.div
+          animate={{ y: [0, -2, 0], opacity: [0.35, 1, 0.35] }}
+          transition={{ duration: 1, repeat: Infinity, ease: 'easeInOut' }}
+          className="h-1.5 w-1.5 rounded-full bg-muted-foreground"
+        />
+        <motion.div
+          animate={{ y: [0, -2, 0], opacity: [0.35, 1, 0.35] }}
+          transition={{ duration: 1, delay: 0.15, repeat: Infinity, ease: 'easeInOut' }}
+          className="h-1.5 w-1.5 rounded-full bg-muted-foreground"
+        />
+        <motion.div
+          animate={{ y: [0, -2, 0], opacity: [0.35, 1, 0.35] }}
+          transition={{ duration: 1, delay: 0.3, repeat: Infinity, ease: 'easeInOut' }}
+          className="h-1.5 w-1.5 rounded-full bg-muted-foreground"
+        />
+      </div>
+    </div>
+  );
+}
+
 function MessageBubble({
   msg,
   isLast,
@@ -317,6 +354,9 @@ function MessageBubble({
             <LoadingIndication />
           ) : null}
         </div>
+        {!isUser && isLast && isStreaming && (
+          <WorkingIndicator toolEvents={msg.toolEvents} />
+        )}
       </div>
     </motion.div>
   );
