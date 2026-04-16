@@ -11,6 +11,7 @@ import type {
 import { getCandidate, updateCandidateStage } from './candidates';
 import { getJob } from './jobs';
 import { logActivity } from './activity-log';
+import { notifyInterviewScheduled } from './notifications';
 
 export async function scheduleInterview(
   input: ScheduleInterviewInput,
@@ -18,7 +19,7 @@ export async function scheduleInterview(
 ) {
   const validated = scheduleInterviewSchema.parse(input);
 
-    const dbDate = validated.scheduledDate;
+  const dbDate = validated.scheduledDate;
 
   const [interview] = await db
     .insert(interviews)
@@ -40,15 +41,28 @@ export async function scheduleInterview(
   };
   await updateCandidateStage(validated.candidateId, stageMap[validated.stage]);
 
-  // Activity log
   const candidate = await getCandidate(validated.candidateId);
   const job = await getJob(validated.jobId);
+  const candidateName = candidate?.fullName ?? 'Unknown';
+  const jobTitle = job?.title ?? 'Unknown';
+
+  // Notification should not block interview creation.
+  await notifyInterviewScheduled(
+    interview.id,
+    candidateName,
+    jobTitle,
+    validated.scheduledDate,
+    validated.scheduledTime,
+    [userId]
+  ).catch(() => {});
+
+  // Activity log
   await logActivity(
     userId,
     'interview_scheduled',
     'interview',
     interview.id,
-    `${validated.stage.toUpperCase()} interview for ${candidate?.fullName ?? 'Unknown'} (${job?.title ?? 'Unknown'}) on ${validated.scheduledDate} at ${validated.scheduledTime}`
+    `${validated.stage.toUpperCase()} interview for ${candidateName} (${jobTitle}) on ${validated.scheduledDate} at ${validated.scheduledTime}`
   ).catch(() => {});
 
   return interview;

@@ -543,12 +543,14 @@ export async function askAiStatisticsAction(question: string) {
 export async function getNotificationsAction() {
   const session = await requireRole(['ta', 'manager', 'hr', 'admin']);
   const services = await getServices();
+  await services.ensureTodayInterviewReminders(session.user.id);
   return services.getNotifications(session.user.id);
 }
 
 export async function getUnreadNotificationCountAction() {
   const session = await requireRole(['ta', 'manager', 'hr', 'admin']);
   const services = await getServices();
+  await services.ensureTodayInterviewReminders(session.user.id);
   return services.getUnreadCount(session.user.id);
 }
 

@@ -134,6 +134,7 @@ export {
   createNotification,
   getNotifications,
   getUnreadCount,
+  ensureTodayInterviewReminders,
   markNotificationRead,
   markAllNotificationsRead,
   notifyStageChange,

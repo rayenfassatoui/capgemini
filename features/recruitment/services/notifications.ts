@@ -1,6 +1,6 @@
 import { and, desc, eq } from 'drizzle-orm';
 import { db } from '@/lib/db';
-import { notifications } from '@/db/schema';
+import { candidates, interviews, jobs, notifications } from '@/db/schema';
 
 export async function createNotification(
   userId: string,
@@ -32,6 +32,69 @@ export async function getUnreadCount(userId: string) {
     .from(notifications)
     .where(and(eq(notifications.userId, userId), eq(notifications.read, false)));
   return rows.length;
+}
+
+export async function ensureTodayInterviewReminders(userId: string) {
+  const today = new Date().toISOString().split('T')[0];
+
+  const todayInterviews = await db
+    .select({
+      interviewId: interviews.id,
+      stage: interviews.stage,
+      scheduledTime: interviews.scheduledTime,
+      candidateName: candidates.fullName,
+      jobTitle: jobs.title,
+    })
+    .from(interviews)
+    .innerJoin(candidates, eq(interviews.candidateId, candidates.id))
+    .innerJoin(jobs, eq(interviews.jobId, jobs.id))
+    .where(
+      and(
+        eq(interviews.interviewerId, userId),
+        eq(interviews.scheduledDate, today),
+        eq(interviews.status, 'scheduled')
+      )
+    );
+
+  if (todayInterviews.length === 0) {
+    return 0;
+  }
+
+  const existingReminders = await db
+    .select({ entityId: notifications.entityId })
+    .from(notifications)
+    .where(
+      and(
+        eq(notifications.userId, userId),
+        eq(notifications.type, 'interview_today_reminder'),
+        eq(notifications.entityType, 'interview')
+      )
+    );
+
+  const existingInterviewIds = new Set(
+    existingReminders
+      .map((item) => item.entityId)
+      .filter((entityId): entityId is string => Boolean(entityId))
+  );
+
+  let createdCount = 0;
+  for (const interview of todayInterviews) {
+    if (existingInterviewIds.has(interview.interviewId)) {
+      continue;
+    }
+
+    await createNotification(
+      userId,
+      'interview_today_reminder',
+      'Interview Reminder',
+      `You have a ${interview.stage.toUpperCase()} interview with ${interview.candidateName} (${interview.jobTitle}) today at ${interview.scheduledTime}`,
+      'interview',
+      interview.interviewId
+    );
+    createdCount += 1;
+  }
+
+  return createdCount;
 }
 
 export async function markNotificationRead(notificationId: string, userId: string) {
