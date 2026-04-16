@@ -23,6 +23,8 @@ interface ChatMessageListProps {
   onSendSuggestion: (text: string) => void;
 }
 
+const STATUS_TEXT_THINKING = 'Thinking...';
+
 function ToolEventChip({ evt }: { evt: ToolEvent }) {
   return (
     <div
@@ -193,11 +195,11 @@ function LoadingIndication() {
   );
 }
 
-function WorkingIndicator({ toolEvents }: { toolEvents?: ToolEvent[] }) {
+function AssistantWorkingIndicator({ toolEvents }: { toolEvents?: ToolEvent[] }) {
   const runningTool = toolEvents?.find((evt) => evt.status === 'running');
   const statusText = runningTool
     ? `Working on ${formatToolName(runningTool.tool)}`
-    : 'Thinking...';
+    : STATUS_TEXT_THINKING;
 
   return (
     <div className="mt-3 flex items-center gap-2 rounded-[10px] border border-border/70 bg-muted/30 px-3 py-2">
@@ -355,7 +357,7 @@ function MessageBubble({
           ) : null}
         </div>
         {!isUser && isLast && isStreaming && (
-          <WorkingIndicator toolEvents={msg.toolEvents} />
+          <AssistantWorkingIndicator toolEvents={msg.toolEvents} />
         )}
       </div>
     </motion.div>
