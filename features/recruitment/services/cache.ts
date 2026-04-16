@@ -32,7 +32,7 @@ export class TtlCache<T> {
    */
   get(key: string): T | undefined {
     const entry = this.cache.get(key);
-    
+
     if (!entry) {
       this.misses++;
       return undefined;
@@ -57,14 +57,14 @@ export class TtlCache<T> {
     if (this.cache.size >= this.maxSize) {
       const keysToDelete: string[] = [];
       const now = Date.now();
-      
+
       // First, remove expired entries
       for (const [k, entry] of this.cache) {
         if (now > entry.expiresAt) {
           keysToDelete.push(k);
         }
       }
-      
+
       // If still at capacity, remove oldest 10%
       if (this.cache.size - keysToDelete.length >= this.maxSize) {
         const toRemove = Math.ceil(this.maxSize * 0.1);
@@ -183,31 +183,45 @@ export function buildEmbeddingCacheKey(
   query: string,
   model: string,
   scopeKey: string,
-  indexVersion: number
+  indexVersion: number,
 ): string {
-  const normalized = query.toLowerCase().trim().replace(/\s+/g, ' ');
+  const normalized = query.toLowerCase().trim().replace(/\s+/g, " ");
   return `emb:${hashString(normalized)}:${model}:${scopeKey}:v${indexVersion}`;
+}
+
+export interface RetrievalCacheKeyOpts {
+  vectorTopK: number;
+  lexicalTopK: number;
+  finalTopK: number;
+  vectorThreshold: number;
+  enableRewrite: boolean;
 }
 
 /**
  * Build a cache key for retrieval results.
+ * Includes topK limits, threshold, and rewrite mode so that different
+ * retrieval configurations never share the same cached result.
  */
 export function buildRetrievalCacheKey(
   query: string,
-  filters: Record<string, unknown> | undefined,
   scopeKey: string,
-  indexVersion: number
+  indexVersion: number,
+  opts: RetrievalCacheKeyOpts,
 ): string {
-  const normalized = query.toLowerCase().trim().replace(/\s+/g, ' ');
-  const filterHash = filters ? hashString(JSON.stringify(filters)) : 'nofilter';
-  return `ret:${hashString(normalized)}:${filterHash}:${scopeKey}:v${indexVersion}`;
+  const normalized = query.toLowerCase().trim().replace(/\s+/g, " ");
+  // Encode every dimension that affects retrieval output into the key.
+  // Using a deterministic string instead of JSON.stringify keeps the hash stable.
+  const optsHash = hashString(
+    `vk${opts.vectorTopK}lk${opts.lexicalTopK}fk${opts.finalTopK}th${opts.vectorThreshold}rw${opts.enableRewrite ? 1 : 0}`,
+  );
+  return `ret:${hashString(normalized)}:${optsHash}:${scopeKey}:v${indexVersion}`;
 }
 
 /**
  * Build a scope key for cache partitioning.
  */
 export function buildScopeKey(userId: string, role: string): string {
-  return role === 'admin' ? 'global' : `user:${userId}`;
+  return role === "admin" ? "global" : `user:${userId}`;
 }
 
 /**
@@ -215,9 +229,9 @@ export function buildScopeKey(userId: string, role: string): string {
  */
 export function buildRewriteCacheKey(
   query: string,
-  indexVersion: number
+  indexVersion: number,
 ): string {
-  const normalized = query.toLowerCase().trim().replace(/\s+/g, ' ');
+  const normalized = query.toLowerCase().trim().replace(/\s+/g, " ");
   return `rw:${hashString(normalized)}:v${indexVersion}`;
 }
 
@@ -228,7 +242,7 @@ function hashString(str: string): string {
   let hash = 0;
   for (let i = 0; i < str.length; i++) {
     const char = str.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
+    hash = (hash << 5) - hash + char;
     hash = hash & hash; // Convert to 32-bit integer
   }
   return Math.abs(hash).toString(36);
@@ -246,7 +260,7 @@ export function invalidateCvCaches(cvId: string): void {
   // Retrieval cache entries might contain this CV
   // Since we can't easily identify them, clear all retrieval cache
   retrievalCache.clear();
-  
+
   console.log(`[cache] Invalidated caches for CV: ${cvId}`);
 }
 
@@ -257,8 +271,8 @@ export function invalidateAllCaches(): void {
   embeddingCache.clear();
   retrievalCache.clear();
   rewriteCache.clear();
-  
-  console.log('[cache] All caches invalidated');
+
+  console.log("[cache] All caches invalidated");
 }
 
 /**
