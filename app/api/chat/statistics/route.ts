@@ -81,12 +81,37 @@ const SIMPLE_EXCHANGE_RE =
   /^(?:hi|hello|hey|thanks|thank you|thx|ok|okay|cool|great|nice|salam|aslema|bonjour|bonsoir)[!.?,\s]*$/i;
 const AGENTIC_HEADING_RE =
   /(^|\n)##\s*(fhemtek|goal|plan|execution|result|next\s*steps?)/i;
+const RECRUITMENT_SIGNAL_RE =
+  /\b(recruit(?:ment|ing)?|talent|candidate|candidates|cv|cvs|resume|resumes|job|jobs|pipeline|screening|interview|interviews|hire|hiring|onboarding|offer|skills?|seniority|position|vacancy|profile|profiles)\b/i;
+const CREATIVE_OFFTOPIC_RE =
+  /\b(poem|poetry|joke|story|song|rap|haiku|riddle|quote|lyrics?)\b/i;
 
 interface AgenticResponseParams {
   text: string;
   userMessage: string;
   role: UserRole;
   records: ToolExecutionRecord[];
+}
+
+function isRecruitmentWorkRequest(message: string): boolean {
+  return RECRUITMENT_SIGNAL_RE.test(message);
+}
+
+function isCreativeOffTopicRequest(message: string): boolean {
+  return CREATIVE_OFFTOPIC_RE.test(message);
+}
+
+function buildOutOfScopeResponse(role: UserRole): string {
+  const roleHint =
+    role === "ta"
+      ? "search CVs, compare candidates, and generate screening support"
+      : role === "manager"
+        ? "review top matches, interview decisions, and pipeline summaries"
+        : role === "hr"
+          ? "handle HR-stage candidate decisions and onboarding workflows"
+          : "oversee cross-team recruitment analytics and operations";
+
+  return `I am focused on recruitment work in this workspace, so I cannot handle general creative writing requests here.\n\nI can help you ${roleHint}.`;
 }
 
 async function getAuthSession() {
@@ -391,6 +416,13 @@ function ensureAgenticResponseStructure({
     return trimmed;
   }
 
+  const shouldApplyAgenticWorkflow =
+    records.length > 0 || isRecruitmentWorkRequest(userMessage);
+
+  if (!shouldApplyAgenticWorkflow) {
+    return trimmed;
+  }
+
   const isSimpleExchange =
     records.length === 0 &&
     trimmed.length < 220 &&
@@ -612,6 +644,25 @@ export async function POST(request: Request) {
             preflight.targetRoleQuery,
           );
           fullResponse = finalizeResponse(result.responseText);
+          await streamText(controller, encoder, fullResponse);
+          await saveChatMessage(
+            conversationId,
+            session.user.id,
+            "assistant",
+            fullResponse,
+          );
+          return;
+        }
+
+        const hasAttachments = Boolean(attachments?.length);
+        const isOffTopicCreative =
+          !hasAttachments &&
+          preflight.intent === "agent" &&
+          isCreativeOffTopicRequest(lastMessageText) &&
+          !isRecruitmentWorkRequest(lastMessageText);
+
+        if (isOffTopicCreative) {
+          fullResponse = buildOutOfScopeResponse(role);
           await streamText(controller, encoder, fullResponse);
           await saveChatMessage(
             conversationId,
