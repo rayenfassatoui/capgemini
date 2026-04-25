@@ -1,8 +1,35 @@
+export type ToolEventStatus = "queued" | "running" | "success" | "error";
+
+export type ToolTraceFilter = "all" | ToolEventStatus;
+
+export type ToolTraceJson =
+  | null
+  | boolean
+  | number
+  | string
+  | ToolTraceJson[]
+  | { [key: string]: ToolTraceJson };
+
+export interface ToolRetryMetadata {
+  attempt?: number;
+  maxAttempts?: number;
+  retried?: boolean;
+  reason?: string;
+}
+
 export interface ToolEvent {
   id: string;
   tool: string;
-  status: 'running' | 'success' | 'error';
+  status: ToolEventStatus;
   summary?: string;
+  purpose?: string;
+  startedAt?: string;
+  endedAt?: string;
+  durationMs?: number;
+  input?: ToolTraceJson;
+  output?: ToolTraceJson;
+  error?: string;
+  retry?: ToolRetryMetadata;
 }
 
 export interface ChatAttachment {
@@ -19,7 +46,7 @@ export interface FileDownload {
 
 export interface ChatMessage {
   id: string;
-  role: 'user' | 'assistant';
+  role: "user" | "assistant";
   content: string;
   toolEvents?: ToolEvent[];
   attachments?: ChatAttachment[];
@@ -32,21 +59,19 @@ export interface Conversation {
   updatedAt: string;
 }
 
-export type ChatView = 'chat' | 'history';
+export type ChatView = "chat" | "history";
 
 export const SUGGESTIONS = [
-  'Summarize top candidate for the latest job',
-  'Analyze our talent pool insights',
-  'Optimize requirements for an open job',
-  'Show me the candidate pipeline',
-  'Match CVs to the latest job',
-  'Generate follow-up interview questions',
+  "Summarize top candidate for the latest job",
+  "Analyze our talent pool insights",
+  "Optimize requirements for an open job",
+  "Show me the candidate pipeline",
+  "Match CVs to the latest job",
+  "Generate follow-up interview questions",
 ];
 
 export function formatToolName(name: string): string {
-  return name
-    .replace(/_/g, ' ')
-    .replace(/\b\w/g, (c) => c.toUpperCase());
+  return name.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
 export function formatRelativeTime(dateStr: string): string {
@@ -57,9 +82,9 @@ export function formatRelativeTime(dateStr: string): string {
   const diffHr = Math.floor(diffMs / 3_600_000);
   const diffDays = Math.floor(diffMs / 86_400_000);
 
-  if (diffMin < 1) return 'Just now';
+  if (diffMin < 1) return "Just now";
   if (diffMin < 60) return `${diffMin}m ago`;
   if (diffHr < 24) return `${diffHr}h ago`;
   if (diffDays < 7) return `${diffDays}d ago`;
-  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }

@@ -1,23 +1,31 @@
-'use client';
+"use client";
 
-import { useState, useRef, useCallback, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { IconMessageChatbot } from '@tabler/icons-react';
-import { Button } from '@/components/ui/button';
+import { useState, useRef, useCallback, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { IconMessageChatbot } from "@tabler/icons-react";
+import { Button } from "@/components/ui/button";
 
-import type { ChatView, ChatMessage, Conversation, ToolEvent, FileDownload } from './chat/chat-types';
-import { ChatHeader } from './chat/chat-header';
-import { ChatHistory } from './chat/chat-history';
-import { ChatMessageList } from './chat/chat-message-list';
-import { ChatInput } from './chat/chat-input';
+import type {
+  ChatView,
+  ChatMessage,
+  Conversation,
+  ToolEvent,
+  FileDownload,
+} from "./chat/chat-types";
+import { ChatHeader } from "./chat/chat-header";
+import { ChatHistory } from "./chat/chat-history";
+import { ChatMessageList } from "./chat/chat-message-list";
+import { ChatInput } from "./chat/chat-input";
 
 export function StatisticsChat() {
   const [open, setOpen] = useState(false);
-  const [view, setView] = useState<ChatView>('chat');
+  const [view, setView] = useState<ChatView>("chat");
   const [conversations, setConversations] = useState<Conversation[]>([]);
-  const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
+  const [activeConversationId, setActiveConversationId] = useState<
+    string | null
+  >(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [input, setInput] = useState('');
+  const [input, setInput] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
   const [conversationsLoaded, setConversationsLoaded] = useState(false);
@@ -30,7 +38,7 @@ export function StatisticsChat() {
 
     async function loadConversations() {
       try {
-        const res = await fetch('/api/chat/statistics');
+        const res = await fetch("/api/chat/statistics");
         if (!res.ok) return;
         const data = (await res.json()) as { conversations: Conversation[] };
         setConversations(data.conversations ?? []);
@@ -54,7 +62,9 @@ export function StatisticsChat() {
   const loadMessages = useCallback(async (conversationId: string) => {
     setIsLoadingHistory(true);
     try {
-      const res = await fetch(`/api/chat/statistics?conversationId=${conversationId}`);
+      const res = await fetch(
+        `/api/chat/statistics?conversationId=${conversationId}`,
+      );
       if (!res.ok) return;
       const data = (await res.json()) as {
         messages: Array<{ id: string; role: string; content: string }>;
@@ -62,9 +72,9 @@ export function StatisticsChat() {
       setMessages(
         (data.messages ?? []).map((m) => ({
           id: m.id,
-          role: m.role as 'user' | 'assistant',
+          role: m.role as "user" | "assistant",
           content: m.content,
-        }))
+        })),
       );
     } catch {
       setMessages([]);
@@ -77,22 +87,22 @@ export function StatisticsChat() {
     async (conversationId: string) => {
       if (isStreaming) return;
       setActiveConversationId(conversationId);
-      setView('chat');
+      setView("chat");
       await loadMessages(conversationId);
     },
-    [isStreaming, loadMessages]
+    [isStreaming, loadMessages],
   );
 
   const createNewChat = useCallback(async () => {
     if (isStreaming) return;
     try {
-      const res = await fetch('/api/chat/statistics', { method: 'PUT' });
+      const res = await fetch("/api/chat/statistics", { method: "PUT" });
       if (!res.ok) return;
       const conversation = (await res.json()) as Conversation;
       setConversations((prev) => [conversation, ...prev]);
       setActiveConversationId(conversation.id);
       setMessages([]);
-      setView('chat');
+      setView("chat");
     } catch {
       // Silently fail
     }
@@ -103,12 +113,14 @@ export function StatisticsChat() {
       if (isStreaming) return;
       try {
         await fetch(`/api/chat/statistics?conversationId=${conversationId}`, {
-          method: 'DELETE',
+          method: "DELETE",
         });
         setConversations((prev) => prev.filter((c) => c.id !== conversationId));
 
         if (activeConversationId === conversationId) {
-          const remaining = conversations.filter((c) => c.id !== conversationId);
+          const remaining = conversations.filter(
+            (c) => c.id !== conversationId,
+          );
           if (remaining.length > 0) {
             setActiveConversationId(remaining[0].id);
             await loadMessages(remaining[0].id);
@@ -121,7 +133,7 @@ export function StatisticsChat() {
         // Silently fail
       }
     },
-    [isStreaming, activeConversationId, conversations, loadMessages]
+    [isStreaming, activeConversationId, conversations, loadMessages],
   );
 
   const handleStop = useCallback(() => {
@@ -131,14 +143,16 @@ export function StatisticsChat() {
 
   const sendMessage = useCallback(
     async (text: string) => {
-      const trimmed = text.trim() || (attachedFile ? `Upload and process ${attachedFile.name}` : '');
+      const trimmed =
+        text.trim() ||
+        (attachedFile ? `Upload and process ${attachedFile.name}` : "");
       if (!trimmed || isStreaming) return;
 
       // Auto-create conversation if none active
       let convId = activeConversationId;
       if (!convId) {
         try {
-          const res = await fetch('/api/chat/statistics', { method: 'PUT' });
+          const res = await fetch("/api/chat/statistics", { method: "PUT" });
           if (!res.ok) return;
           const conversation = (await res.json()) as Conversation;
           setConversations((prev) => [conversation, ...prev]);
@@ -151,42 +165,57 @@ export function StatisticsChat() {
 
       const userMsg: ChatMessage = {
         id: crypto.randomUUID(),
-        role: 'user',
+        role: "user",
         content: trimmed,
         attachments: attachedFile
-          ? [{ filename: attachedFile.name, size: attachedFile.size, contentType: attachedFile.type || 'application/octet-stream' }]
+          ? [
+              {
+                filename: attachedFile.name,
+                size: attachedFile.size,
+                contentType: attachedFile.type || "application/octet-stream",
+              },
+            ]
           : undefined,
       };
 
       const assistantMsg: ChatMessage = {
         id: crypto.randomUUID(),
-        role: 'assistant',
-        content: '',
+        role: "assistant",
+        content: "",
         toolEvents: [],
       };
 
       setMessages((prev) => [...prev, userMsg, assistantMsg]);
-      setInput('');
+      setInput("");
       setIsStreaming(true);
 
       // Read attached file to base64
-      let attachments: Array<{ filename: string; contentType: string; size: number; rawBytes: string }> | undefined;
+      let attachments:
+        | Array<{
+            filename: string;
+            contentType: string;
+            size: number;
+            rawBytes: string;
+          }>
+        | undefined;
       if (attachedFile) {
         const fileData = await new Promise<string>((resolve, reject) => {
           const reader = new FileReader();
           reader.onload = () => {
             const result = reader.result as string;
-            resolve(result.split(',')[1]);
+            resolve(result.split(",")[1]);
           };
           reader.onerror = reject;
           reader.readAsDataURL(attachedFile);
         });
-        attachments = [{
-          filename: attachedFile.name,
-          contentType: attachedFile.type || 'application/octet-stream',
-          size: attachedFile.size,
-          rawBytes: fileData,
-        }];
+        attachments = [
+          {
+            filename: attachedFile.name,
+            contentType: attachedFile.type || "application/octet-stream",
+            size: attachedFile.size,
+            rawBytes: fileData,
+          },
+        ];
         setAttachedFile(null);
       }
 
@@ -199,10 +228,14 @@ export function StatisticsChat() {
           content: m.content,
         }));
 
-        const response = await fetch('/api/chat/statistics', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ conversationId: convId, messages: history, ...(attachments ? { attachments } : {}) }),
+        const response = await fetch("/api/chat/statistics", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            conversationId: convId,
+            messages: history,
+            ...(attachments ? { attachments } : {}),
+          }),
           signal: controller.signal,
         });
 
@@ -212,10 +245,10 @@ export function StatisticsChat() {
               m.id === assistantMsg.id
                 ? {
                     ...m,
-                    content: `Sorry, I couldn't process that request. ${response.status === 401 ? 'Please sign in again.' : response.status === 403 ? 'Access denied.' : 'Please try again.'}`,
+                    content: `Sorry, I couldn't process that request. ${response.status === 401 ? "Please sign in again." : response.status === 403 ? "Access denied." : "Please try again."}`,
                   }
-                : m
-            )
+                : m,
+            ),
           );
           setIsStreaming(false);
           return;
@@ -223,14 +256,35 @@ export function StatisticsChat() {
 
         const reader = response.body?.getReader();
         if (!reader) {
-          throw new Error('No response stream');
+          throw new Error("No response stream");
         }
 
         const decoder = new TextDecoder();
-        let accumulated = '';
-        let textContent = '';
+        let accumulated = "";
+        let textContent = "";
         const toolEventsAccum: ToolEvent[] = [];
         const fileDownloadsAccum: FileDownload[] = [];
+
+        const mergeToolEvent = (evt: ToolEvent) => {
+          const idx = toolEventsAccum.findIndex(
+            (existing) => existing.id === evt.id,
+          );
+          if (idx === -1) {
+            toolEventsAccum.push(evt);
+            return;
+          }
+
+          toolEventsAccum[idx] = {
+            ...toolEventsAccum[idx],
+            ...evt,
+            input: evt.input ?? toolEventsAccum[idx].input,
+            output: evt.output ?? toolEventsAccum[idx].output,
+            retry: evt.retry ?? toolEventsAccum[idx].retry,
+            startedAt: evt.startedAt ?? toolEventsAccum[idx].startedAt,
+            endedAt: evt.endedAt ?? toolEventsAccum[idx].endedAt,
+            durationMs: evt.durationMs ?? toolEventsAccum[idx].durationMs,
+          };
+        };
 
         while (true) {
           const { done, value } = await reader.read();
@@ -238,87 +292,150 @@ export function StatisticsChat() {
 
           accumulated += decoder.decode(value, { stream: true });
 
-          const lines = accumulated.split('\n');
-          accumulated = lines.pop() ?? '';
+          const lines = accumulated.split("\n");
+          accumulated = lines.pop() ?? "";
 
           for (const line of lines) {
-            if (line.startsWith('@@TOOL_START@@')) {
+            if (line.startsWith("@@TOOL_START@@")) {
               try {
-                const payload = JSON.parse(line.slice('@@TOOL_START@@'.length)) as {
+                const payload = JSON.parse(
+                  line.slice("@@TOOL_START@@".length),
+                ) as {
+                  id?: string;
                   tool: string;
-                  args: Record<string, unknown>;
+                  args?: Record<string, unknown>;
+                  input?: ToolEvent["input"];
+                  status?: ToolEvent["status"];
+                  summary?: string;
+                  purpose?: string;
+                  startedAt?: string;
+                  retry?: ToolEvent["retry"];
                 };
                 const evt: ToolEvent = {
-                  id: crypto.randomUUID(),
+                  id: payload.id ?? crypto.randomUUID(),
                   tool: payload.tool,
-                  status: 'running',
+                  status: payload.status ?? "running",
+                  summary: payload.summary,
+                  purpose: payload.purpose,
+                  startedAt: payload.startedAt ?? new Date().toISOString(),
+                  input:
+                    payload.input ??
+                    (payload.args as ToolEvent["input"] | undefined),
+                  retry: payload.retry,
                 };
-                toolEventsAccum.push(evt);
+                mergeToolEvent(evt);
                 setMessages((prev) =>
                   prev.map((m) =>
                     m.id === assistantMsg.id
                       ? { ...m, toolEvents: [...toolEventsAccum] }
-                      : m
-                  )
+                      : m,
+                  ),
                 );
               } catch {
                 // malformed tool start
               }
-            } else if (line.startsWith('@@TOOL_END@@')) {
+            } else if (line.startsWith("@@TOOL_END@@")) {
               try {
-                const payload = JSON.parse(line.slice('@@TOOL_END@@'.length)) as {
+                const payload = JSON.parse(
+                  line.slice("@@TOOL_END@@".length),
+                ) as {
+                  id?: string;
                   tool: string;
                   success: boolean;
+                  status?: ToolEvent["status"];
                   summary: string;
+                  purpose?: string;
+                  startedAt?: string;
+                  endedAt?: string;
+                  durationMs?: number;
+                  input?: ToolEvent["input"];
+                  output?: ToolEvent["output"];
+                  error?: string;
+                  retry?: ToolEvent["retry"];
                 };
-                const idx = toolEventsAccum.findIndex(
-                  (e) => e.tool === payload.tool && e.status === 'running'
+                const idx = toolEventsAccum.findIndex((e) =>
+                  payload.id
+                    ? e.id === payload.id
+                    : e.tool === payload.tool && e.status === "running",
                 );
-                if (idx !== -1) {
-                  toolEventsAccum[idx] = {
-                    ...toolEventsAccum[idx],
-                    status: payload.success ? 'success' : 'error',
-                    summary: payload.summary,
-                  };
-                }
+                const endedAt = payload.endedAt ?? new Date().toISOString();
+                const startedAt =
+                  payload.startedAt ??
+                  (idx !== -1 ? toolEventsAccum[idx].startedAt : undefined);
+                const computedDuration =
+                  typeof payload.durationMs === "number"
+                    ? payload.durationMs
+                    : startedAt
+                      ? Math.max(
+                          0,
+                          new Date(endedAt).getTime() -
+                            new Date(startedAt).getTime(),
+                        )
+                      : undefined;
+
+                mergeToolEvent({
+                  id: payload.id ?? crypto.randomUUID(),
+                  tool: payload.tool,
+                  status:
+                    payload.status ?? (payload.success ? "success" : "error"),
+                  summary: payload.summary,
+                  purpose:
+                    payload.purpose ??
+                    (idx !== -1 ? toolEventsAccum[idx].purpose : undefined),
+                  startedAt,
+                  endedAt,
+                  durationMs: computedDuration,
+                  input:
+                    payload.input ??
+                    (idx !== -1 ? toolEventsAccum[idx].input : undefined),
+                  output: payload.output,
+                  error: payload.error,
+                  retry:
+                    payload.retry ??
+                    (idx !== -1 ? toolEventsAccum[idx].retry : undefined),
+                });
                 setMessages((prev) =>
                   prev.map((m) =>
                     m.id === assistantMsg.id
                       ? { ...m, toolEvents: [...toolEventsAccum] }
-                      : m
-                  )
+                      : m,
+                  ),
                 );
               } catch {
                 // malformed tool end
               }
-            } else if (line.startsWith('@@FILE@@')) {
+            } else if (line.startsWith("@@FILE@@")) {
               try {
-                const payload = JSON.parse(line.slice('@@FILE@@'.length)) as FileDownload;
+                const payload = JSON.parse(
+                  line.slice("@@FILE@@".length),
+                ) as FileDownload;
                 fileDownloadsAccum.push(payload);
                 setMessages((prev) =>
                   prev.map((m) =>
                     m.id === assistantMsg.id
                       ? { ...m, fileDownloads: [...fileDownloadsAccum] }
-                      : m
-                  )
+                      : m,
+                  ),
                 );
               } catch {
                 // malformed file event
               }
             } else {
-              textContent += line + '\n';
+              textContent += line + "\n";
               setMessages((prev) =>
                 prev.map((m) =>
-                  m.id === assistantMsg.id
-                    ? { ...m, content: textContent }
-                    : m
-                )
+                  m.id === assistantMsg.id ? { ...m, content: textContent } : m,
+                ),
               );
             }
           }
         }
 
-        if (accumulated && !accumulated.startsWith('@@TOOL_') && !accumulated.startsWith('@@FILE@@')) {
+        if (
+          accumulated &&
+          !accumulated.startsWith("@@TOOL_") &&
+          !accumulated.startsWith("@@FILE@@")
+        ) {
           textContent += accumulated;
         }
 
@@ -326,9 +443,17 @@ export function StatisticsChat() {
           setMessages((prev) =>
             prev.map((m) =>
               m.id === assistantMsg.id
-                ? { ...m, content: textContent, toolEvents: [...toolEventsAccum], fileDownloads: fileDownloadsAccum.length > 0 ? [...fileDownloadsAccum] : undefined }
-                : m
-            )
+                ? {
+                    ...m,
+                    content: textContent,
+                    toolEvents: [...toolEventsAccum],
+                    fileDownloads:
+                      fileDownloadsAccum.length > 0
+                        ? [...fileDownloadsAccum]
+                        : undefined,
+                  }
+                : m,
+            ),
           );
         }
 
@@ -338,18 +463,18 @@ export function StatisticsChat() {
               ? {
                   ...c,
                   title:
-                    c.title === 'New Chat' || c.title === 'Analytics Chat'
+                    c.title === "New Chat" || c.title === "Analytics Chat"
                       ? trimmed.length > 40
-                        ? trimmed.slice(0, 40) + '...'
+                        ? trimmed.slice(0, 40) + "..."
                         : trimmed
                       : c.title,
                   updatedAt: new Date().toISOString(),
                 }
-              : c
-          )
+              : c,
+          ),
         );
       } catch (error) {
-        if (error instanceof DOMException && error.name === 'AbortError') {
+        if (error instanceof DOMException && error.name === "AbortError") {
           return;
         }
         setMessages((prev) =>
@@ -358,17 +483,17 @@ export function StatisticsChat() {
               ? {
                   ...m,
                   content:
-                    'An error occurred while generating the response. Please try again.',
+                    "An error occurred while generating the response. Please try again.",
                 }
-              : m
-          )
+              : m,
+          ),
         );
       } finally {
         setIsStreaming(false);
         abortRef.current = null;
       }
     },
-    [isStreaming, messages, activeConversationId, attachedFile]
+    [isStreaming, messages, activeConversationId, attachedFile],
   );
 
   return (
@@ -380,7 +505,7 @@ export function StatisticsChat() {
             initial={{ opacity: 0, scale: 0.8, rotate: -10 }}
             animate={{ opacity: 1, scale: 1, rotate: 0 }}
             exit={{ opacity: 0, scale: 0.8, rotate: 10 }}
-            transition={{ type: 'spring', damping: 20, stiffness: 300 }}
+            transition={{ type: "spring", damping: 20, stiffness: 300 }}
             className="fixed bottom-6 right-6 z-50"
           >
             <div className="relative group">
@@ -404,9 +529,9 @@ export function StatisticsChat() {
             initial={{ opacity: 0, y: 40, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 40, scale: 0.95 }}
-            transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-            className="fixed bottom-6 right-6 z-50 flex w-[420px] max-w-[calc(100vw-3rem)] flex-col overflow-hidden rounded-2xl border border-white/[0.08] backdrop-blur-xl bg-card/70 shadow-[0_8px_32px_rgba(0,0,0,0.4)] ring-1 ring-primary/10"
-            style={{ height: 'min(600px, calc(100vh - 3rem))' }}
+            transition={{ type: "spring", damping: 25, stiffness: 300 }}
+            className="fixed bottom-6 right-6 z-50 flex w-105 max-w-[calc(100vw-3rem)] flex-col overflow-hidden rounded-2xl border border-white/8 backdrop-blur-xl bg-card/70 shadow-[0_8px_32px_rgba(0,0,0,0.4)] ring-1 ring-primary/10"
+            style={{ height: "min(600px, calc(100vh - 3rem))" }}
           >
             <div className="absolute inset-x-0 top-0 h-32 bg-linear-to-b from-primary/5 to-transparent pointer-events-none" />
             <ChatHeader
@@ -418,7 +543,7 @@ export function StatisticsChat() {
               onClose={() => setOpen(false)}
             />
 
-            {view === 'history' && (
+            {view === "history" && (
               <div className="flex-1 overflow-y-auto">
                 <ChatHistory
                   conversations={conversations}
@@ -430,7 +555,7 @@ export function StatisticsChat() {
               </div>
             )}
 
-            {view === 'chat' && (
+            {view === "chat" && (
               <>
                 <ChatMessageList
                   messages={messages}

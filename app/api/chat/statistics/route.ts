@@ -66,6 +66,17 @@ interface ToolExecutionRecord {
   mutating: boolean;
 }
 
+type ToolTraceJson =
+  | null
+  | boolean
+  | number
+  | string
+  | ToolTraceJson[]
+  | { [key: string]: ToolTraceJson };
+
+const SENSITIVE_TRACE_KEY_RE =
+  /password|token|apiKey|apikey|api_key|secret|authorization|rawBytes|base64|binaryData|_attachment/i;
+
 async function getAuthSession() {
   const headersList = await headers();
   const session = await auth.api.getSession({ headers: headersList });
@@ -168,6 +179,58 @@ function getToolSummary(result: {
   }
 
   return "Done";
+}
+
+function sanitizeToolTraceValue(value: unknown): ToolTraceJson {
+  if (value === null || value === undefined) return null;
+  if (typeof value === "boolean") return value;
+  if (typeof value === "number") return Number.isFinite(value) ? value : null;
+  if (typeof value === "string") return value;
+  if (value instanceof Date) return value.toISOString();
+
+  if (Array.isArray(value)) {
+    return value.map((item) => sanitizeToolTraceValue(item));
+  }
+
+  if (typeof value === "object") {
+    const sanitized: Record<string, ToolTraceJson> = {};
+
+    for (const [key, nestedValue] of Object.entries(
+      value as Record<string, unknown>,
+    )) {
+      sanitized[key] = SENSITIVE_TRACE_KEY_RE.test(key)
+        ? "[REDACTED]"
+        : sanitizeToolTraceValue(nestedValue);
+    }
+
+    return sanitized;
+  }
+
+  return String(value);
+}
+
+function inferToolPurpose(
+  toolName: string,
+  args: Record<string, unknown>,
+): string {
+  if (toolName.includes("search")) {
+    const query = typeof args.query === "string" ? args.query : undefined;
+    return query
+      ? `Search recruitment data for "${query}"`
+      : "Search recruitment data";
+  }
+
+  if (toolName.startsWith("list_")) return "List available recruitment records";
+  if (toolName.startsWith("get_")) return "Fetch detailed recruitment data";
+  if (toolName.includes("compare")) return "Compare candidate fit and ranking";
+  if (toolName.includes("match")) return "Score candidate/job fit";
+  if (toolName.includes("upload")) return "Process an uploaded CV file";
+  if (toolName.includes("generate"))
+    return "Generate AI-assisted recruitment output";
+  if (toolName.includes("update")) return "Update recruitment workflow state";
+  if (toolName.includes("delete")) return "Delete recruitment data";
+
+  return `Run ${toolName.replace(/_/g, " ")}`;
 }
 
 function buildDeterministicFallbackFromRecords(
@@ -738,6 +801,56 @@ ${
 
           for (const tc of toolCalls) {
             const toolName = tc.function.name;
+            let queuedArgs: Record<string, unknown> = {};
+
+            try {
+              queuedArgs = JSON.parse(tc.function.arguments) as Record<
+                string,
+                unknown
+              >;
+            } catch {
+              queuedArgs = {};
+            }
+
+            if (toolName === "upload_cv" && attachments) {
+              const idx = parseInt(
+                String(queuedArgs.attachmentIndex ?? "0"),
+                10,
+              );
+              if (idx >= 0 && idx < attachments.length) {
+                queuedArgs._attachment = attachments[idx] as AttachmentPayload;
+              }
+            }
+
+            const queuedCacheKey = makeToolCallCacheKey(toolName, queuedArgs);
+            if (toolExecutionCache.has(queuedCacheKey)) {
+              continue;
+            }
+
+            const queuedInputPayload = sanitizeToolTraceValue(queuedArgs);
+            controller.enqueue(
+              encoder.encode(
+                `@@TOOL_START@@${JSON.stringify({
+                  id: tc.id,
+                  tool: toolName,
+                  status: "queued",
+                  summary: "Queued",
+                  args: queuedInputPayload,
+                  input: queuedInputPayload,
+                  startedAt: new Date().toISOString(),
+                  purpose: inferToolPurpose(toolName, queuedArgs),
+                  retry: {
+                    attempt: 1,
+                    maxAttempts: 1,
+                    retried: false,
+                  },
+                })}\n`,
+              ),
+            );
+          }
+
+          for (const tc of toolCalls) {
+            const toolName = tc.function.name;
             let toolArgs: Record<string, unknown> = {};
 
             try {
@@ -781,9 +894,27 @@ ${
               continue;
             }
 
+            const traceId = tc.id;
+            const startedAt = new Date().toISOString();
+            const inputPayload = sanitizeToolTraceValue(toolArgs);
+            const purpose = inferToolPurpose(toolName, toolArgs);
+
             controller.enqueue(
               encoder.encode(
-                `@@TOOL_START@@${JSON.stringify({ tool: toolName, args: toolArgs })}\n`,
+                `@@TOOL_START@@${JSON.stringify({
+                  id: traceId,
+                  tool: toolName,
+                  status: "running",
+                  args: inputPayload,
+                  input: inputPayload,
+                  startedAt,
+                  purpose,
+                  retry: {
+                    attempt: 1,
+                    maxAttempts: 1,
+                    retried: false,
+                  },
+                })}\n`,
               ),
             );
 
@@ -819,20 +950,43 @@ ${
               controller.enqueue(
                 encoder.encode(`@@FILE@@${JSON.stringify(fileData)}\n`),
               );
-              const { _fileDownload, ...rest } =
-                result.data as Record<string, unknown>;
+              const { _fileDownload, ...rest } = result.data as Record<
+                string,
+                unknown
+              >;
               void _fileDownload;
               result.data = rest;
             }
 
             const summary = getToolSummary(result);
+            const endedAt = new Date().toISOString();
+            const durationMs = Math.max(
+              0,
+              new Date(endedAt).getTime() - new Date(startedAt).getTime(),
+            );
 
             controller.enqueue(
               encoder.encode(
                 `@@TOOL_END@@${JSON.stringify({
+                  id: traceId,
                   tool: toolName,
                   success: result.success,
+                  status: result.success ? "success" : "error",
                   summary,
+                  purpose,
+                  startedAt,
+                  endedAt,
+                  durationMs,
+                  input: inputPayload,
+                  output: result.success
+                    ? sanitizeToolTraceValue(result.data)
+                    : null,
+                  error: result.success ? undefined : result.error,
+                  retry: {
+                    attempt: 1,
+                    maxAttempts: 1,
+                    retried: false,
+                  },
                 })}\n`,
               ),
             );

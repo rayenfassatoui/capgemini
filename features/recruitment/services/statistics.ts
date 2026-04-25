@@ -4,8 +4,15 @@ import { candidates, cvPool, jobs } from '@/db/schema';
 import type { CvPoolStats, JobsStats, SmartInsights } from '../types';
 
 export async function getCvPoolStats(userId: string): Promise<CvPoolStats> {
+  // Explicit columns — excludes the 1024-dim embedding vector to avoid transferring
+  // megabytes of float data on every dashboard render.
   const cvs = await db
-    .select()
+    .select({
+      id: cvPool.id,
+      extractedSkills: cvPool.extractedSkills,
+      extractedLanguages: cvPool.extractedLanguages,
+      createdAt: cvPool.createdAt,
+    })
     .from(cvPool)
     .where(eq(cvPool.uploadedBy, userId));
 
@@ -59,7 +66,13 @@ export async function getCvPoolStats(userId: string): Promise<CvPoolStats> {
 
 export async function getJobsStats(userId: string): Promise<JobsStats> {
   const allJobs = await db
-    .select()
+    .select({
+      seniority: jobs.seniority,
+      status: jobs.status,
+      businessUnit: jobs.businessUnit,
+      mustHave: jobs.mustHave,
+      niceToHave: jobs.niceToHave,
+    })
     .from(jobs)
     .where(eq(jobs.createdBy, userId));
 
@@ -112,17 +125,23 @@ export async function getJobsStats(userId: string): Promise<JobsStats> {
 }
 
 export async function getSmartInsights(userId: string): Promise<SmartInsights> {
-  const allJobs = await db
-    .select()
-    .from(jobs)
-    .where(eq(jobs.createdBy, userId));
-
-  const allCvs = await db
-    .select()
-    .from(cvPool)
-    .where(eq(cvPool.uploadedBy, userId));
-
-  const allCandidates = await db.select({ stage: candidates.stage }).from(candidates);
+  // Run all three queries in parallel — no sequential dependency between them.
+  const [allJobs, allCvs, allCandidates] = await Promise.all([
+    db
+      .select({
+        title: jobs.title,
+        mustHave: jobs.mustHave,
+      })
+      .from(jobs)
+      .where(eq(jobs.createdBy, userId)),
+    db
+      .select({
+        extractedSkills: cvPool.extractedSkills,
+      })
+      .from(cvPool)
+      .where(eq(cvPool.uploadedBy, userId)),
+    db.select({ stage: candidates.stage }).from(candidates),
+  ]);
 
   const titleCounts: Record<string, number> = {};
   for (const j of allJobs) {
