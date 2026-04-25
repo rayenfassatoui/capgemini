@@ -77,6 +77,18 @@ type ToolTraceJson =
 const SENSITIVE_TRACE_KEY_RE =
   /password|token|apiKey|apikey|api_key|secret|authorization|rawBytes|base64|binaryData|_attachment/i;
 
+const SIMPLE_EXCHANGE_RE =
+  /^(?:hi|hello|hey|thanks|thank you|thx|ok|okay|cool|great|nice|salam|aslema|bonjour|bonsoir)[!.?,\s]*$/i;
+const AGENTIC_HEADING_RE =
+  /(^|\n)##\s*(fhemtek|goal|plan|execution|result|next\s*steps?)/i;
+
+interface AgenticResponseParams {
+  text: string;
+  userMessage: string;
+  role: UserRole;
+  records: ToolExecutionRecord[];
+}
+
 async function getAuthSession() {
   const headersList = await headers();
   const session = await auth.api.getSession({ headers: headersList });
@@ -277,6 +289,164 @@ function buildDeterministicFallbackFromRecords(
   return `I’m returning a deterministic fallback summary from the data that was already fetched successfully. Latest successful tool: **${prioritized.toolName}**.`;
 }
 
+function formatGoalText(message: string): string {
+  const compact = message.replace(/\s+/g, " ").trim();
+  if (!compact) {
+    return "You asked for recruitment assistance.";
+  }
+
+  const clipped =
+    compact.length > 180
+      ? `${compact.slice(0, 177).trimEnd()}...`
+      : compact;
+  const sentence = `${clipped.charAt(0).toUpperCase()}${clipped.slice(1)}`;
+
+  return /[.!?]$/.test(sentence) ? sentence : `${sentence}.`;
+}
+
+function buildExecutionSteps(records: ToolExecutionRecord[]): string[] {
+  if (records.length === 0) {
+    return ["1. No tool call was required for this response."];
+  }
+
+  return records.slice(-5).map((record, index) => {
+    const status = record.result.success ? "success" : "error";
+    const summary = getToolSummary(record.result);
+    return `${index + 1}. ${record.toolName} (${status}) - ${summary}`;
+  });
+}
+
+function buildNextStepOptions(
+  records: ToolExecutionRecord[],
+  role: UserRole,
+): string[] {
+  const options: string[] = [];
+  const toolNames = records.map((record) => record.toolName);
+
+  if (
+    toolNames.some(
+      (name) =>
+        name.includes("search") ||
+        name.includes("match") ||
+        name.includes("compare"),
+    )
+  ) {
+    options.push("Compare the top 3 shortlisted candidates with trade-offs.");
+  }
+
+  if (
+    toolNames.some(
+      (name) => name.includes("dashboard") || name.includes("insights"),
+    )
+  ) {
+    options.push("Drill down on pipeline bottlenecks by stage and owner.");
+  }
+
+  if (
+    toolNames.some(
+      (name) =>
+        name.startsWith("create_") ||
+        name.startsWith("update_") ||
+        name.startsWith("schedule_"),
+    )
+  ) {
+    options.push("Run the next workflow action and confirm the impact.");
+  }
+
+  const roleOption =
+    role === "ta"
+      ? "Generate screening questions for the best-fit candidate."
+      : role === "manager"
+        ? "Request a ranked hiring recommendation for your open role."
+        : role === "hr"
+          ? "Prepare offer or rejection messaging for the selected candidate."
+          : "Review cross-team recruitment KPI anomalies for this week.";
+
+  const fallbackOptions = [
+    roleOption,
+    "Run a tighter search with explicit skills, seniority, and location.",
+    "Ask for a concise action plan for the next 48 hours.",
+  ];
+
+  for (const option of fallbackOptions) {
+    if (!options.includes(option)) {
+      options.push(option);
+    }
+    if (options.length === 3) {
+      break;
+    }
+  }
+
+  return options.slice(0, 3);
+}
+
+function ensureAgenticResponseStructure({
+  text,
+  userMessage,
+  role,
+  records,
+}: AgenticResponseParams): string {
+  const trimmed = text.trim();
+  if (!trimmed) {
+    return trimmed;
+  }
+
+  const isSimpleExchange =
+    records.length === 0 &&
+    trimmed.length < 220 &&
+    SIMPLE_EXCHANGE_RE.test(userMessage.trim());
+
+  if (isSimpleExchange) {
+    return trimmed;
+  }
+
+  const nextOptions = buildNextStepOptions(records, role);
+  const nextStepsHeadingRe = /(^|\n)##\s*next\s*steps?/i;
+
+  if (AGENTIC_HEADING_RE.test(trimmed)) {
+    if (nextStepsHeadingRe.test(trimmed)) {
+      return trimmed;
+    }
+
+    return [
+      trimmed,
+      "",
+      "## Next Steps",
+      ...nextOptions.map((option, index) => `${index + 1}. ${option}`),
+    ].join("\n");
+  }
+
+  const planSteps =
+    records.length > 0
+      ? [
+          "Interpret your request and identify the required data/actions.",
+          `Execute relevant tool calls (${records.length} total) within role permissions.`,
+          "Synthesize evidence into a practical recommendation.",
+        ]
+      : [
+          "Interpret your request and clarify the expected outcome.",
+          "Use available context and role constraints to build the best answer.",
+          "Return a concise result with clear follow-up options.",
+        ];
+
+  return [
+    "## Fhemtek",
+    formatGoalText(userMessage),
+    "",
+    "## Plan",
+    ...planSteps.map((step, index) => `${index + 1}. ${step}`),
+    "",
+    "## Execution",
+    ...buildExecutionSteps(records),
+    "",
+    "## Result",
+    trimmed,
+    "",
+    "## Next Steps",
+    ...nextOptions.map((option, index) => `${index + 1}. ${option}`),
+  ].join("\n");
+}
+
 type AgentCompletionResponse = {
   choices?: Array<{
     message?: {
@@ -395,10 +565,18 @@ export async function POST(request: Request) {
   const stream = new ReadableStream({
     async start(controller) {
       let fullResponse = "";
+      const toolExecutionHistory: ToolExecutionRecord[] = [];
+      const finalizeResponse = (text: string) =>
+        ensureAgenticResponseStructure({
+          text,
+          userMessage: lastMessageText,
+          role,
+          records: toolExecutionHistory,
+        });
 
       try {
         if (preflight.intent === "greeting") {
-          fullResponse = buildGreetingResponse(role);
+          fullResponse = finalizeResponse(buildGreetingResponse(role));
           await streamText(controller, encoder, fullResponse);
           await saveChatMessage(
             conversationId,
@@ -415,7 +593,7 @@ export async function POST(request: Request) {
             preflight.requestedName,
             preflight.targetRoleQuery,
           );
-          fullResponse = result.responseText;
+          fullResponse = finalizeResponse(result.responseText);
           await streamText(controller, encoder, fullResponse);
           await saveChatMessage(
             conversationId,
@@ -433,7 +611,7 @@ export async function POST(request: Request) {
             role,
             preflight.targetRoleQuery,
           );
-          fullResponse = result.responseText;
+          fullResponse = finalizeResponse(result.responseText);
           await streamText(controller, encoder, fullResponse);
           await saveChatMessage(
             conversationId,
@@ -448,7 +626,7 @@ export async function POST(request: Request) {
         try {
           nvidiaClient = getNvidiaClient();
         } catch {
-          fullResponse = "AI service not configured";
+          fullResponse = finalizeResponse("AI service not configured");
           await streamImmediateText(controller, encoder, fullResponse);
           await saveChatMessage(
             conversationId,
@@ -671,6 +849,29 @@ SECTION 8: RESPONSE QUALITY
 - After showing results, always suggest 2-3 possible next steps
 
 ═══════════════════════════════════════
+SECTION 10: AGENTIC RESPONSE WORKFLOW
+═══════════════════════════════════════
+
+For non-trivial tasks and any response that required tools, use this exact structure:
+
+## Fhemtek
+One short sentence that rephrases the user goal.
+
+## Plan
+Numbered list (3 steps max) describing what you did.
+
+## Execution
+Numbered list summarizing key tool actions and outcomes.
+
+## Result
+Final answer with data-driven insights.
+
+## Next Steps
+Exactly 3 numbered options the user can pick from.
+
+For simple small talk, reply normally without forcing this format.
+
+═══════════════════════════════════════
 SECTION 9: DATA ACCESS (ON-DEMAND ONLY)
 ═══════════════════════════════════════
 
@@ -703,7 +904,6 @@ ${
         ];
 
         const toolExecutionCache = new Map<string, ToolExecutionRecord>();
-        const toolExecutionHistory: ToolExecutionRecord[] = [];
         let consecutiveToolFailures = 0;
         let sawMutatingTool = false;
         let llmRetryUsed = false;
@@ -732,8 +932,8 @@ ${
                 const fallback =
                   buildDeterministicFallbackFromRecords(toolExecutionHistory) ??
                   "The AI service took too long to respond. Please try a simpler query.";
-                fullResponse = fallback;
-                await streamImmediateText(controller, encoder, fallback);
+                fullResponse = finalizeResponse(fallback);
+                await streamImmediateText(controller, encoder, fullResponse);
                 break;
               }
             } else {
@@ -742,8 +942,8 @@ ${
                 (isTimeoutError(error)
                   ? "The AI service took too long to respond. Please try a simpler query."
                   : "Failed to connect to AI service. Please try again.");
-              fullResponse = fallback;
-              await streamImmediateText(controller, encoder, fallback);
+              fullResponse = finalizeResponse(fallback);
+              await streamImmediateText(controller, encoder, fullResponse);
               break;
             }
           }
@@ -752,8 +952,8 @@ ${
             const fallback =
               buildDeterministicFallbackFromRecords(toolExecutionHistory) ??
               "No response from AI. Please try again.";
-            fullResponse = fallback;
-            await streamImmediateText(controller, encoder, fallback);
+            fullResponse = finalizeResponse(fallback);
+            await streamImmediateText(controller, encoder, fullResponse);
             break;
           }
 
@@ -762,8 +962,8 @@ ${
             const fallback =
               buildDeterministicFallbackFromRecords(toolExecutionHistory) ??
               "No response from AI. Please try again.";
-            fullResponse = fallback;
-            await streamImmediateText(controller, encoder, fallback);
+            fullResponse = finalizeResponse(fallback);
+            await streamImmediateText(controller, encoder, fullResponse);
             break;
           }
 
@@ -777,18 +977,19 @@ ${
           if (!toolCalls || toolCalls.length === 0) {
             const textContent = message?.content ?? "";
             if (textContent) {
+              const finalizedText = finalizeResponse(textContent);
               llmMessages.push({
                 role: "assistant",
-                content: textContent,
+                content: finalizedText,
               });
-              fullResponse = textContent;
-              await streamText(controller, encoder, textContent);
+              fullResponse = finalizedText;
+              await streamText(controller, encoder, finalizedText);
             } else {
               const fallback =
                 buildDeterministicFallbackFromRecords(toolExecutionHistory) ??
                 "No response from AI. Please try again.";
-              fullResponse = fallback;
-              await streamImmediateText(controller, encoder, fallback);
+              fullResponse = finalizeResponse(fallback);
+              await streamImmediateText(controller, encoder, fullResponse);
             }
             break;
           }
@@ -997,11 +1198,11 @@ ${
                 const fallback =
                   buildDeterministicFallbackFromRecords(toolExecutionHistory) ??
                   `I encountered ${consecutiveToolFailures} consecutive tool failures. Please try rephrasing your request.`;
-                fullResponse = fallback;
+                fullResponse = finalizeResponse(fallback);
                 await streamImmediateText(
                   controller,
                   encoder,
-                  `\n\n${fallback}`,
+                  `\n\n${fullResponse}`,
                 );
                 break;
               }
@@ -1029,8 +1230,8 @@ ${
           const fallback =
             buildDeterministicFallbackFromRecords(toolExecutionHistory) ??
             "I reached the maximum number of steps for this request. Please ask a more specific question if you need additional details.";
-          fullResponse = fallback;
-          await streamImmediateText(controller, encoder, fallback);
+          fullResponse = finalizeResponse(fallback);
+          await streamImmediateText(controller, encoder, fullResponse);
         }
 
         if (fullResponse.trim()) {
@@ -1045,8 +1246,8 @@ ${
         if (!fullResponse) {
           const fallback =
             "An error occurred while processing your request. Please try again.";
-          fullResponse = fallback;
-          await streamImmediateText(controller, encoder, fallback);
+          fullResponse = finalizeResponse(fallback);
+          await streamImmediateText(controller, encoder, fullResponse);
         }
 
         if (fullResponse.trim()) {

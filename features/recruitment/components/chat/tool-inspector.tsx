@@ -79,6 +79,25 @@ function formatDuration(event: ToolEvent): string {
   return `${seconds.toFixed(seconds < 10 ? 1 : 0)}s`;
 }
 
+function formatClockTime(value: string | undefined): string {
+  if (!value) return "--";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "--";
+  return date.toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  });
+}
+
+function getStatusLabel(status: ToolEventStatus): string {
+  if (status === "queued") return "Queued";
+  if (status === "running") return "Running";
+  if (status === "error") return "Failed";
+  return "Completed";
+}
+
 // Components
 function JsonPre({ label, value }: { label: string; value: ToolTraceJson | undefined }) {
   const [copied, setCopied] = useState(false);
@@ -115,6 +134,13 @@ function ToolRow({ event }: { event: ToolEvent }) {
   const [isOpen, setIsOpen] = useState(false);
   const isRunning = event.status === "running";
   const isError = event.status === "error";
+  const statusLabel = getStatusLabel(event.status);
+  const retryAttempt = event.retry?.attempt;
+  const retryMaxAttempts = event.retry?.maxAttempts;
+  const retryText =
+    typeof retryAttempt === "number" && typeof retryMaxAttempts === "number"
+      ? `${retryAttempt}/${retryMaxAttempts}`
+      : undefined;
 
   const icon = isRunning ? (
     <IconLoader2 className="animate-spin text-blue-500 size-3.5" />
@@ -139,7 +165,7 @@ function ToolRow({ event }: { event: ToolEvent }) {
           {icon}
         </span>
         <span className="flex-1 text-left select-none text-muted-foreground transition-colors">
-          {isRunning ? "Running " : isError ? "Failed " : "Completed "}
+          {statusLabel}{" "}
           <span className="font-mono text-[11.5px] font-medium text-foreground/80 lowercase">{formatToolName(event.tool).replace(/ /g, "_")}</span>
         </span>
         <span className="flex-none text-muted-foreground/40 font-mono text-[10px] ml-3 tracking-tighter">
@@ -157,6 +183,49 @@ function ToolRow({ event }: { event: ToolEvent }) {
             className="overflow-hidden"
           >
             <div className="ml-[22px] pl-3 border-l border-border/40 py-1.5 space-y-2 mb-1 mr-2">
+              <div className="rounded-md border border-border/50 bg-muted/20 px-2.5 py-2 text-[11px] text-muted-foreground space-y-1.5">
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+                  <span>
+                    <span className="text-foreground/80">Status:</span> {statusLabel}
+                  </span>
+                  <span>
+                    <span className="text-foreground/80">Duration:</span> {formatDuration(event)}
+                  </span>
+                  {retryText ? (
+                    <span>
+                      <span className="text-foreground/80">Retry:</span> {retryText}
+                    </span>
+                  ) : null}
+                </div>
+
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+                  <span>
+                    <span className="text-foreground/80">Started:</span> {formatClockTime(event.startedAt)}
+                  </span>
+                  <span>
+                    <span className="text-foreground/80">Ended:</span> {formatClockTime(event.endedAt)}
+                  </span>
+                </div>
+
+                {event.purpose ? (
+                  <div>
+                    <span className="text-foreground/80">Purpose:</span> {event.purpose}
+                  </div>
+                ) : null}
+
+                {event.summary ? (
+                  <div>
+                    <span className="text-foreground/80">Summary:</span> {event.summary}
+                  </div>
+                ) : null}
+
+                {event.retry?.reason ? (
+                  <div>
+                    <span className="text-foreground/80">Retry reason:</span> {event.retry.reason}
+                  </div>
+                ) : null}
+              </div>
+
               <JsonPre label="Arguments" value={event.input} />
               
               {isError && event.error && (

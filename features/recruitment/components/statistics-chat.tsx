@@ -182,7 +182,6 @@ export function StatisticsChat() {
         id: crypto.randomUUID(),
         role: "assistant",
         content: "",
-        toolEvents: [],
       };
 
       setMessages((prev) => [...prev, userMsg, assistantMsg]);
@@ -446,7 +445,10 @@ export function StatisticsChat() {
                 ? {
                     ...m,
                     content: textContent,
-                    toolEvents: [...toolEventsAccum],
+                    toolEvents:
+                      toolEventsAccum.length > 0
+                        ? [...toolEventsAccum]
+                        : undefined,
                     fileDownloads:
                       fileDownloadsAccum.length > 0
                         ? [...fileDownloadsAccum]

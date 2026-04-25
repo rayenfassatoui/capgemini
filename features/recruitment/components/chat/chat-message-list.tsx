@@ -255,6 +255,12 @@ function MessageBubble({
   isStreaming: boolean;
 }) {
   const isUser = msg.role === "user";
+  const hasToolEvents = (msg.toolEvents?.length ?? 0) > 0;
+  const hasRunningTool =
+    hasToolEvents &&
+    msg.toolEvents!.some(
+      (event) => event.status === "running" || event.status === "queued",
+    );
 
   return (
     <motion.div
@@ -279,16 +285,11 @@ function MessageBubble({
         )}
       >
         {msg.role === "assistant" &&
-          (msg.toolEvents || (isLast && isStreaming && !msg.content)) && (
+          hasToolEvents && (
             <div className="mb-4 w-full max-w-2xl">
               <ToolInspector
                 events={msg.toolEvents}
-                isLoading={
-                  isLast &&
-                  isStreaming &&
-                  !msg.content &&
-                  (!msg.toolEvents || msg.toolEvents.length === 0)
-                }
+                isLoading={isLast && isStreaming && hasRunningTool}
               />
             </div>
           )}
@@ -363,11 +364,11 @@ function MessageBubble({
             </div>
           ) : isLast &&
             isStreaming &&
-            (!msg.toolEvents || msg.toolEvents.length === 0) ? (
+            !hasToolEvents ? (
             <LoadingIndication />
           ) : null}
         </div>
-        {!isUser && isLast && isStreaming && (
+        {!isUser && isLast && isStreaming && hasToolEvents && (
           <AssistantWorkingIndicator toolEvents={msg.toolEvents} />
         )}
       </div>

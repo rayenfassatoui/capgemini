@@ -475,7 +475,7 @@ async function lexicalSearchChunks(
   // Build scope condition
   const scopeCondition =
     scope.role !== "admin"
-      ? sql`${cvChunks.uploadedBy} = ${scope.userId}`
+      ? sql`c.uploaded_by = ${scope.userId}`
       : sql`TRUE`;
 
   // Use websearch_to_tsquery for user-friendly syntax
