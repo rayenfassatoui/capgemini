@@ -11,6 +11,7 @@ import type {
   Conversation,
   ToolEvent,
   FileDownload,
+  ChatResponseMetadata,
 } from "./chat/chat-types";
 import { ChatHeader } from "./chat/chat-header";
 import { ChatHistory } from "./chat/chat-history";
@@ -261,6 +262,7 @@ export function StatisticsChat() {
         const decoder = new TextDecoder();
         let accumulated = "";
         let textContent = "";
+        let metadataAccum: ChatResponseMetadata | undefined;
         const toolEventsAccum: ToolEvent[] = [];
         const fileDownloadsAccum: FileDownload[] = [];
 
@@ -419,6 +421,24 @@ export function StatisticsChat() {
               } catch {
                 // malformed file event
               }
+            } else if (line.startsWith("@@META@@")) {
+              try {
+                metadataAccum = {
+                  ...metadataAccum,
+                  ...(JSON.parse(
+                    line.slice("@@META@@".length),
+                  ) as ChatResponseMetadata),
+                };
+                setMessages((prev) =>
+                  prev.map((m) =>
+                    m.id === assistantMsg.id
+                      ? { ...m, metadata: metadataAccum }
+                      : m,
+                  ),
+                );
+              } catch {
+                // malformed metadata event
+              }
             } else {
               textContent += line + "\n";
               setMessages((prev) =>
@@ -433,7 +453,8 @@ export function StatisticsChat() {
         if (
           accumulated &&
           !accumulated.startsWith("@@TOOL_") &&
-          !accumulated.startsWith("@@FILE@@")
+          !accumulated.startsWith("@@FILE@@") &&
+          !accumulated.startsWith("@@META@@")
         ) {
           textContent += accumulated;
         }
@@ -453,6 +474,7 @@ export function StatisticsChat() {
                       fileDownloadsAccum.length > 0
                         ? [...fileDownloadsAccum]
                         : undefined,
+                    metadata: metadataAccum,
                   }
                 : m,
             ),

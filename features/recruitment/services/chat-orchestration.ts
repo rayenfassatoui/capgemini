@@ -559,12 +559,12 @@ function explainFallbackScore(
 
 function renderNamedSearchResponse(result: NamedSearchResult): string {
   if (result.results.length === 0) {
-    return `I couldn’t find a strong resume match for **${result.nameQuery}** in the accessible CV pool.`;
+    return "I couldn’t find a strong resume match in the accessible CV pool.";
   }
 
   const header = result.exact
-    ? `I found resume matches for **${result.nameQuery}**.`
-    : `I didn’t find an exact spelling for **${result.nameQuery}**, but these are the closest resume matches.`;
+    ? `I found resume matches for **${result.results[0]?.profile.displayName ?? "the requested candidate"}**.`
+    : "I didn’t find an exact spelling in the accessible CV pool, but these are the closest resume matches.";
 
   const intro = result.targetRoleQuery
     ? `Target role context: **${result.targetRoleQuery}**. Results are ranked by name similarity first, then role relevance.`

@@ -32,6 +32,18 @@ export interface ToolEvent {
   retry?: ToolRetryMetadata;
 }
 
+export interface GroundingGuardMetadata {
+  blocked: boolean;
+  deterministic: boolean;
+  candidateCount: number;
+  rejectedCount: number;
+  sourceToolCount: number;
+}
+
+export interface ChatResponseMetadata {
+  groundingGuard?: GroundingGuardMetadata;
+}
+
 export interface ChatAttachment {
   filename: string;
   size: number;
@@ -51,6 +63,7 @@ export interface ChatMessage {
   toolEvents?: ToolEvent[];
   attachments?: ChatAttachment[];
   fileDownloads?: FileDownload[];
+  metadata?: ChatResponseMetadata;
 }
 
 export interface Conversation {

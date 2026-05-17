@@ -27,6 +27,11 @@ import {
   getModelForTask,
   getNvidiaClient,
 } from "@/features/recruitment/services/ai";
+import {
+  groundAssistantResponse,
+  isCandidateSearchOrRankingIntent,
+  maskUserIdForTelemetry,
+} from "@/features/recruitment/services/candidate-grounding";
 import type { UserRole } from "@/features/recruitment/types";
 import { SlidingWindowRateLimiter } from "@/lib/rate-limit";
 
@@ -314,6 +319,25 @@ function buildDeterministicFallbackFromRecords(
   return `I’m returning a deterministic fallback summary from the data that was already fetched successfully. Latest successful tool: **${prioritized.toolName}**.`;
 }
 
+function logGroundingGuardBlock({
+  requestId,
+  userId,
+  rejectedNames,
+  toolNames,
+}: {
+  requestId: string;
+  userId: string;
+  rejectedNames: string[];
+  toolNames: string[];
+}) {
+  console.warn("[candidate-grounding] blocked ungrounded assistant output", {
+    requestId,
+    userId: maskUserIdForTelemetry(userId),
+    rejectedNames,
+    toolNames,
+  });
+}
+
 function formatGoalText(message: string): string {
   const compact = message.replace(/\s+/g, " ").trim();
   if (!compact) {
@@ -321,9 +345,7 @@ function formatGoalText(message: string): string {
   }
 
   const clipped =
-    compact.length > 180
-      ? `${compact.slice(0, 177).trimEnd()}...`
-      : compact;
+    compact.length > 180 ? `${compact.slice(0, 177).trimEnd()}...` : compact;
   const sentence = `${clipped.charAt(0).toUpperCase()}${clipped.slice(1)}`;
 
   return /[.!?]$/.test(sentence) ? sentence : `${sentence}.`;
@@ -539,6 +561,7 @@ export async function POST(request: Request) {
   }
 
   const role = (session.user.role ?? "ta") as UserRole;
+  const requestId = request.headers.get("x-request-id") ?? crypto.randomUUID();
 
   let body: unknown;
   try {
@@ -606,9 +629,47 @@ export async function POST(request: Request) {
           records: toolExecutionHistory,
         });
 
+      const prepareGroundedResponse = (text: string) => {
+        const finalizedText = finalizeResponse(text);
+        const grounded = groundAssistantResponse(
+          finalizedText,
+          toolExecutionHistory,
+          {
+            userMessage: lastMessageText,
+            forceDeterministicRanking:
+              isCandidateSearchOrRankingIntent(lastMessageText),
+          },
+        );
+
+        if (grounded.blocked) {
+          logGroundingGuardBlock({
+            requestId,
+            userId: session.user.id,
+            rejectedNames: grounded.rejectedNames,
+            toolNames: grounded.sourceTools,
+          });
+        }
+
+        controller.enqueue(
+          encoder.encode(
+            `@@META@@${JSON.stringify({
+              groundingGuard: {
+                blocked: grounded.blocked,
+                deterministic: grounded.deterministic,
+                candidateCount: grounded.candidateCount,
+                rejectedCount: grounded.rejectedNames.length,
+                sourceToolCount: grounded.sourceTools.length,
+              },
+            })}\n`,
+          ),
+        );
+
+        return grounded.text;
+      };
+
       try {
         if (preflight.intent === "greeting") {
-          fullResponse = finalizeResponse(buildGreetingResponse(role));
+          fullResponse = prepareGroundedResponse(buildGreetingResponse(role));
           await streamText(controller, encoder, fullResponse);
           await saveChatMessage(
             conversationId,
@@ -625,7 +686,16 @@ export async function POST(request: Request) {
             preflight.requestedName,
             preflight.targetRoleQuery,
           );
-          fullResponse = finalizeResponse(result.responseText);
+          toolExecutionHistory.push({
+            toolName: "direct_named_search",
+            args: {
+              requestedName: preflight.requestedName,
+              targetRoleQuery: preflight.targetRoleQuery,
+            },
+            result: { success: true, data: result },
+            mutating: false,
+          });
+          fullResponse = prepareGroundedResponse(result.responseText);
           await streamText(controller, encoder, fullResponse);
           await saveChatMessage(
             conversationId,
@@ -643,7 +713,16 @@ export async function POST(request: Request) {
             role,
             preflight.targetRoleQuery,
           );
-          fullResponse = finalizeResponse(result.responseText);
+          toolExecutionHistory.push({
+            toolName: "direct_compare_candidates",
+            args: {
+              candidateRefs: preflight.candidateRefs,
+              targetRoleQuery: preflight.targetRoleQuery,
+            },
+            result: { success: true, data: result },
+            mutating: false,
+          });
+          fullResponse = prepareGroundedResponse(result.responseText);
           await streamText(controller, encoder, fullResponse);
           await saveChatMessage(
             conversationId,
@@ -662,7 +741,7 @@ export async function POST(request: Request) {
           !isRecruitmentWorkRequest(lastMessageText);
 
         if (isOffTopicCreative) {
-          fullResponse = buildOutOfScopeResponse(role);
+          fullResponse = prepareGroundedResponse(buildOutOfScopeResponse(role));
           await streamText(controller, encoder, fullResponse);
           await saveChatMessage(
             conversationId,
@@ -677,7 +756,7 @@ export async function POST(request: Request) {
         try {
           nvidiaClient = getNvidiaClient();
         } catch {
-          fullResponse = finalizeResponse("AI service not configured");
+          fullResponse = prepareGroundedResponse("AI service not configured");
           await streamImmediateText(controller, encoder, fullResponse);
           await saveChatMessage(
             conversationId,
@@ -716,6 +795,9 @@ SECTION 1: HARD CONSTRAINTS (never violate)
 8. Prefer lightweight intent handling. For greetings or small talk, reply directly without tools.
 9. For candidate comparisons, prefer the dedicated compare flow and avoid unnecessary extra tool hops.
 10. If an exact name is unavailable but close matches exist, acknowledge the fuzzy match and use the closest valid result.
+11. NEVER mention a candidate/person name unless that exact person appears in the current response cycle's tool outputs. Prior chat text is not a valid source for candidate names.
+12. For rankings, transferable-skills lists, top candidates, best-fit, and shortlist requests, table rows must come from structured tool results only. Do not synthesize candidate rows.
+13. If candidate tools return zero candidates, say no accessible candidates matched and suggest a safe next query. Do not infer or echo ungrounded names.
 
 ═══════════════════════════════════════
 SECTION 2: ROLE & SESSION
@@ -848,7 +930,7 @@ Always format responses using these templates for consistency:
 FOR CANDIDATE/CV LISTS (ranked):
 | Rank | Name | Score | Key Skills | Experience | Languages |
 |------|------|-------|------------|------------|-----------|
-(Use real data from tool results. Never fabricate rows.)
+(Use real data from current tool results only. Never fabricate rows or reuse candidate names from chat history.)
 
 FOR SINGLE CANDIDATE ANALYSIS:
 ## [Name] — [Score]% Match
@@ -946,9 +1028,15 @@ ${
     : ""
 }`;
 
+        const shouldMinimizeHistory =
+          isCandidateSearchOrRankingIntent(lastMessageText);
+        const contextualHistory = shouldMinimizeHistory
+          ? dbHistory.slice(-8).filter((message) => message.role === "user")
+          : dbHistory.slice(-20);
+
         const llmMessages: LLMMessage[] = [
           { role: "system", content: systemPrompt },
-          ...dbHistory.slice(-20).map((message) => ({
+          ...contextualHistory.map((message) => ({
             role: message.role as "user" | "assistant",
             content: message.content,
           })),
@@ -983,7 +1071,7 @@ ${
                 const fallback =
                   buildDeterministicFallbackFromRecords(toolExecutionHistory) ??
                   "The AI service took too long to respond. Please try a simpler query.";
-                fullResponse = finalizeResponse(fallback);
+                fullResponse = prepareGroundedResponse(fallback);
                 await streamImmediateText(controller, encoder, fullResponse);
                 break;
               }
@@ -993,7 +1081,7 @@ ${
                 (isTimeoutError(error)
                   ? "The AI service took too long to respond. Please try a simpler query."
                   : "Failed to connect to AI service. Please try again.");
-              fullResponse = finalizeResponse(fallback);
+              fullResponse = prepareGroundedResponse(fallback);
               await streamImmediateText(controller, encoder, fullResponse);
               break;
             }
@@ -1003,7 +1091,7 @@ ${
             const fallback =
               buildDeterministicFallbackFromRecords(toolExecutionHistory) ??
               "No response from AI. Please try again.";
-            fullResponse = finalizeResponse(fallback);
+            fullResponse = prepareGroundedResponse(fallback);
             await streamImmediateText(controller, encoder, fullResponse);
             break;
           }
@@ -1013,7 +1101,7 @@ ${
             const fallback =
               buildDeterministicFallbackFromRecords(toolExecutionHistory) ??
               "No response from AI. Please try again.";
-            fullResponse = finalizeResponse(fallback);
+            fullResponse = prepareGroundedResponse(fallback);
             await streamImmediateText(controller, encoder, fullResponse);
             break;
           }
@@ -1028,7 +1116,7 @@ ${
           if (!toolCalls || toolCalls.length === 0) {
             const textContent = message?.content ?? "";
             if (textContent) {
-              const finalizedText = finalizeResponse(textContent);
+              const finalizedText = prepareGroundedResponse(textContent);
               llmMessages.push({
                 role: "assistant",
                 content: finalizedText,
@@ -1039,7 +1127,7 @@ ${
               const fallback =
                 buildDeterministicFallbackFromRecords(toolExecutionHistory) ??
                 "No response from AI. Please try again.";
-              fullResponse = finalizeResponse(fallback);
+              fullResponse = prepareGroundedResponse(fallback);
               await streamImmediateText(controller, encoder, fullResponse);
             }
             break;
@@ -1249,7 +1337,7 @@ ${
                 const fallback =
                   buildDeterministicFallbackFromRecords(toolExecutionHistory) ??
                   `I encountered ${consecutiveToolFailures} consecutive tool failures. Please try rephrasing your request.`;
-                fullResponse = finalizeResponse(fallback);
+                fullResponse = prepareGroundedResponse(fallback);
                 await streamImmediateText(
                   controller,
                   encoder,
@@ -1281,7 +1369,7 @@ ${
           const fallback =
             buildDeterministicFallbackFromRecords(toolExecutionHistory) ??
             "I reached the maximum number of steps for this request. Please ask a more specific question if you need additional details.";
-          fullResponse = finalizeResponse(fallback);
+          fullResponse = prepareGroundedResponse(fallback);
           await streamImmediateText(controller, encoder, fullResponse);
         }
 
@@ -1297,7 +1385,7 @@ ${
         if (!fullResponse) {
           const fallback =
             "An error occurred while processing your request. Please try again.";
-          fullResponse = finalizeResponse(fallback);
+          fullResponse = prepareGroundedResponse(fallback);
           await streamImmediateText(controller, encoder, fullResponse);
         }
 
@@ -1320,6 +1408,7 @@ ${
       "Content-Type": "text/plain; charset=utf-8",
       "Cache-Control": "no-cache",
       "Transfer-Encoding": "chunked",
+      "X-Candidate-Grounding-Guard": "enabled",
     },
   });
 }
