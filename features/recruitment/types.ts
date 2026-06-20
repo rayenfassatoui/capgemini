@@ -249,3 +249,43 @@ export interface HybridSearchResult {
   extractedExperiences: number;
   alreadyAssigned: boolean;
 }
+
+// ---------- Agent Evidence Types ----------
+
+export type AgentSourceKind =
+  | 'analytics'
+  | 'candidate'
+  | 'cv'
+  | 'interview'
+  | 'job'
+  | 'onboarding'
+  | 'operation'
+  | 'search'
+  | 'system'
+  | 'tool';
+
+export type AgentSourceStatus = 'success' | 'error';
+
+export interface AgentSourceReference {
+  id: string;
+  label: string;
+  kind: AgentSourceKind;
+  tool: string;
+  status: AgentSourceStatus;
+  detail?: string;
+  count?: number;
+}
+
+export interface AgentEvidenceBlock {
+  id: string;
+  sourceId: string;
+  title: string;
+  items: string[];
+}
+
+export interface AgentEvidenceMetadata {
+  sources: AgentSourceReference[];
+  evidenceBlocks: AgentEvidenceBlock[];
+  observedFacts: string[];
+  inferenceLimits: string[];
+}

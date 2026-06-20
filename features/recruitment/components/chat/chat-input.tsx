@@ -1,6 +1,6 @@
-﻿'use client';
+'use client';
 
-import { useRef, useCallback } from 'react';
+import { useRef, useCallback, useEffect } from 'react';
 import {
   IconSend2,
   IconPaperclip,
@@ -33,6 +33,7 @@ export function ChatInput({
 }: ChatInputProps) {
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const previousInputRef = useRef(input);
 
   const handleSubmit = useCallback(
     (e: React.FormEvent) => {
@@ -51,6 +52,16 @@ export function ChatInput({
     },
     [input, onSend]
   );
+
+  useEffect(() => {
+    const previousInput = previousInputRef.current;
+    previousInputRef.current = input;
+    if (!input.trim() || previousInput.trim() || isStreaming) return;
+    const textarea = inputRef.current;
+    if (!textarea || document.activeElement === textarea) return;
+    textarea.focus();
+    textarea.setSelectionRange(textarea.value.length, textarea.value.length);
+  }, [input, isStreaming]);
 
   const handleFileChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -130,12 +141,25 @@ export function ChatInput({
             style={{ maxHeight: '160px' }}
           />
 
-          <div className="flex h-12 w-12 items-center justify-center shrink-0 pr-1">
+          <div className="flex h-12 items-center justify-center gap-1 shrink-0 pr-1">
+            {input.trim() && !isStreaming && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                onClick={() => onInputChange('')}
+                className="h-9 w-9 shrink-0 rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"
+                aria-label="Clear message"
+              >
+                <IconX className="size-4 stroke-[1.5]" />
+              </Button>
+            )}
             {isStreaming ? (
               <Button
                 type="button"
                 onClick={onStop}
                 className="h-10 w-10 shrink-0 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] scale-100 hover:scale-[0.98] active:scale-[0.94] flex items-center justify-center shadow-md"
+                aria-label="Stop generating response"
               >
                 <IconPlayerStopFilled className="size-4" />
               </Button>
@@ -144,6 +168,7 @@ export function ChatInput({
                 type="submit"
                 className="h-10 w-10 shrink-0 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] hover:scale-[0.98] active:scale-[0.94] disabled:bg-muted disabled:text-muted-foreground flex items-center justify-center"
                 disabled={!input.trim() && !attachedFile}
+                aria-label="Send message"
               >
                 <IconSend2 className="size-4 stroke-[2px] ml-[2px]" />
               </Button>

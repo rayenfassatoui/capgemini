@@ -45,7 +45,7 @@ export function DashboardShell({ children, role, userName }: DashboardShellProps
 
       {/* Main Content Wrapper */}
       <div className={cn(
-        "flex-1 flex flex-col min-h-screen transition-all duration-300 ease-in-out",
+        "flex-1 flex min-w-0 flex-col min-h-screen transition-all duration-300 ease-in-out",
         isCollapsed ? "lg:pl-[80px]" : "lg:pl-72" // Fixed width reservation for sidebar
       )}>
         {/* Top Navigation / Header Area */}
@@ -70,8 +70,8 @@ export function DashboardShell({ children, role, userName }: DashboardShellProps
         </header>
 
         {/* Main Content Area */}
-        <main className="flex-1 p-6">
-          <div className="mx-auto max-w-7xl animate-in fade-in slide-in-from-bottom-4 duration-500">
+        <main className="min-w-0 flex-1 p-6">
+          <div className="mx-auto max-w-7xl min-w-0 animate-in fade-in slide-in-from-bottom-4 duration-500">
             {children}
           </div>
         </main>

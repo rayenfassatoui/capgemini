@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button, buttonVariants } from '@/components/ui/button';
@@ -10,19 +11,23 @@ import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { toast } from 'sonner';
-import { 
-  IconCalendar, 
-  IconMail, 
-  IconCheck, 
-  IconX,
-  IconExternalLink,
+import {
+  IconBrain,
+  IconCalendar,
+  IconCheck,
   IconCircleCheck,
   IconCircleDashed,
-  IconUserCheck,
-  IconSparkles,
   IconEdit,
-  IconSend,
+  IconExternalLink,
+  IconFileAnalytics,
+  IconMail,
+  IconMessageChatbot,
   IconPhone,
+  IconReportAnalytics,
+  IconSend,
+  IconSparkles,
+  IconUserCheck,
+  IconX,
 } from '@tabler/icons-react';
 
 import {
@@ -36,6 +41,12 @@ import {
 
 import type { InterviewAutoPilotGuide } from '../types';
 import { InterviewAutoPilotGuideView } from './interview-autopilot-guide';
+import { buildAgentPromptHref } from './chat/agent-prompts';
+import { EvidenceReadinessPanel } from './evidence-readiness-panel';
+import {
+  buildCandidateEvidenceReadiness,
+  formatEvidenceReadinessForAgent,
+} from './evidence-readiness';
 
 interface Candidate {
   id: string;
@@ -71,11 +82,23 @@ interface Report {
   overallEvaluation?: string | null;
 }
 
+interface Screening {
+  score: number;
+  mustMatchScore: number;
+  niceMatchScore: number;
+  gaps: string[];
+  matchedMustHave: string[];
+  matchedNiceToHave: string[];
+  aiSummary?: string | null;
+}
+
 interface HRCandidateDetailClientProps {
   candidate: Candidate;
   priorReports: Report[];
   interviewGuide?: InterviewGuide | null;
   currentInterview?: Interview | null;
+  screening?: Screening | null;
+  jobTitle?: string | null;
   autoPilotGuide?: InterviewAutoPilotGuide | null;
 }
 
@@ -84,6 +107,8 @@ export function HRCandidateDetailClient({
   priorReports, 
   interviewGuide, 
   currentInterview,
+  screening,
+  jobTitle,
   autoPilotGuide,
 }: HRCandidateDetailClientProps) {
   const router = useRouter();
@@ -110,6 +135,40 @@ export function HRCandidateDetailClient({
   const hasDecided = candidate.stage === 'hr_accepted' || candidate.stage === 'hr_rejected' || candidate.stage === 'hired';
   const isAccepted = candidate.stage === 'hr_accepted' || candidate.stage === 'hired';
   const isHired = candidate.stage === 'hired';
+  const candidateJobTitle = candidate.job?.title || candidate.jobTitle || jobTitle || 'Unknown job';
+  const evidenceReadiness = buildCandidateEvidenceReadiness({
+    workflow: 'hr',
+    candidateName: candidate.fullName,
+    stage: candidate.stage,
+    jobTitle: candidateJobTitle,
+    screening,
+    reports: priorReports,
+    currentInterview,
+    hasInterviewGuide: Boolean(interviewGuide),
+    hasAutoPilotGuide: Boolean(autoPilotGuide),
+  });
+  const evidenceContext = formatEvidenceReadinessForAgent(evidenceReadiness);
+  const candidateContext = `Candidate "${candidate.fullName}" (${candidate.email}) for job "${candidateJobTitle}", current stage "${candidate.stage}". Prior TA/manager reports: ${priorReports.length ? priorReports.map((report) => `${report.stage || 'prior'} score ${report.score ?? 'n/a'}, decision ${report.decision}, notes ${report.overallEvaluation || report.notes || 'none'}`).join(' | ') : 'none available'}. Screening: ${screening ? `score ${Math.round(screening.score)}/100, gaps ${screening.gaps.join(', ') || 'none'}` : 'not available'}. HR meeting: ${currentInterview ? `${currentInterview.status || 'scheduled'} on ${currentInterview.scheduledDate} at ${currentInterview.scheduledTime}` : 'not scheduled'}. ${evidenceContext}`;
+  const agentActions = [
+    {
+      title: 'Hire/no-hire risks',
+      description: 'Surface decision risk before final HR action.',
+      icon: IconFileAnalytics,
+      prompt: `${candidateContext} Evaluate HR hire/no-hire risks. Separate legal/process risk, evidence gaps, candidate strengths, and reasons to proceed or pause.`,
+    },
+    {
+      title: 'Summarize feedback',
+      description: 'Condense TA and manager evidence for HR.',
+      icon: IconReportAnalytics,
+      prompt: `${candidateContext} Summarize all prior feedback for an HR decision maker. Highlight consistent signals, conflicting evidence, missing information, and recommended next action.`,
+    },
+    {
+      title: 'Draft decision report',
+      description: 'Prepare a defensible decision narrative.',
+      icon: IconBrain,
+      prompt: `${candidateContext} Draft a structured HR decision report. Include evidence summary, risk assessment, decision recommendation, and candidate communication guidance.`,
+    },
+  ] as const;
 
   const handleDecision = async (decision: 'hr_accepted' | 'hr_rejected') => {
     try {
@@ -229,14 +288,14 @@ export function HRCandidateDetailClient({
   return (
     <div className="space-y-6">
       {/* Candidate Header */}
-      <div className="flex justify-between items-start">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div>
           <h1 className="text-2xl font-bold">{candidate.fullName}</h1>
-          <div className="text-muted-foreground flex gap-4 mt-1">
+          <div className="text-muted-foreground flex flex-wrap gap-4 mt-1">
             <span className="flex items-center gap-1"><IconMail size={16} /> {candidate.email}</span>
             {candidate.phone && <span className="flex items-center gap-1"><IconPhone size={16} /> {candidate.phone}</span>}
           </div>
-          <div className="flex items-center gap-2 mt-2">
+          <div className="flex flex-wrap items-center gap-2 mt-2">
             <Badge variant="outline" className="capitalize">{candidate.stage.replace(/_/g, ' ')}</Badge>
             {(candidate.job?.title || candidate.jobTitle) && (
               <Badge variant="secondary">{candidate.job?.title || candidate.jobTitle}</Badge>
@@ -246,21 +305,58 @@ export function HRCandidateDetailClient({
             )}
           </div>
         </div>
-        {currentInterview && currentInterview.status !== 'completed' && (
-          <a
-            href={currentInterview.meetLink}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center justify-center gap-2 rounded-md bg-primary px-4 h-10 text-sm font-medium text-primary-foreground hover:bg-primary/80 transition-all"
-          >
-            <IconExternalLink size={16} />
-            Join Meeting
-          </a>
-        )}
+        <div className="flex flex-wrap gap-2">
+          <Link href={buildAgentPromptHref(`${candidateContext} Give me the next best HR action for this candidate. Keep it concise, risk-aware, and evidence-based.`)}>
+            <Button variant="outline" size="sm" className="rounded-full">
+              <IconMessageChatbot className="mr-2 h-4 w-4" />
+              Ask Agent
+            </Button>
+          </Link>
+          {currentInterview && currentInterview.status !== 'completed' && (
+            <a
+              href={currentInterview.meetLink}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex h-9 items-center justify-center gap-2 rounded-full bg-primary px-4 text-sm font-medium text-primary-foreground transition-all hover:bg-primary/80"
+            >
+              <IconExternalLink size={16} />
+              Join Meeting
+            </a>
+          )}
+        </div>
       </div>
 
+      <div className="grid gap-3 md:grid-cols-3">
+        {agentActions.map((action) => {
+          const Icon = action.icon;
+          return (
+            <Link key={action.title} href={buildAgentPromptHref(action.prompt)}>
+              <Card className="group h-full border-border/70 bg-card/70 transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5">
+                <CardHeader className="flex flex-row items-start gap-3 space-y-0 pb-3">
+                  <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
+                    <Icon className="size-5" />
+                  </span>
+                  <div>
+                    <CardTitle className="text-sm">{action.title}</CardTitle>
+                    <CardDescription className="mt-1 text-xs leading-5">
+                      {action.description}
+                    </CardDescription>
+                  </div>
+                </CardHeader>
+              </Card>
+            </Link>
+          );
+        })}
+      </div>
+
+      <EvidenceReadinessPanel
+        readiness={evidenceReadiness}
+        title="Candidate evidence readiness"
+        description="HR decision context split into observed facts, missing evidence, and risk flags before Agent reasoning."
+      />
+
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList>
+        <TabsList className="grid h-auto w-full grid-cols-1 gap-1 sm:grid-cols-2 lg:grid-cols-4 lg:w-fit">
           <TabsTrigger value="workflow">HR Decision Process</TabsTrigger>
           <TabsTrigger value="autopilot">Auto-Pilot Guide</TabsTrigger>
           <TabsTrigger value="reports">Prior Reports (TA & Manager)</TabsTrigger>

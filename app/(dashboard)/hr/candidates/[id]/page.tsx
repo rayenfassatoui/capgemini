@@ -1,4 +1,4 @@
-import { getCandidateAction, getInterviewReportsByCandidateAction, getInterviewGuideAction, getInterviewByCandidateAndStageAction, getInterviewAutoPilotAction } from '@/features/recruitment/actions';
+import { getCandidateAction, getInterviewReportsByCandidateAction, getInterviewGuideAction, getInterviewByCandidateAndStageAction, getInterviewAutoPilotAction, getScreeningAction, getJobAction } from '@/features/recruitment/actions';
 import { requireRole } from '@/lib/auth';
 import { HRCandidateDetailClient } from '@/features/recruitment/components/hr-candidate-detail-client';
 import { notFound } from 'next/navigation';
@@ -14,11 +14,13 @@ export default async function HRCandidateDetailPage({ params }: { params: Promis
     notFound();
   }
 
-  const [previousReports, interviewGuide, currentInterview, autoPilotGuide] = await Promise.all([
+  const [previousReports, interviewGuide, currentInterview, autoPilotGuide, screening, job] = await Promise.all([
     getInterviewReportsByCandidateAction(id).catch(() => []),
     candidate.jobId ? getInterviewGuideAction(id, candidate.jobId, 'hr').catch(() => null) : null,
     getInterviewByCandidateAndStageAction(id, 'hr').catch(() => null),
     candidate.jobId ? getInterviewAutoPilotAction(id, candidate.jobId, 'hr').catch(() => null) : null,
+    candidate.jobId ? getScreeningAction(id, candidate.jobId).catch(() => null) : null,
+    candidate.jobId ? getJobAction(candidate.jobId).catch(() => null) : null,
   ]);
 
   // Filter TA and Manager reports
@@ -39,6 +41,8 @@ export default async function HRCandidateDetailPage({ params }: { params: Promis
         priorReports={priorReports}
         interviewGuide={interviewGuide}
         currentInterview={currentInterview}
+        screening={screening}
+        jobTitle={job?.title ?? null}
         autoPilotGuide={autoPilotGuide}
       />
     </div>

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
   IconUpload,
@@ -13,6 +14,9 @@ import {
   IconEye,
   IconCode,
   IconLanguage,
+  IconBrain,
+  IconChecklist,
+  IconMessageChatbot,
 } from '@tabler/icons-react';
 import { toast } from 'sonner';
 
@@ -46,6 +50,12 @@ import { Separator } from '@/components/ui/separator';
 import { Progress } from '@/components/ui/progress';
 import { deleteCvAction, exportSingleCvExcelAction, exportMultipleCvsZipAction, getCvDetailsAction, getCvFileAction } from '../actions';
 import { useUploadQueue } from './upload-provider';
+import { buildAgentPromptHref } from './chat/agent-prompts';
+import { EvidenceReadinessPanel } from './evidence-readiness-panel';
+import {
+  buildCvEvidenceReadiness,
+  formatEvidenceReadinessForAgent,
+} from './evidence-readiness';
 import type { CvPoolStats } from '../types';
 
 // Define the CV type based on what we expect from the server
@@ -351,6 +361,42 @@ export function CvPoolClient({ initialData, stats }: CvPoolClientProps) {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
+  const buildCvAgentPrompt = (
+    cv: Pick<CvRecord, 'id' | 'filename' | 'extractedName' | 'extractedEmail' | 'extractedSkills'> &
+      Partial<Pick<CvFullDetails, 'extractedPhone' | 'extractedExperiences' | 'extractedEducation' | 'extractedLanguages' | 'extractedSummary'>>,
+    task: string
+  ) => {
+    const candidateName = cv.extractedName || cv.filename;
+    const skills = cv.extractedSkills?.join(', ') || 'No extracted skills available';
+    const readiness = buildCvEvidenceReadiness({
+      filename: cv.filename,
+      extractedName: cv.extractedName,
+      extractedEmail: cv.extractedEmail,
+      extractedPhone: cv.extractedPhone,
+      extractedSkills: cv.extractedSkills,
+      extractedExperiences: cv.extractedExperiences,
+      extractedEducation: cv.extractedEducation,
+      extractedLanguages: cv.extractedLanguages,
+      extractedSummary: cv.extractedSummary,
+    });
+    return `CV "${candidateName}" (cv id: ${cv.id}, email: ${cv.extractedEmail || 'not extracted'}, skills: ${skills}). ${formatEvidenceReadinessForAgent(readiness)} ${task}`;
+  };
+
+  const poolAgentPrompt = `Analyze the current CV pool. Total CVs: ${stats.totalCvs}. Top extracted skills: ${stats.topSkills.slice(0, 8).map((item) => `${item.skill} (${item.count})`).join(', ') || 'none yet'}. Language distribution: ${stats.languageDistribution.map((item) => `${item.language} (${item.count})`).join(', ') || 'none yet'}. Recommend which profiles to review first, where skill coverage is strong, and which gaps matter for upcoming job matching.`;
+  const reviewReadiness = reviewData
+    ? buildCvEvidenceReadiness({
+        filename: reviewData.filename,
+        extractedName: reviewData.extractedName,
+        extractedEmail: reviewData.extractedEmail,
+        extractedPhone: reviewData.extractedPhone,
+        extractedSkills: reviewData.extractedSkills,
+        extractedExperiences: reviewData.extractedExperiences,
+        extractedEducation: reviewData.extractedEducation,
+        extractedLanguages: reviewData.extractedLanguages,
+        extractedSummary: reviewData.extractedSummary,
+      })
+    : null;
+
   return (
     <div className="space-y-6">
       {/* Statistics */}
@@ -416,8 +462,39 @@ export function CvPoolClient({ initialData, stats }: CvPoolClientProps) {
         </Card>
       </div>
 
-      <div className="flex items-center justify-between gap-4">
-        <div className="relative flex-1 max-w-sm">
+      <Card className="overflow-hidden border-border/70 bg-card/75 backdrop-blur">
+        <CardContent className="flex flex-col gap-4 p-5 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex items-start gap-4">
+            <div className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+              <IconMessageChatbot className="size-5" />
+            </div>
+            <div>
+              <h2 className="text-base font-semibold">AI actions for this CV pool</h2>
+              <p className="mt-1 max-w-2xl text-sm leading-6 text-muted-foreground">
+                Use the agent to prioritize profiles, explain skill coverage, or
+                prepare interview questions from extracted CV data.
+              </p>
+            </div>
+          </div>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <Link href={buildAgentPromptHref(poolAgentPrompt)}>
+              <Button variant="outline" className="w-full rounded-full sm:w-auto">
+                <IconBrain className="mr-2 h-4 w-4" />
+                Analyze Pool with Agent
+              </Button>
+            </Link>
+            <Link href={buildAgentPromptHref('Review the latest uploaded CVs and recommend which candidates should be matched first to open job requirements. Include rationale, missing evidence, and next TA actions.')}>
+              <Button className="w-full rounded-full sm:w-auto">
+                <IconChecklist className="mr-2 h-4 w-4" />
+                Prioritize with Agent
+              </Button>
+            </Link>
+          </div>
+        </CardContent>
+      </Card>
+
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="relative w-full flex-1 sm:max-w-sm">
           <IconSearch className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search CVs..."
@@ -426,7 +503,7 @@ export function CvPoolClient({ initialData, stats }: CvPoolClientProps) {
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
           <Button
             variant="outline"
             onClick={handleExportExcel}
@@ -556,7 +633,7 @@ export function CvPoolClient({ initialData, stats }: CvPoolClientProps) {
             Manage your talent pool and view parsed candidate details.
           </CardDescription>
         </CardHeader>
-        <CardContent className="p-0">
+        <CardContent className="overflow-x-auto p-0">
           <Table>
             <TableHeader>
               <TableRow>
@@ -576,7 +653,7 @@ export function CvPoolClient({ initialData, stats }: CvPoolClientProps) {
                 <TableHead>Skills</TableHead>
                 <TableHead>File Info</TableHead>
                 <TableHead>Uploaded</TableHead>
-                <TableHead className="w-[120px]"></TableHead>
+                <TableHead className="w-[160px]"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -661,6 +738,23 @@ export function CvPoolClient({ initialData, stats }: CvPoolClientProps) {
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1">
+                        <Link
+                          href={buildAgentPromptHref(
+                            buildCvAgentPrompt(
+                              cv,
+                              'Summarize candidate strengths, risks, missing evidence, and best-fit job types. Then propose the next TA action.'
+                            )
+                          )}
+                          title="Ask Agent about this CV"
+                        >
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-primary hover:text-primary"
+                          >
+                            <IconMessageChatbot className="h-4 w-4" />
+                          </Button>
+                        </Link>
                         <Button
                           variant="ghost"
                           size="icon"
@@ -749,6 +843,44 @@ export function CvPoolClient({ initialData, stats }: CvPoolClientProps) {
                   </Button>
                 </div>
               </div>
+
+              <div className="grid gap-2 sm:grid-cols-2">
+                <Link
+                  href={buildAgentPromptHref(
+                    buildCvAgentPrompt(
+                      reviewData,
+                      'Explain this candidate profile for a recruiter. Focus on strengths, risks, missing evidence, and the safest next step.'
+                    )
+                  )}
+                >
+                  <Button variant="outline" className="w-full justify-start rounded-xl">
+                    <IconMessageChatbot className="mr-2 h-4 w-4" />
+                    Explain CV with Agent
+                  </Button>
+                </Link>
+                <Link
+                  href={buildAgentPromptHref(
+                    buildCvAgentPrompt(
+                      reviewData,
+                      'Generate a targeted first-round interview plan with technical questions, behavioral checks, red flags, and scoring guidance.'
+                    )
+                  )}
+                >
+                  <Button className="w-full justify-start rounded-xl">
+                    <IconChecklist className="mr-2 h-4 w-4" />
+                    Draft Questions with Agent
+                  </Button>
+                </Link>
+              </div>
+
+              {reviewReadiness && (
+                <EvidenceReadinessPanel
+                  readiness={reviewReadiness}
+                  title="CV evidence readiness"
+                  description="Extraction completeness and missing evidence before TA review or Agent reasoning."
+                  compact
+                />
+              )}
 
               <Separator />
 

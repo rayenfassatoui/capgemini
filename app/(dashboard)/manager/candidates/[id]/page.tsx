@@ -1,11 +1,13 @@
 import { notFound } from 'next/navigation';
 import { 
-  getCandidateAction, 
-  getInterviewReportsByCandidateAction, 
+  getCandidateAction,
+  getInterviewReportsByCandidateAction,
   getInterviewGuideAction,
   getInterviewByCandidateAndStageAction,
   listUsersByRoleAction,
-  getInterviewAutoPilotAction
+  getInterviewAutoPilotAction,
+  getScreeningAction,
+  getJobAction,
 } from '@/features/recruitment/actions';
 import { requireRole } from '@/lib/auth';
 import { ManagerCandidateDetailClient } from '@/features/recruitment/components/manager-candidate-detail-client';
@@ -24,12 +26,14 @@ export default async function ManagerCandidateDetailPage({ params }: { params: P
     notFound();
   }
 
-  const [reports, guide, managerInterview, hrUsers, autoPilotGuide] = await Promise.all([
+  const [reports, guide, managerInterview, hrUsers, autoPilotGuide, screening, job] = await Promise.all([
     getInterviewReportsByCandidateAction(id).catch(() => []),
     candidate.jobId ? getInterviewGuideAction(id, candidate.jobId, 'manager').catch(() => null) : null,
     getInterviewByCandidateAndStageAction(id, 'manager').catch(() => null),
     listUsersByRoleAction('hr'),
     candidate.jobId ? getInterviewAutoPilotAction(id, candidate.jobId, 'manager').catch(() => null) : null,
+    candidate.jobId ? getScreeningAction(id, candidate.jobId).catch(() => null) : null,
+    candidate.jobId ? getJobAction(candidate.jobId).catch(() => null) : null,
   ]);
 
   // Filter reports for TA stage
@@ -57,6 +61,8 @@ export default async function ManagerCandidateDetailPage({ params }: { params: P
         taReports={taReports}
         interviewGuide={guide}
         currentInterview={currentInterview}
+        screening={screening}
+        jobTitle={job?.title ?? null}
         hrUsers={hrUsers}
         autoPilotGuide={autoPilotGuide}
       />

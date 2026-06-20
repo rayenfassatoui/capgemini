@@ -3,6 +3,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import {
+  IconArrowRight,
   IconBriefcase,
   IconCalendar,
   IconSearch,
@@ -11,9 +12,12 @@ import {
   IconVideo,
   IconCheck,
   IconX,
+  IconMessageChatbot,
+  IconPlus,
 } from '@tabler/icons-react';
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import {
   Table,
   TableBody,
@@ -47,6 +51,22 @@ const item = {
 };
 
 export function TADashboardClient({ stats, interviews }: TADashboardClientProps) {
+  const candidateTrend =
+    stats.totalCandidates > 0
+      ? `${stats.pendingScreenings} candidate${stats.pendingScreenings === 1 ? '' : 's'} awaiting screening`
+      : 'Upload CVs to start matching';
+  const jobsTrend =
+    stats.totalJobs > 0
+      ? `${stats.totalJobs} active pipeline${stats.totalJobs === 1 ? '' : 's'} available`
+      : 'Create a job requirement to open matching';
+  const interviewsTrend =
+    interviews.length > 0
+      ? `${interviews.length} interview${interviews.length === 1 ? '' : 's'} scheduled today`
+      : 'No interviews scheduled today';
+  const screeningTrend =
+    stats.pendingScreenings > 0
+      ? 'Ask the agent to prioritize the queue'
+      : 'Screening queue is clear';
   return (
     <div className="space-y-8 p-1">
       {/* Header */}
@@ -54,13 +74,30 @@ export function TADashboardClient({ stats, interviews }: TADashboardClientProps)
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
+        className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between"
       >
-        <h1 className="text-4xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-400">
-          Dashboard
-        </h1>
-        <p className="text-muted-foreground mt-2 text-lg">
-          Overview of your recruitment pipeline
-        </p>
+        <div>
+          <h1 className="text-4xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-400">
+            Dashboard
+          </h1>
+          <p className="text-muted-foreground mt-2 text-lg">
+            Live recruitment command center for your TA workflow
+          </p>
+        </div>
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <Link href="/agent">
+            <Button variant="outline" className="w-full rounded-full bg-background/60 backdrop-blur sm:w-auto">
+              <IconMessageChatbot className="mr-2 h-4 w-4" />
+              Ask Agent
+            </Button>
+          </Link>
+          <Link href="/ta/jobs">
+            <Button className="w-full rounded-full shadow-lg shadow-primary/20 sm:w-auto">
+              <IconPlus className="mr-2 h-4 w-4" />
+              Create Job
+            </Button>
+          </Link>
+        </div>
       </motion.div>
 
       {/* Stat Cards */}
@@ -74,28 +111,28 @@ export function TADashboardClient({ stats, interviews }: TADashboardClientProps)
           title="Total Candidates"
           value={stats.totalCandidates}
           icon={IconUsers}
-          trend="+12% from last month"
+          trend={candidateTrend}
           color="blue"
         />
         <StatCard
           title="Active Jobs"
           value={stats.totalJobs}
           icon={IconBriefcase}
-          trend="+3 new this week"
+          trend={jobsTrend}
           color="purple"
         />
         <StatCard
           title="Today's Interviews"
-          value={stats.totalInterviewsToday}
+          value={interviews.length}
           icon={IconCalendar}
-          trend="2 pending feedback"
+          trend={interviewsTrend}
           color="amber"
         />
         <StatCard
           title="Pending Screenings"
           value={stats.pendingScreenings}
           icon={IconSearch}
-          trend="5 urgent"
+          trend={screeningTrend}
           color="pink"
         />
       </motion.div>
@@ -192,12 +229,29 @@ export function TADashboardClient({ stats, interviews }: TADashboardClientProps)
               </TableBody>
             </Table>
           ) : (
-            <div className="flex flex-col items-center justify-center h-64 text-muted-foreground gap-4 bg-muted/5 rounded-xl m-4 border border-dashed">
-              <div className="p-4 bg-background rounded-full shadow-sm">
-                <IconCalendar className="h-8 w-8 opacity-40" />
+            <div className="m-4 flex min-h-72 flex-col items-center justify-center gap-5 rounded-xl border border-dashed bg-muted/5 p-8 text-center text-muted-foreground">
+              <div className="rounded-full bg-background p-4 shadow-sm">
+                <IconCalendar className="h-8 w-8 opacity-50" />
               </div>
-              <p className="text-lg font-medium">No interviews scheduled for today</p>
-              <p className="text-sm opacity-60">Enjoy your free time!</p>
+              <div className="max-w-md">
+                <p className="text-lg font-semibold text-foreground">No interviews scheduled today</p>
+                <p className="mt-2 text-sm leading-6">
+                  Use the available capacity to review pending CVs, create a new job requirement, or ask the agent to prioritize the next shortlist.
+                </p>
+              </div>
+              <div className="flex flex-col gap-2 sm:flex-row">
+                <Link href="/ta/cv-pool">
+                  <Button variant="outline" className="w-full rounded-full sm:w-auto">
+                    Review CV Pool
+                  </Button>
+                </Link>
+                <Link href="/agent">
+                  <Button className="w-full rounded-full sm:w-auto">
+                    Ask Agent
+                    <IconArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
+                </Link>
+              </div>
             </div>
           )}
         </div>

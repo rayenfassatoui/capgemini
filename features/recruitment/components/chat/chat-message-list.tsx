@@ -1,13 +1,14 @@
 "use client";
 
-import { useRef, useEffect, useCallback } from "react";
+import { useRef, useEffect, useCallback, useState } from "react";
 import { motion } from "framer-motion";
 import { Streamdown } from "streamdown";
 import { mermaid } from "@streamdown/mermaid";
-import { IconLoader2, IconFile, IconDownload } from "@tabler/icons-react";
+import { IconArrowDown, IconCheck, IconCopy, IconDatabase, IconDownload, IconFile, IconInfoCircle, IconLoader2, IconQuote } from "@tabler/icons-react";
 import { cn } from "@/lib/utils";
 import { CapgeminiIcons } from "@/components/shared/icons";
 import type { ChatMessage, ToolEvent } from "./chat-types";
+import type { AgentEvidenceMetadata } from "../../types";
 import { SUGGESTIONS, formatToolName } from "./chat-types";
 import { ToolInspector } from "./tool-inspector";
 
@@ -19,6 +20,37 @@ interface ChatMessageListProps {
 }
 
 const STATUS_TEXT_THINKING = "Thinking...";
+const CV_FOLLOW_UPS = [
+  "Compare this candidate against the open jobs",
+  "List risks and missing evidence",
+  "Generate interview questions",
+] as const;
+
+const JOB_FOLLOW_UPS = [
+  "Create a shortlist plan",
+  "Improve the job requirement",
+  "Show matching risks",
+] as const;
+
+const INTERVIEW_FOLLOW_UPS = [
+  "Generate a scorecard",
+  "List red flags to probe",
+  "Draft candidate follow-up email",
+] as const;
+
+const GENERAL_FOLLOW_UPS = [
+  "Turn this into next actions",
+  "Show evidence and risks",
+  "Summarize for a hiring manager",
+] as const;
+
+function getFollowUpSuggestions(content: string): readonly string[] {
+  const normalized = content.toLowerCase();
+  if (normalized.includes("interview")) return INTERVIEW_FOLLOW_UPS;
+  if (normalized.includes("job") || normalized.includes("requirement")) return JOB_FOLLOW_UPS;
+  if (normalized.includes("candidate") || normalized.includes("cv")) return CV_FOLLOW_UPS;
+  return GENERAL_FOLLOW_UPS;
+}
 
 function AttachmentChip({
   filename,
@@ -84,6 +116,126 @@ function FileDownloadButton({
         <IconDownload className="size-4 stroke-[1.5]" />
       </div>
     </button>
+  );
+}
+
+function getSourceKindLabel(kind: string): string {
+  if (kind === "cv") return "CV";
+  if (kind === "job") return "Job";
+  if (kind === "candidate") return "Candidate";
+  if (kind === "analytics") return "Analytics";
+  if (kind === "interview") return "Interview";
+  if (kind === "operation") return "Workflow";
+  if (kind === "search") return "Search";
+  if (kind === "system") return "System";
+  if (kind === "onboarding") return "Onboarding";
+  return "Tool";
+}
+
+function SourceEvidencePanel({
+  evidence,
+}: {
+  evidence?: AgentEvidenceMetadata;
+}) {
+  if (!evidence || evidence.sources.length === 0) return null;
+
+  const successfulSources = evidence.sources.filter(
+    (source) => source.status === "success",
+  ).length;
+  const failedSources = evidence.sources.length - successfulSources;
+
+  return (
+    <section
+      className="mb-4 w-full max-w-2xl rounded-2xl border border-border/70 bg-card/55 p-3 shadow-sm"
+      aria-label="Source-backed evidence"
+    >
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <span className="flex size-8 items-center justify-center rounded-full bg-primary/10 text-primary">
+            <IconDatabase className="size-4" />
+          </span>
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+              Source-backed
+            </p>
+            <p className="text-sm font-medium text-foreground">
+              {successfulSources} verified source{successfulSources === 1 ? "" : "s"}
+              {failedSources > 0 ? `, ${failedSources} failed` : ""}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div className="flex flex-wrap gap-2" aria-label="Source chips">
+        {evidence.sources.map((source) => (
+          <span
+            key={source.id}
+            className={cn(
+              "inline-flex max-w-full items-center gap-2 rounded-full border px-2.5 py-1 text-[11px] font-medium",
+              source.status === "success"
+                ? "border-primary/20 bg-primary/10 text-primary"
+                : "border-destructive/20 bg-destructive/10 text-destructive",
+            )}
+            aria-label={`${source.label}: ${source.status}`}
+          >
+            <span className="rounded-full bg-background/70 px-1.5 py-0.5 text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+              {getSourceKindLabel(source.kind)}
+            </span>
+            <span className="truncate">{source.label}</span>
+            {typeof source.count === "number" ? (
+              <span className="text-muted-foreground">{source.count}</span>
+            ) : null}
+          </span>
+        ))}
+      </div>
+
+      <div className="mt-3 grid gap-3 sm:grid-cols-2">
+        <div className="rounded-xl border border-border/60 bg-background/60 p-3">
+          <div className="mb-2 flex items-center gap-1.5 text-xs font-semibold text-foreground">
+            <IconQuote className="size-3.5 text-primary" />
+            Observed
+          </div>
+          <ul className="space-y-1.5 text-xs leading-5 text-muted-foreground">
+            {evidence.observedFacts.slice(0, 3).map((fact) => (
+              <li key={fact}>{fact}</li>
+            ))}
+          </ul>
+        </div>
+        <div className="rounded-xl border border-border/60 bg-background/60 p-3">
+          <div className="mb-2 flex items-center gap-1.5 text-xs font-semibold text-foreground">
+            <IconInfoCircle className="size-3.5 text-muted-foreground" />
+            Inferred with limits
+          </div>
+          <ul className="space-y-1.5 text-xs leading-5 text-muted-foreground">
+            {evidence.inferenceLimits.slice(0, 3).map((limit) => (
+              <li key={limit}>{limit}</li>
+            ))}
+          </ul>
+        </div>
+      </div>
+
+      {evidence.evidenceBlocks.length > 0 && (
+        <details className="mt-3 rounded-xl border border-border/60 bg-background/50 p-3">
+          <summary className="cursor-pointer text-xs font-semibold text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+            Evidence blocks
+          </summary>
+          <div className="mt-3 space-y-3">
+            {evidence.evidenceBlocks.map((block) => (
+              <div key={block.id} className="space-y-1.5">
+                <p className="text-xs font-semibold text-foreground">
+                  {block.title}
+                </p>
+                <ul className="space-y-1 text-xs leading-5 text-muted-foreground">
+                  {block.items.map((item) => (
+                    <li key={`${block.id}-${item}`}>{item}</li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        </details>
+      )}
+    </section>
   );
 }
 
@@ -256,14 +408,75 @@ function AssistantWorkingIndicator({
   );
 }
 
+function AssistantMessageActions({
+  content,
+  showFollowUps,
+  onSendSuggestion,
+}: {
+  content: string;
+  showFollowUps: boolean;
+  onSendSuggestion: (text: string) => void;
+}) {
+  const [copied, setCopied] = useState(false);
+  const followUps = getFollowUpSuggestions(content);
+
+  const handleCopy = useCallback(() => {
+    navigator.clipboard
+      .writeText(content)
+      .then(() => {
+        setCopied(true);
+        window.setTimeout(() => setCopied(false), 1600);
+      })
+      .catch(() => {});
+  }, [content]);
+
+  return (
+    <div className="mt-3 flex flex-col gap-3">
+      <div className="flex flex-wrap items-center gap-2">
+        <button
+          type="button"
+          onClick={handleCopy}
+          className="inline-flex min-h-8 items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1 text-xs font-medium text-muted-foreground transition-colors hover:border-primary/30 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          aria-label={copied ? "Response copied" : "Copy response"}
+        >
+          {copied ? (
+            <IconCheck className="size-3.5 text-primary" />
+          ) : (
+            <IconCopy className="size-3.5" />
+          )}
+          {copied ? "Copied" : "Copy"}
+        </button>
+      </div>
+
+      {showFollowUps && (
+        <div className="flex flex-wrap gap-2" aria-label="Suggested follow-up questions">
+          {followUps.map((suggestion) => (
+            <button
+              key={suggestion}
+              type="button"
+              onClick={() => onSendSuggestion(suggestion)}
+              className="rounded-full border border-border bg-background/70 px-3 py-1.5 text-xs font-medium text-foreground/80 transition-colors hover:border-primary/40 hover:bg-primary/10 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              {suggestion}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 function MessageBubble({
   msg,
   isLast,
   isStreaming,
+  showFollowUps,
+  onSendSuggestion,
 }: {
   msg: ChatMessage;
   isLast: boolean;
   isStreaming: boolean;
+  showFollowUps: boolean;
+  onSendSuggestion: (text: string) => void;
 }) {
   const isUser = msg.role === "user";
   const hasToolEvents = (msg.toolEvents?.length ?? 0) > 0;
@@ -312,6 +525,7 @@ function MessageBubble({
             </span>
           </div>
         )}
+        {!isUser && <SourceEvidencePanel evidence={msg.metadata?.evidence} />}
 
         <div
           className={cn(
@@ -379,6 +593,13 @@ function MessageBubble({
             <LoadingIndication />
           ) : null}
         </div>
+        {!isUser && msg.content && !(isLast && isStreaming) && (
+          <AssistantMessageActions
+            content={msg.content}
+            showFollowUps={showFollowUps}
+            onSendSuggestion={onSendSuggestion}
+          />
+        )}
         {!isUser && isLast && isStreaming && hasToolEvents && (
           <AssistantWorkingIndicator toolEvents={msg.toolEvents} />
         )}
@@ -394,19 +615,59 @@ export function ChatMessageList({
   onSendSuggestion,
 }: ChatMessageListProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const pinnedToBottomRef = useRef(true);
+  const previousMessageCountRef = useRef(0);
+  const [isPinnedToBottom, setIsPinnedToBottom] = useState(true);
 
-  const scrollToBottom = useCallback(() => {
-    if (containerRef.current) {
-      containerRef.current.scrollTo({
-        top: containerRef.current.scrollHeight,
-        behavior: "smooth",
-      });
-    }
+  const setPinnedToBottom = useCallback((value: boolean) => {
+    pinnedToBottomRef.current = value;
+    setIsPinnedToBottom(value);
   }, []);
 
+  const isNearBottom = useCallback(() => {
+    const container = containerRef.current;
+    if (!container) return true;
+    return container.scrollHeight - container.scrollTop - container.clientHeight < 96;
+  }, []);
+
+  const scrollContainerToBottom = useCallback((behavior: ScrollBehavior) => {
+    const container = containerRef.current;
+    if (!container) return;
+    container.scrollTo({
+      top: container.scrollHeight,
+      behavior,
+    });
+  }, []);
+
+  const scrollToBottom = useCallback((behavior: ScrollBehavior = "smooth") => {
+    scrollContainerToBottom(behavior);
+    setPinnedToBottom(true);
+  }, [scrollContainerToBottom, setPinnedToBottom]);
+
+  const handleScroll = useCallback(() => {
+    setPinnedToBottom(isNearBottom());
+  }, [isNearBottom, setPinnedToBottom]);
+
   useEffect(() => {
-    scrollToBottom();
-  }, [messages, isStreaming, scrollToBottom]);
+    const previousCount = previousMessageCountRef.current;
+    const messageCountChanged = previousCount !== messages.length;
+    previousMessageCountRef.current = messages.length;
+
+    const latestMessage = messages[messages.length - 1];
+    const userJustSent = messageCountChanged && latestMessage?.role === "user";
+
+    if (pinnedToBottomRef.current || userJustSent) {
+      scrollContainerToBottom(messageCountChanged ? "smooth" : "auto");
+    }
+  }, [messages, isStreaming, scrollContainerToBottom]);
+
+  let lastAssistantIndex = -1;
+  for (let index = messages.length - 1; index >= 0; index -= 1) {
+    if (messages[index].role === "assistant" && messages[index].content) {
+      lastAssistantIndex = index;
+      break;
+    }
+  }
 
   if (isLoadingHistory) {
     return (
@@ -419,7 +680,8 @@ export function ChatMessageList({
   return (
     <div
       ref={containerRef}
-      className="flex-1 overflow-y-auto px-6 py-6 scrollbar-hide bg-background"
+      onScroll={handleScroll}
+      className="relative flex-1 overflow-y-auto px-6 py-6 scrollbar-hide bg-background"
     >
       <div className="mx-auto max-w-3xl flex flex-col gap-6">
         {messages.length === 0 ? (
@@ -431,10 +693,22 @@ export function ChatMessageList({
               msg={msg}
               isLast={index === messages.length - 1}
               isStreaming={isStreaming}
+              showFollowUps={index === lastAssistantIndex && !(index === messages.length - 1 && isStreaming)}
+              onSendSuggestion={onSendSuggestion}
             />
           ))
         )}
       </div>
+      {!isPinnedToBottom && (
+        <button
+          type="button"
+          onClick={() => scrollToBottom()}
+          className="sticky bottom-4 z-10 ml-auto mt-4 flex items-center gap-2 rounded-full border border-border bg-card/95 px-3 py-2 text-xs font-semibold text-foreground shadow-lg backdrop-blur transition-colors hover:border-primary/40 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <IconArrowDown className="size-3.5" />
+          Latest
+        </button>
+      )}
     </div>
   );
 }

@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button, buttonVariants } from '@/components/ui/button';
@@ -22,9 +23,15 @@ import {
   assignHrToCandidateAction,
 } from '@/features/recruitment/actions';
 import { toast } from 'sonner';
-import { IconMail, IconCalendar, IconCheck, IconX, IconExternalLink, IconCircleCheck, IconCircleDashed, IconPlus, IconTrash, IconSparkles, IconEdit, IconDeviceFloppy } from '@tabler/icons-react';
+import { IconMail, IconCalendar, IconCheck, IconX, IconExternalLink, IconCircleCheck, IconCircleDashed, IconPlus, IconTrash, IconSparkles, IconEdit, IconDeviceFloppy, IconBrain, IconFileAnalytics, IconMessageChatbot, IconReportAnalytics } from '@tabler/icons-react';
 import type { InterviewDecision, InterviewAutoPilotGuide } from '@/features/recruitment/types';
 import { InterviewAutoPilotGuideView } from './interview-autopilot-guide';
+import { buildAgentPromptHref } from './chat/agent-prompts';
+import { EvidenceReadinessPanel } from './evidence-readiness-panel';
+import {
+  buildCandidateEvidenceReadiness,
+  formatEvidenceReadinessForAgent,
+} from './evidence-readiness';
 
 interface InterviewGuide {
   id: string;
@@ -45,6 +52,16 @@ interface Report {
   decision: string;
   overallEvaluation?: string | null;
   notes?: string | null;
+}
+
+interface Screening {
+  score: number;
+  mustMatchScore: number;
+  niceMatchScore: number;
+  gaps: string[];
+  matchedMustHave: string[];
+  matchedNiceToHave: string[];
+  aiSummary?: string | null;
 }
 
 interface Candidate {
@@ -69,6 +86,8 @@ interface ManagerCandidateDetailClientProps {
   taReports: Report[];
   interviewGuide?: InterviewGuide | null;
   currentInterview?: Interview | null;
+  screening?: Screening | null;
+  jobTitle?: string | null;
   hrUsers?: UserListItem[];
   autoPilotGuide?: InterviewAutoPilotGuide | null;
 }
@@ -95,6 +114,8 @@ export function ManagerCandidateDetailClient({
   taReports,
   interviewGuide,
   currentInterview,
+  screening,
+  jobTitle,
   hrUsers,
   autoPilotGuide,
 }: ManagerCandidateDetailClientProps) {
@@ -120,6 +141,40 @@ export function ManagerCandidateDetailClient({
   const step2Done = !!currentInterview;
   const step3Done = currentInterview?.status === 'completed';
   const hasDecided = candidate.stage === 'manager_accepted' || candidate.stage === 'manager_rejected';
+  const candidateJobTitle = candidate.job?.title || jobTitle || 'Unknown job';
+  const evidenceReadiness = buildCandidateEvidenceReadiness({
+    workflow: 'manager',
+    candidateName: candidate.fullName,
+    stage: candidate.stage,
+    jobTitle: candidateJobTitle,
+    screening,
+    reports: taReports,
+    currentInterview,
+    hasInterviewGuide: Boolean(interviewGuide),
+    hasAutoPilotGuide: Boolean(autoPilotGuide),
+  });
+  const evidenceContext = formatEvidenceReadinessForAgent(evidenceReadiness);
+  const candidateContext = `Candidate "${candidate.fullName}" (${candidate.email}) for job "${candidateJobTitle}", current stage "${candidate.stage}". TA reports: ${taReports.length ? taReports.map((report) => `score ${report.score ?? 'n/a'}, decision ${report.decision}, notes ${report.overallEvaluation || report.notes || 'none'}`).join(' | ') : 'none available'}. Screening: ${screening ? `score ${Math.round(screening.score)}/100, gaps ${screening.gaps.join(', ') || 'none'}` : 'not available'}. Manager interview: ${currentInterview ? `${currentInterview.status || 'scheduled'} on ${currentInterview.scheduledDate} at ${currentInterview.scheduledTime}` : 'not scheduled'}. ${evidenceContext}`;
+  const agentActions = [
+    {
+      title: 'Explain score',
+      description: 'Connect TA evidence to manager interview focus.',
+      icon: IconBrain,
+      prompt: `${candidateContext} Explain this candidate score and prior TA evidence for a hiring manager. Highlight strengths, risks, missing evidence, and what I should verify in the manager interview.`,
+    },
+    {
+      title: 'Summarize feedback',
+      description: 'Turn existing notes into concise decision context.',
+      icon: IconReportAnalytics,
+      prompt: `${candidateContext} Summarize all available feedback for this candidate. Separate verified evidence from assumptions and list the most important open questions before a manager decision.`,
+    },
+    {
+      title: 'Decision risks',
+      description: 'Evaluate accept/reject risks before handoff to HR.',
+      icon: IconFileAnalytics,
+      prompt: `${candidateContext} Recommend manager accept/reject risk considerations. Include reasons to proceed, reasons to pause, what evidence would change the decision, and the safest next action.`,
+    },
+  ] as const;
 
   const handleGenerateQuestions = async () => {
     try {
@@ -292,50 +347,87 @@ export function ManagerCandidateDetailClient({
   return (
     <div className="space-y-6">
       {/* Candidate Header */}
-      <div className="flex justify-between items-start">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div>
           <h1 className="text-2xl font-bold">{candidate.fullName}</h1>
-          <div className="text-muted-foreground flex gap-4 mt-1">
+          <div className="text-muted-foreground flex flex-wrap gap-4 mt-1">
             <span className="flex items-center gap-1"><IconMail size={16} /> {candidate.email}</span>
             {candidate.phone && <span>{candidate.phone}</span>}
           </div>
-          <div className="flex items-center gap-2 mt-2">
+          <div className="flex flex-wrap items-center gap-2 mt-2">
             <Badge variant="outline" className="capitalize">{candidate.stage.replace(/_/g, ' ')}</Badge>
             {candidate.job?.title && (
               <Badge variant="secondary">{candidate.job.title}</Badge>
             )}
           </div>
         </div>
-        {currentInterview && currentInterview.status !== 'completed' && (
-          <a
-            href={currentInterview.meetLink}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center justify-center gap-2 rounded-md bg-primary px-4 h-10 text-sm font-medium text-primary-foreground hover:bg-primary/80 transition-all"
-          >
-            <IconExternalLink size={16} />
-            Join Meeting
-          </a>
-        )}
+        <div className="flex flex-wrap gap-2">
+          <Link href={buildAgentPromptHref(`${candidateContext} Give me the next best manager action for this candidate. Keep it concise and evidence-based.`)}>
+            <Button variant="outline" size="sm" className="rounded-full">
+              <IconMessageChatbot className="mr-2 h-4 w-4" />
+              Ask Agent
+            </Button>
+          </Link>
+          {currentInterview && currentInterview.status !== 'completed' && (
+            <a
+              href={currentInterview.meetLink}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex h-9 items-center justify-center gap-2 rounded-full bg-primary px-4 text-sm font-medium text-primary-foreground transition-all hover:bg-primary/80"
+            >
+              <IconExternalLink size={16} />
+              Join Meeting
+            </a>
+          )}
+        </div>
       </div>
+
+      <div className="grid gap-3 md:grid-cols-3">
+        {agentActions.map((action) => {
+          const Icon = action.icon;
+          return (
+            <Link key={action.title} href={buildAgentPromptHref(action.prompt)}>
+              <Card className="group h-full border-border/70 bg-card/70 transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5">
+                <CardHeader className="flex flex-row items-start gap-3 space-y-0 pb-3">
+                  <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
+                    <Icon className="size-5" />
+                  </span>
+                  <div>
+                    <CardTitle className="text-sm">{action.title}</CardTitle>
+                    <CardDescription className="mt-1 text-xs leading-5">
+                      {action.description}
+                    </CardDescription>
+                  </div>
+                </CardHeader>
+              </Card>
+            </Link>
+          );
+        })}
+      </div>
+
+      <EvidenceReadinessPanel
+        readiness={evidenceReadiness}
+        title="Candidate evidence readiness"
+        description="Manager decision context split into observed facts, missing evidence, and risk flags before Agent reasoning."
+      />
 
       {/* Progress Bar */}
       <Card>
         <CardContent className="pt-6">
-          <div className="flex items-center justify-between">
+          <div className="grid gap-4 md:grid-cols-[auto_1fr_auto_1fr_auto_1fr_auto] md:items-center">
             <StepIndicator step={1} label="Prepare Questions" done={step1Done} active={!step1Done} />
-            <Separator className="flex-1 mx-3" />
+            <Separator className="hidden md:block" />
             <StepIndicator step={2} label="Schedule Interview" done={step2Done} active={step1Done && !step2Done} />
-            <Separator className="flex-1 mx-3" />
+            <Separator className="hidden md:block" />
             <StepIndicator step={3} label="Write Report" done={step3Done} active={step2Done && !step3Done} />
-            <Separator className="flex-1 mx-3" />
+            <Separator className="hidden md:block" />
             <StepIndicator step={4} label="Final Decision" done={hasDecided} active={step2Done && !hasDecided} />
           </div>
         </CardContent>
       </Card>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList>
+        <TabsList className="grid h-auto w-full grid-cols-1 gap-1 sm:grid-cols-3 lg:w-fit">
           <TabsTrigger value="interview">Interview Workflow</TabsTrigger>
           <TabsTrigger value="autopilot">Auto-Pilot Guide</TabsTrigger>
           <TabsTrigger value="ta-report">TA Report</TabsTrigger>

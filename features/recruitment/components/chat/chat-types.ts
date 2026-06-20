@@ -1,3 +1,5 @@
+import type { AgentEvidenceMetadata } from "../../types";
+
 export type ToolEventStatus = "queued" | "running" | "success" | "error";
 
 export type ToolTraceFilter = "all" | ToolEventStatus;
@@ -42,6 +44,7 @@ export interface GroundingGuardMetadata {
 
 export interface ChatResponseMetadata {
   groundingGuard?: GroundingGuardMetadata;
+  evidence?: AgentEvidenceMetadata;
 }
 
 export interface ChatAttachment {

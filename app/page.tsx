@@ -1,315 +1,396 @@
 'use client';
 
-import React from 'react';
 import Link from 'next/link';
-import { motion, useScroll, useTransform } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
-import { 
-  IconArrowRight, 
-  IconBrain, 
-  IconRocket, 
-  IconChartBar, 
-  IconSparkles,
-  IconCheck,
-  IconUsers,
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import {
+  IconArrowRight,
+  IconBrain,
+  IconBriefcase,
+  IconChartBar,
+  IconChecklist,
   IconClock,
-  IconShieldLock
+  IconDatabaseSearch,
+  IconFileAnalytics,
+  IconLock,
+  IconMessageChatbot,
+  IconRoute,
+  IconShieldCheck,
+  IconSparkles,
+  IconUsers,
 } from '@tabler/icons-react';
 
 const fadeInUp = {
   initial: { opacity: 0, y: 20 },
   animate: { opacity: 1, y: 0 },
-  transition: { duration: 0.6, ease: [0.22, 1, 0.36, 1] }
+  transition: { duration: 0.6, ease: [0.22, 1, 0.36, 1] },
 };
 
 const staggerContainer = {
   animate: {
     transition: {
-      staggerChildren: 0.1
-    }
-  }
+      staggerChildren: 0.08,
+    },
+  },
 };
 
-export default function LandingPage() {
-  const { scrollY } = useScroll();
-  const y1 = useTransform(scrollY, [0, 500], [0, 200]);
-  const y2 = useTransform(scrollY, [0, 500], [0, -150]);
+const ROLE_PATHS = [
+  {
+    role: 'TA',
+    title: 'Screen and match faster',
+    description:
+      'Upload CVs, structure job requirements, and let the agent explain the strongest fits with traceable evidence.',
+    icon: IconDatabaseSearch,
+  },
+  {
+    role: 'Manager',
+    title: 'Interview with context',
+    description:
+      'Review shortlisted candidates, interview kits, scorecards, and rationale without switching tools.',
+    icon: IconChecklist,
+  },
+  {
+    role: 'HR',
+    title: 'Keep decisions auditable',
+    description:
+      'Follow every stage from screening to onboarding with consistent reports and role-based access.',
+    icon: IconShieldCheck,
+  },
+];
 
+const PLATFORM_CAPABILITIES = [
+  {
+    title: 'Context-aware agent',
+    description:
+      'A floating assistant for quick page-level questions plus a full workspace for deeper analysis.',
+    icon: IconMessageChatbot,
+  },
+  {
+    title: 'CV intelligence',
+    description:
+      'Extract skills, experience, and candidate signals, then match them against job requirements.',
+    icon: IconFileAnalytics,
+  },
+  {
+    title: 'Pipeline visibility',
+    description:
+      'See stage health, interview workload, candidate movement, and bottlenecks in one command center.',
+    icon: IconRoute,
+  },
+  {
+    title: 'Governed access',
+    description:
+      'Role-based dashboards keep TA, managers, HR, and admins focused on the right decisions.',
+    icon: IconLock,
+  },
+];
+
+const METRICS = [
+  { label: 'Recruitment roles', value: '4', detail: 'TA, Manager, HR, Admin' },
+  { label: 'Core workflows', value: '6', detail: 'CVs, jobs, matching, interviews, analytics, onboarding' },
+  { label: 'Agent modes', value: '2', detail: 'Floating copilot and full workspace' },
+];
+
+export default function LandingPage() {
   return (
-    <div className="min-h-screen bg-background text-foreground overflow-x-hidden selection:bg-primary/20 selection:text-primary">
-      {/* Navbar */}
-      <nav className="fixed top-0 w-full z-50 glass border-b-0">
-        <div className="container mx-auto px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="bg-primary/10 p-2 rounded-lg">
-              <IconSparkles className="w-5 h-5 text-primary" />
+    <div className="min-h-screen overflow-x-hidden bg-background text-foreground selection:bg-primary/20 selection:text-primary">
+      <nav className="fixed top-0 z-50 w-full border-b border-border/50 bg-background/75 backdrop-blur-xl">
+        <div className="container mx-auto flex h-16 items-center justify-between px-6">
+          <Link href="/" className="flex items-center gap-3" aria-label="Talent Intelligence home">
+            <div className="flex size-9 items-center justify-center rounded-xl bg-primary/10 text-primary">
+              <IconSparkles className="size-5" />
             </div>
-            <span className="font-bold text-lg tracking-tight">Capgemini<span className="text-primary">.AI</span></span>
-          </div>
-          <div className="flex items-center gap-4">
-            <Link href="/sign-in">
-              <Button variant="ghost" className="text-muted-foreground hover:text-foreground hidden sm:flex">Sign In</Button>
+            <div className="leading-tight">
+              <span className="block text-sm font-bold tracking-tight">Talent Intelligence</span>
+              <span className="block text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                Capgemini Recruitment OS
+              </span>
+            </div>
+          </Link>
+
+          <div className="flex items-center gap-3">
+            <Link href="/sign-in" className="hidden sm:block">
+              <Button variant="ghost">Sign In</Button>
             </Link>
             <Link href="/sign-in">
-              <Button className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/20 transition-all hover:scale-105">
+              <Button className="rounded-full px-5 shadow-lg shadow-primary/20">
                 Access Platform
+                <IconArrowRight className="ml-2 size-4" />
               </Button>
             </Link>
           </div>
         </div>
       </nav>
 
-      {/* Hero Section */}
-      <section className="relative pt-32 pb-20 lg:pt-48 lg:pb-32 overflow-hidden min-h-screen flex flex-col justify-center">
-        <div className="absolute inset-0 bg-mesh opacity-40 -z-10 animate-mesh" />
-        <div className="absolute inset-0 bg-linear-to-b from-transparent via-background/50 to-background -z-10" />
-        
-        <div className="container mx-auto px-6 relative z-10">
-          <motion.div 
-            className="max-w-5xl mx-auto text-center"
-            initial="initial"
-            animate="animate"
-            variants={staggerContainer}
-          >
-            <motion.div variants={fadeInUp} className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full glass border border-primary/20 mb-8 shadow-sm hover:border-primary/40 transition-colors cursor-default">
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
-              </span>
-              <span className="text-sm font-medium text-primary">AI-Powered Recruitment Engine 2.0</span>
-            </motion.div>
+      <main>
+        <section className="relative flex min-h-screen items-center overflow-hidden pt-24">
+          <div className="absolute inset-0 -z-10 bg-mesh opacity-80" />
+          <div className="absolute left-1/2 top-1/4 -z-10 size-[36rem] -translate-x-1/2 rounded-full bg-primary/15 blur-3xl" />
+          <div className="absolute bottom-0 right-0 -z-10 size-[28rem] rounded-full bg-chart-2/10 blur-3xl" />
 
-            <motion.h1 
-              variants={fadeInUp}
-              className="text-5xl md:text-7xl lg:text-8xl font-bold tracking-tight mb-8 leading-[1.1]"
+          <div className="container mx-auto grid items-center gap-12 px-6 py-20 lg:grid-cols-[minmax(0,1.02fr)_minmax(420px,0.98fr)]">
+            <motion.div
+              initial="initial"
+              animate="animate"
+              variants={staggerContainer}
+              className="max-w-4xl"
             >
-              Recruit Smarter, <br />
-              <span className="text-gradient drop-shadow-sm">Not Harder.</span>
-            </motion.h1>
+              <motion.div variants={fadeInUp}>
+                <Badge variant="secondary" className="mb-7 rounded-full px-4 py-1.5 text-sm">
+                  <IconBrain className="mr-2 size-4 text-primary" />
+                  Internal AI recruitment platform
+                </Badge>
+              </motion.div>
 
-            <motion.p 
-              variants={fadeInUp}
-              className="text-xl md:text-2xl text-muted-foreground mb-12 max-w-2xl mx-auto leading-relaxed"
-            >
-              Transform your hiring process with our advanced AI. 
-              Automate screening, predict candidate success, and build world-class teams.
-            </motion.p>
+              <motion.h1
+                variants={fadeInUp}
+                className="text-5xl font-black leading-[0.98] tracking-tight md:text-7xl lg:text-8xl"
+              >
+                A governed command center for every hiring decision.
+              </motion.h1>
 
-            <motion.div 
-              variants={fadeInUp}
-              className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-20"
-            >
-              <Link href="/sign-in" className="w-full sm:w-auto">
-                <Button size="lg" className="w-full h-14 text-lg px-8 bg-primary hover:bg-primary/90 shadow-xl shadow-primary/20 transition-all hover:scale-105 hover:-translate-y-1 rounded-xl">
-                  Sign In to Continue
-                  <IconArrowRight className="w-5 h-5 ml-2" />
-                </Button>
-              </Link>
-              <Link href="/sign-in" className="w-full sm:w-auto">
-                <Button size="lg" variant="outline" className="w-full h-14 text-lg px-8 glass hover:bg-secondary/50 border-primary/20 transition-all hover:scale-105 rounded-xl">
-                  View Demo
-                </Button>
-              </Link>
-            </motion.div>
+              <motion.p
+                variants={fadeInUp}
+                className="mt-8 max-w-2xl text-lg leading-8 text-muted-foreground md:text-xl"
+              >
+                Talent Intelligence connects CV analysis, job requirements,
+                interviews, analytics, and an auditable AI agent inside one
+                role-based recruitment operating system.
+              </motion.p>
 
-            {/* Abstract UI Preview */}
-            <motion.div 
-              variants={fadeInUp}
-              className="relative w-full max-w-5xl mx-auto h-[300px] md:h-[500px] perspective-1000"
-            >
-               {/* Decorative Glow */}
-               <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-3/4 h-3/4 bg-primary/20 blur-[100px] rounded-full pointer-events-none" />
+              <motion.div variants={fadeInUp} className="mt-10 flex flex-col gap-3 sm:flex-row">
+                <Link href="/sign-in" className="w-full sm:w-auto">
+                  <Button size="lg" className="h-13 w-full rounded-full px-7 text-base shadow-xl shadow-primary/20">
+                    Sign in to workspace
+                    <IconArrowRight className="ml-2 size-5" />
+                  </Button>
+                </Link>
+                <Link href="/agent" className="w-full sm:w-auto">
+                  <Button size="lg" variant="outline" className="h-13 w-full rounded-full px-7 text-base bg-background/60 backdrop-blur">
+                    Open AI Agent
+                  </Button>
+                </Link>
+              </motion.div>
 
-               {/* Main Dashboard Card */}
-               <motion.div 
-                  style={{ y: y1, rotateX: 5 }}
-                  className="absolute inset-x-4 top-0 bottom-10 glass-card rounded-2xl border border-white/10 shadow-2xl overflow-hidden flex flex-col"
-               >
-                  {/* Fake Browser Header */}
-                  <div className="h-10 border-b border-border/50 bg-muted/20 flex items-center px-4 gap-2">
-                    <div className="w-3 h-3 rounded-full bg-red-400/80" />
-                    <div className="w-3 h-3 rounded-full bg-yellow-400/80" />
-                    <div className="w-3 h-3 rounded-full bg-green-400/80" />
-                    <div className="ml-4 h-5 w-64 bg-background/50 rounded-full" />
+              <motion.div variants={fadeInUp} className="mt-12 grid gap-3 sm:grid-cols-3">
+                {METRICS.map((metric) => (
+                  <div key={metric.label} className="rounded-2xl border border-border/60 bg-card/65 p-4 backdrop-blur-xl">
+                    <div className="text-3xl font-black tracking-tight text-primary">{metric.value}</div>
+                    <div className="mt-1 text-sm font-semibold">{metric.label}</div>
+                    <div className="mt-1 text-xs leading-5 text-muted-foreground">{metric.detail}</div>
                   </div>
-                  {/* Fake UI Content */}
-                  <div className="flex-1 p-6 grid grid-cols-12 gap-6 bg-background/30">
-                     <div className="col-span-3 hidden md:flex flex-col gap-4">
-                        <div className="h-20 rounded-xl bg-card/50 border border-border/30 animate-pulse-slow" />
-                        <div className="h-10 rounded-xl bg-card/30 border border-border/30" />
-                        <div className="h-10 rounded-xl bg-card/30 border border-border/30" />
-                        <div className="h-10 rounded-xl bg-card/30 border border-border/30" />
-                     </div>
-                     <div className="col-span-12 md:col-span-9 flex flex-col gap-4">
-                        <div className="flex gap-4">
-                          <div className="h-32 flex-1 rounded-xl bg-primary/10 border border-primary/20 p-4 flex flex-col justify-between">
-                             <div className="w-8 h-8 rounded-lg bg-primary/20" />
-                             <div className="w-24 h-4 rounded bg-primary/20" />
+                ))}
+              </motion.div>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 24, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              transition={{ duration: 0.75, delay: 0.15, ease: [0.22, 1, 0.36, 1] }}
+              className="relative"
+            >
+              <div className="absolute -inset-6 -z-10 rounded-[2rem] bg-primary/10 blur-2xl" />
+              <div className="overflow-hidden rounded-[2rem] border border-border/70 bg-card/80 shadow-2xl shadow-primary/10 backdrop-blur-xl">
+                <div className="flex h-12 items-center gap-2 border-b border-border/60 px-5">
+                  <span className="size-3 rounded-full bg-red-400/80" />
+                  <span className="size-3 rounded-full bg-amber-400/80" />
+                  <span className="size-3 rounded-full bg-emerald-400/80" />
+                  <div className="ml-4 h-5 flex-1 rounded-full bg-background/70" />
+                </div>
+
+                <div className="grid gap-5 p-5 md:grid-cols-[0.8fr_1.2fr]">
+                  <div className="flex flex-col gap-4 rounded-2xl border border-border/60 bg-background/50 p-4">
+                    <div className="flex items-center gap-3">
+                      <div className="flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                        <IconUsers className="size-5" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-bold">TA workspace</p>
+                        <p className="text-xs text-muted-foreground">Live pipeline</p>
+                      </div>
+                    </div>
+                    {['CV Pool', 'Job Requirements', 'Calendar', 'AI Agent'].map((item, index) => (
+                      <div
+                        key={item}
+                        className={`rounded-xl px-3 py-2 text-sm ${index === 3 ? 'bg-primary text-primary-foreground' : 'bg-muted/50 text-muted-foreground'}`}
+                      >
+                        {item}
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="flex flex-col gap-4">
+                    <div className="grid gap-3 sm:grid-cols-3">
+                      {[
+                        { label: 'Candidates', value: '128', icon: IconUsers },
+                        { label: 'Open jobs', value: '18', icon: IconBriefcase },
+                        { label: 'Interviews', value: '7', icon: IconClock },
+                      ].map((item) => {
+                        const Icon = item.icon;
+                        return (
+                          <div key={item.label} className="rounded-2xl border border-border/60 bg-background/60 p-4">
+                            <Icon className="mb-5 size-5 text-primary" />
+                            <div className="text-2xl font-black">{item.value}</div>
+                            <div className="text-xs text-muted-foreground">{item.label}</div>
                           </div>
-                          <div className="h-32 flex-1 rounded-xl bg-card/50 border border-border/30 p-4" />
-                          <div className="h-32 flex-1 rounded-xl bg-card/50 border border-border/30 p-4" />
-                        </div>
-                        <div className="flex-1 rounded-xl bg-card/50 border border-border/30 p-4 flex flex-col gap-3">
-                           {[1,2,3].map(i => (
-                             <div key={i} className="h-12 w-full rounded-lg bg-background/40 border border-border/20 flex items-center px-4 gap-4">
-                                <div className="w-8 h-8 rounded-full bg-muted" />
-                                <div className="w-32 h-3 rounded bg-muted" />
-                                <div className="ml-auto w-16 h-6 rounded-full bg-green-500/20" />
-                             </div>
-                           ))}
-                        </div>
-                     </div>
-                  </div>
-               </motion.div>
+                        );
+                      })}
+                    </div>
 
-               {/* Floating Elements */}
-               <motion.div 
-                  style={{ y: y2 }}
-                  className="absolute -right-4 md:-right-12 top-20 glass p-4 rounded-xl border border-white/20 shadow-xl hidden md:block"
-               >
-                  <div className="flex items-center gap-3">
-                    <div className="bg-green-500/20 p-2 rounded-lg text-green-600">
-                      <IconCheck className="w-5 h-5" />
+                    <div className="rounded-2xl border border-border/60 bg-background/60 p-4">
+                      <div className="mb-4 flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-bold">Agent recommendation</p>
+                          <p className="text-xs text-muted-foreground">Evidence-backed shortlist</p>
+                        </div>
+                        <Badge variant="secondary">Auditable</Badge>
+                      </div>
+                      <div className="flex flex-col gap-3">
+                        {['Match CVs to latest job', 'Generate interview kit', 'Explain pipeline risk'].map((task) => (
+                          <div key={task} className="flex items-center gap-3 rounded-xl border border-border/50 bg-card/70 px-3 py-2">
+                            <span className="size-2 rounded-full bg-primary" />
+                            <span className="text-sm font-medium">{task}</span>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                    <div>
-                      <div className="text-xs text-muted-foreground">Candidate Score</div>
-                      <div className="font-bold text-lg">98.5%</div>
+
+                    <div className="h-28 rounded-2xl border border-border/60 bg-[linear-gradient(135deg,color-mix(in_oklch,var(--primary),transparent_86%),transparent)] p-4">
+                      <div className="flex items-center gap-2 text-sm font-semibold">
+                        <IconChartBar className="size-4 text-primary" />
+                        Pipeline health signal
+                      </div>
+                      <div className="mt-5 flex items-end gap-2">
+                        {[42, 70, 54, 88, 64, 92].map((height, index) => (
+                          <span
+                            key={`${height}-${index}`}
+                            className="w-full rounded-t-lg bg-primary/70"
+                            style={{ height }}
+                          />
+                        ))}
+                      </div>
                     </div>
                   </div>
-               </motion.div>
+                </div>
+              </div>
             </motion.div>
-          </motion.div>
-        </div>
-      </section>
-
-      {/* Social Proof */}
-      <section className="py-10 border-y border-border/40 bg-muted/30">
-        <div className="container mx-auto px-6">
-          <p className="text-center text-sm font-medium text-muted-foreground mb-8">TRUSTED BY INNOVATIVE TEAMS WORLDWIDE</p>
-          <div className="flex flex-wrap justify-center gap-12 md:gap-20 opacity-50 grayscale hover:grayscale-0 transition-all duration-500">
-             {/* Simple Text Placeholders for Logos to avoid external assets */}
-             <span className="text-xl font-bold font-mono">ACME Corp</span>
-             <span className="text-xl font-bold font-serif">Globex</span>
-             <span className="text-xl font-bold font-sans">Soylent</span>
-             <span className="text-xl font-bold tracking-tighter">Umbrella</span>
-             <span className="text-xl font-bold italic">Cyberdyne</span>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* Features Grid */}
-      <section className="py-32 bg-background relative overflow-hidden">
-        <div className="container mx-auto px-6">
-          <div className="text-center max-w-3xl mx-auto mb-20">
-             <h2 className="text-3xl md:text-5xl font-bold mb-6">Everything you need to <span className="text-gradient">hire the best</span></h2>
-             <p className="text-xl text-muted-foreground">Comprehensive tools designed to streamline your entire recruitment lifecycle.</p>
+        <section className="border-y border-border/50 bg-muted/25 py-20">
+          <div className="container mx-auto px-6">
+            <div className="mx-auto mb-12 max-w-3xl text-center">
+              <p className="text-sm font-semibold uppercase tracking-[0.24em] text-primary">Role-based by design</p>
+              <h2 className="mt-4 text-3xl font-black tracking-tight md:text-5xl">
+                Every team sees the same truth, not the same screen.
+              </h2>
+              <p className="mt-5 text-lg leading-8 text-muted-foreground">
+                The platform keeps sensitive recruitment data governed while
+                giving each role the workflows they actually need.
+              </p>
+            </div>
+
+            <div className="grid gap-5 md:grid-cols-3">
+              {ROLE_PATHS.map((path) => {
+                const Icon = path.icon;
+                return (
+                  <Card key={path.role} className="border-border/70 bg-card/70 backdrop-blur-xl">
+                    <CardHeader>
+                      <div className="mb-5 flex size-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                        <Icon className="size-6" />
+                      </div>
+                      <Badge variant="outline" className="w-fit rounded-full">{path.role}</Badge>
+                      <CardTitle className="pt-2 text-2xl">{path.title}</CardTitle>
+                    </CardHeader>
+                    <CardContent className="text-sm leading-7 text-muted-foreground">
+                      {path.description}
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
           </div>
+        </section>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <FeatureCard 
-              icon={<IconBrain className="w-10 h-10 text-primary" />}
-              title="Smart Matching AI"
-              description="Our proprietary algorithms analyze thousands of data points to instantly match candidates with the perfect role, reducing bias and improving quality of hire."
-              delay={0}
-            />
-            <FeatureCard 
-              icon={<IconRocket className="w-10 h-10 text-indigo-500" />}
-              title="Automated Workflows"
-              description="Put your hiring on autopilot. From initial screening to interview scheduling, we handle the repetitive tasks so you can focus on the people."
-              delay={0.1}
-            />
-            <FeatureCard 
-              icon={<IconChartBar className="w-10 h-10 text-purple-500" />}
-              title="Predictive Analytics"
-              description="Make decisions based on real data. Visualize pipeline health, forecast hiring needs, and track candidate quality metrics instantly."
-              delay={0.2}
-            />
-            <FeatureCard 
-              icon={<IconUsers className="w-10 h-10 text-blue-500" />}
-              title="Collaborative Hiring"
-              description="Streamline feedback with shared scorecards, @mentions, and real-time activity feeds that keep the whole hiring team aligned."
-              delay={0.3}
-            />
-            <FeatureCard 
-              icon={<IconShieldLock className="w-10 h-10 text-emerald-500" />}
-              title="Enterprise Security"
-              description="Bank-grade encryption, GDPR compliance, and role-based access controls ensure your sensitive candidate data remains protected."
-              delay={0.4}
-            />
-             <FeatureCard 
-              icon={<IconClock className="w-10 h-10 text-orange-500" />}
-              title="Time-to-Hire Reduction"
-              description="Cut your hiring time in half. Our efficiency tools help you move candidates through the pipeline faster without sacrificing quality."
-              delay={0.5}
-            />
+        <section className="py-24">
+          <div className="container mx-auto px-6">
+            <div className="grid gap-10 lg:grid-cols-[0.8fr_1.2fr] lg:items-start">
+              <div className="sticky top-24">
+                <Badge variant="secondary" className="mb-5 rounded-full px-4 py-1.5">
+                  Operating model
+                </Badge>
+                <h2 className="text-3xl font-black tracking-tight md:text-5xl">
+                  Hybrid AI where it matters.
+                </h2>
+                <p className="mt-5 text-lg leading-8 text-muted-foreground">
+                  Quick contextual questions stay in the floating assistant.
+                  Deep work moves to the full Agent workspace where tables,
+                  downloads, and reasoning traces have room.
+                </p>
+              </div>
+
+              <div className="grid gap-5 sm:grid-cols-2">
+                {PLATFORM_CAPABILITIES.map((capability) => {
+                  const Icon = capability.icon;
+                  return (
+                    <Card key={capability.title} className="group border-border/70 bg-card/70 transition-all duration-300 hover:-translate-y-1 hover:border-primary/30 hover:shadow-xl hover:shadow-primary/5">
+                      <CardHeader>
+                        <div className="mb-4 flex size-11 items-center justify-center rounded-2xl bg-primary/10 text-primary transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
+                          <Icon className="size-5" />
+                        </div>
+                        <CardTitle>{capability.title}</CardTitle>
+                      </CardHeader>
+                      <CardContent className="text-sm leading-7 text-muted-foreground">
+                        {capability.description}
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* Bottom CTA */}
-      <section className="py-32 relative overflow-hidden">
-        <div className="absolute inset-0 bg-primary/5 -z-10" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-primary/10 blur-[120px] rounded-full pointer-events-none" />
-        
-        <div className="container mx-auto px-6 text-center">
-          <motion.div
-             initial={{ opacity: 0, scale: 0.95 }}
-             whileInView={{ opacity: 1, scale: 1 }}
-             viewport={{ once: true }}
-             transition={{ duration: 0.5 }}
-             className="max-w-4xl mx-auto glass p-12 rounded-3xl border-primary/10 shadow-2xl"
-          >
-            <h2 className="text-4xl md:text-5xl font-bold mb-6">Ready to upgrade your hiring?</h2>
-            <p className="text-xl text-muted-foreground mb-10 max-w-2xl mx-auto">
-              Join thousands of modern recruiting teams who are hiring faster and smarter. Start your 14-day free trial today.
+        <section className="px-6 pb-24">
+          <div className="container mx-auto overflow-hidden rounded-[2rem] border border-border/70 bg-card/75 p-8 text-center shadow-2xl shadow-primary/5 backdrop-blur-xl md:p-14">
+            <div className="mx-auto flex size-14 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+              <IconSparkles className="size-7" />
+            </div>
+            <h2 className="mx-auto mt-6 max-w-3xl text-3xl font-black tracking-tight md:text-5xl">
+              Start from the secure workspace, then let the agent follow the workflow.
+            </h2>
+            <p className="mx-auto mt-5 max-w-2xl text-base leading-7 text-muted-foreground md:text-lg">
+              Sign in with your assigned role to access the recruitment command
+              center, candidate data, interview flows, and AI workspace.
             </p>
-            <Link href="/sign-in">
-              <Button size="lg" className="h-14 px-10 text-lg bg-primary hover:bg-primary/90 shadow-2xl shadow-primary/30 hover:shadow-primary/40 transition-all hover:-translate-y-1 rounded-xl">
-                Go to Sign In
-              </Button>
-            </Link>
-            <p className="mt-6 text-sm text-muted-foreground">No credit card required. Cancel anytime.</p>
-          </motion.div>
-        </div>
-      </section>
+            <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
+              <Link href="/sign-in" className="w-full sm:w-auto">
+                <Button size="lg" className="h-13 w-full rounded-full px-8">
+                  Access platform
+                  <IconArrowRight className="ml-2 size-5" />
+                </Button>
+              </Link>
+              <Link href="/agent" className="w-full sm:w-auto">
+                <Button size="lg" variant="outline" className="h-13 w-full rounded-full px-8">
+                  View agent workspace
+                </Button>
+              </Link>
+            </div>
+          </div>
+        </section>
+      </main>
 
-      {/* Footer */}
-      <footer className="py-12 border-t border-border/40 bg-background">
-        <div className="container mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-6">
-          <div className="flex items-center gap-2">
-            <IconSparkles className="w-5 h-5 text-primary" />
-            <span className="font-semibold">Capgemini.AI</span>
+      <footer className="border-t border-border/50 py-10">
+        <div className="container mx-auto flex flex-col items-center justify-between gap-4 px-6 text-sm text-muted-foreground md:flex-row">
+          <div className="flex items-center gap-2 font-semibold text-foreground">
+            <IconSparkles className="size-4 text-primary" />
+            Talent Intelligence
           </div>
-          <div className="text-sm text-muted-foreground">
-            © {new Date().getFullYear()} Capgemini Engineering. All rights reserved.
-          </div>
-          <div className="flex gap-6">
-            <Link href="#" className="text-sm text-muted-foreground hover:text-primary transition-colors">Privacy</Link>
-            <Link href="#" className="text-sm text-muted-foreground hover:text-primary transition-colors">Terms</Link>
-            <Link href="#" className="text-sm text-muted-foreground hover:text-primary transition-colors">Contact</Link>
-          </div>
+          <p>Capgemini Engineering recruitment operating system.</p>
         </div>
       </footer>
     </div>
-  );
-}
-
-function FeatureCard({ icon, title, description, delay }: { icon: React.ReactNode, title: string, description: string, delay: number }) {
-  return (
-    <motion.div 
-      initial={{ opacity: 0, y: 20 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true }}
-      transition={{ duration: 0.5, delay }}
-      className="p-8 rounded-2xl glass-card hover:bg-card/50 transition-all duration-300 border border-border/50 group hover:border-primary/20 hover:shadow-lg hover:shadow-primary/5"
-    >
-      <div className="mb-6 p-4 rounded-xl bg-background/50 w-fit group-hover:scale-110 transition-transform duration-300 border border-border/50 shadow-sm">
-        {icon}
-      </div>
-      <h3 className="text-xl font-bold mb-3 group-hover:text-primary transition-colors">{title}</h3>
-      <p className="text-muted-foreground leading-relaxed">
-        {description}
-      </p>
-    </motion.div>
   );
 }

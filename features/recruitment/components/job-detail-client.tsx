@@ -2,6 +2,8 @@
 
 import * as React from 'react';
 import { toast } from 'sonner';
+import Link from 'next/link';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import {
   IconArrowLeft,
   IconPlus,
@@ -10,6 +12,9 @@ import {
   IconEdit,
   IconEye,
   IconBrain,
+  IconFileAnalytics,
+  IconMessageChatbot,
+  IconUsers,
 } from '@tabler/icons-react';
 
 import { Button } from '@/components/ui/button';
@@ -68,6 +73,7 @@ import {
 } from '@/features/recruitment/actions';
 
 import { InlineCvMatching } from '@/features/recruitment/components/match-cvs-dialog';
+import { buildAgentPromptHref } from '@/features/recruitment/components/chat/agent-prompts';
 import { InterviewAutoPilotGuideView } from '@/features/recruitment/components/interview-autopilot-guide';
 
 import type {
@@ -141,6 +147,16 @@ interface UserListItem {
   role: string;
 }
 
+const JOB_DETAIL_TABS = ['overview', 'cv-matching', 'interviews', 'candidates'] as const;
+
+type JobDetailTab = (typeof JOB_DETAIL_TABS)[number];
+
+function getJobDetailTab(value: string | null): JobDetailTab {
+  return JOB_DETAIL_TABS.includes(value as JobDetailTab)
+    ? (value as JobDetailTab)
+    : 'overview';
+}
+
 interface JobDetailClientProps {
   job: Job;
   candidates: Candidate[];
@@ -166,6 +182,10 @@ export function JobDetailClient({
 }: JobDetailClientProps) {
   const [candidates, setCandidates] = React.useState<Candidate[]>(initialCandidates);
   const [jobStatus, setJobStatus] = React.useState(job.status);
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const activeTab = getJobDetailTab(searchParams.get('tab'));
 
   // Sync state with props when server revalidates
   React.useEffect(() => {
@@ -437,17 +457,67 @@ export function JobDetailClient({
     closeBlockedReason =
       `${inProgressCandidates.length} candidate(s) still in progress: ${names}. Accept, reject, or hire them before closing.`;
   }
+  const jobContext = `Job "${job.title}" (${job.seniority}${job.businessUnit ? `, ${job.businessUnit}` : ''}). Must-have skills: ${job.mustHave.join(', ') || 'not specified'}. Nice-to-have skills: ${job.niceToHave.join(', ') || 'not specified'}. Current assigned candidates: ${candidates.length}.`;
+  const quickActions = [
+    {
+      title: 'Open CV Matching',
+      description: 'Use the built-in matching workflow and assign candidates directly.',
+      icon: IconUsers,
+      href: `${pathname}?tab=cv-matching`,
+      mode: 'Direct workflow',
+    },
+    {
+      title: 'Open Interviews',
+      description: 'Jump to interview scheduling, emails, and reports for this job.',
+      icon: IconCalendar,
+      href: `${pathname}?tab=interviews`,
+      mode: 'Direct workflow',
+    },
+    {
+      title: 'Explain matching with Agent',
+      description: 'Get ranking rationale, gaps, and screening priorities.',
+      icon: IconBrain,
+      href: buildAgentPromptHref(`${jobContext} Match the best available CVs to this job. Explain ranking, gaps, and next screening action for each recommended candidate.`),
+      mode: 'Agent reasoning',
+    },
+    {
+      title: 'Review requirement with Agent',
+      description: 'Tighten ambiguity before screening more candidates.',
+      icon: IconFileAnalytics,
+      href: buildAgentPromptHref(`${jobContext} Review this job requirement for ambiguity, missing technical criteria, biased wording, and improvements that would make candidate matching more reliable.`),
+      mode: 'Agent reasoning',
+    },
+  ] as const;
+
+  const handleTabChange = (nextTab: string) => {
+    const tab = getJobDetailTab(nextTab);
+    const params = new URLSearchParams(searchParams.toString());
+    if (tab === 'overview') {
+      params.delete('tab');
+    } else {
+      params.set('tab', tab);
+    }
+    const query = params.toString();
+    router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
+  };
+
 
   return (
     <div className="space-y-6">
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">{job.title}</h1>
           {closeBlockedReason && (
             <p className="mt-1 text-xs text-muted-foreground">{closeBlockedReason}</p>
           )}
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <Link href={buildAgentPromptHref(`Analyze the current status of job "${job.title}" and recommend the next best TA actions. Include pipeline risks, candidate gaps, and whether this job requirement is ready for matching.`)}>
+            <Button variant="outline" size="sm" className="rounded-full">
+              <IconMessageChatbot className="mr-2 size-4" />
+              Ask Agent
+            </Button>
+          </Link>
           <Badge variant={jobStatus === 'open' ? 'default' : 'secondary'}>
             {jobStatus}
           </Badge>
@@ -482,8 +552,34 @@ export function JobDetailClient({
         </div>
       </div>
 
-      <Tabs defaultValue="overview" className="w-full">
-        <TabsList className="grid w-full grid-cols-4 lg:w-[400px]">
+      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+        {quickActions.map((action) => {
+          const Icon = action.icon;
+          return (
+            <Link key={action.title} href={action.href}>
+              <Card className="group h-full border-border/70 bg-card/70 transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5">
+                <CardHeader className="flex flex-row items-start gap-3 space-y-0 pb-3">
+                  <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
+                    <Icon className="size-5" />
+                  </span>
+                  <div>
+                    <Badge variant="outline" className="mb-2 rounded-full text-[10px] uppercase tracking-[0.18em]">
+                      {action.mode}
+                    </Badge>
+                    <CardTitle className="text-sm">{action.title}</CardTitle>
+                    <CardDescription className="mt-1 text-xs leading-5">
+                      {action.description}
+                    </CardDescription>
+                  </div>
+                </CardHeader>
+              </Card>
+            </Link>
+          );
+        })}
+      </div>
+
+      <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
+        <TabsList className="grid h-auto w-full grid-cols-2 gap-1 sm:grid-cols-4 lg:w-[400px]">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="cv-matching">CV Matching</TabsTrigger>
           <TabsTrigger value="interviews">Interviews</TabsTrigger>

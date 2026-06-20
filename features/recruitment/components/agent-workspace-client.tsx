@@ -1,7 +1,8 @@
 "use client";
 
 import { motion } from "framer-motion";
-import type { ComponentType } from "react";
+import { useSearchParams } from "next/navigation";
+import { useEffect, useRef, type ComponentType } from "react";
 import {
   IconArrowRight,
   IconBrain,
@@ -83,7 +84,16 @@ export function AgentWorkspaceClient({
   userName,
 }: AgentWorkspaceClientProps) {
   const chat = useStatisticsChatController({ enabled: true });
+  const searchParams = useSearchParams();
+  const appliedPromptRef = useRef<string | null>(null);
+  const prompt = searchParams.get("prompt")?.trim();
   const roleLabel = ROLE_LABELS[role] ?? ROLE_LABELS.ta;
+
+  useEffect(() => {
+    if (!prompt || appliedPromptRef.current === prompt) return;
+    appliedPromptRef.current = prompt;
+    chat.setInput(prompt);
+  }, [chat, prompt]);
 
   return (
     <div className="relative isolate flex min-h-[calc(100vh-7rem)] flex-col gap-6 overflow-hidden rounded-[2rem] border border-border/60 bg-mesh p-5 shadow-sm md:p-8">

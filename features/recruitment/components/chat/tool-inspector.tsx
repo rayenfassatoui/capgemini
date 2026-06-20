@@ -295,10 +295,9 @@ export function ToolInspector({
                <IconTerminal2 className="text-muted-foreground/60 size-4" />
             )}
             <span className={statusType === "error" ? "text-destructive" : "text-muted-foreground"}>
-              {isLoading || statusType === "running" 
-                ? "Working..." 
-                : error ? "Tool execution failed" : `Used ${safeEvents.length} tool${safeEvents.length === 1 ? '' : 's'}`
-              }
+              {isLoading || statusType === "running"
+                ? "Building evidence trace..."
+                : error ? "Evidence trace failed" : `Evidence trace: ${safeEvents.length} tool${safeEvents.length === 1 ? '' : 's'}`}
             </span>
           </div>
           <IconChevronDown

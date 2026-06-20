@@ -32,6 +32,11 @@ import {
   isCandidateSearchOrRankingIntent,
   maskUserIdForTelemetry,
 } from "@/features/recruitment/services/candidate-grounding";
+import {
+  buildAgentEvidenceMetadata,
+  buildInferenceLimitLines,
+  buildObservedEvidenceLines,
+} from "@/features/recruitment/services/agent-evidence";
 import type { UserRole } from "@/features/recruitment/types";
 import { SlidingWindowRateLimiter } from "@/lib/rate-limit";
 
@@ -84,8 +89,7 @@ const SENSITIVE_TRACE_KEY_RE =
 
 const SIMPLE_EXCHANGE_RE =
   /^(?:hi|hello|hey|thanks|thank you|thx|ok|okay|cool|great|nice|salam|aslema|bonjour|bonsoir)[!.?,\s]*$/i;
-const AGENTIC_HEADING_RE =
-  /(^|\n)##\s*(fhemtek|goal|plan|execution|result|next\s*steps?)/i;
+
 const RECRUITMENT_SIGNAL_RE =
   /\b(recruit(?:ment|ing)?|talent|candidate|candidates|cv|cvs|resume|resumes|job|jobs|pipeline|screening|interview|interviews|hire|hiring|onboarding|offer|skills?|seniority|position|vacancy|profile|profiles)\b/i;
 const CREATIVE_OFFTOPIC_RE =
@@ -351,17 +355,6 @@ function formatGoalText(message: string): string {
   return /[.!?]$/.test(sentence) ? sentence : `${sentence}.`;
 }
 
-function buildExecutionSteps(records: ToolExecutionRecord[]): string[] {
-  if (records.length === 0) {
-    return ["1. No tool call was required for this response."];
-  }
-
-  return records.slice(-5).map((record, index) => {
-    const status = record.result.success ? "success" : "error";
-    const summary = getToolSummary(record.result);
-    return `${index + 1}. ${record.toolName} (${status}) - ${summary}`;
-  });
-}
 
 function buildNextStepOptions(
   records: ToolExecutionRecord[],
@@ -456,8 +449,12 @@ function ensureAgenticResponseStructure({
 
   const nextOptions = buildNextStepOptions(records, role);
   const nextStepsHeadingRe = /(^|\n)##\s*next\s*steps?/i;
+  const observedHeadingRe = /(^|\n)##\s*observed(?:\s+from\s+sources?)?/i;
+  const inferredHeadingRe = /(^|\n)##\s*(?:inferred|recommend(?:ed|ation)s?)/i;
+  const hasObservedAndInferred =
+    observedHeadingRe.test(trimmed) && inferredHeadingRe.test(trimmed);
 
-  if (AGENTIC_HEADING_RE.test(trimmed)) {
+  if (hasObservedAndInferred) {
     if (nextStepsHeadingRe.test(trimmed)) {
       return trimmed;
     }
@@ -470,31 +467,22 @@ function ensureAgenticResponseStructure({
     ].join("\n");
   }
 
-  const planSteps =
-    records.length > 0
-      ? [
-          "Interpret your request and identify the required data/actions.",
-          `Execute relevant tool calls (${records.length} total) within role permissions.`,
-          "Synthesize evidence into a practical recommendation.",
-        ]
-      : [
-          "Interpret your request and clarify the expected outcome.",
-          "Use available context and role constraints to build the best answer.",
-          "Return a concise result with clear follow-up options.",
-        ];
-
   return [
     "## Fhemtek",
     formatGoalText(userMessage),
     "",
-    "## Plan",
-    ...planSteps.map((step, index) => `${index + 1}. ${step}`),
+    "## Observed from Sources",
+    ...buildObservedEvidenceLines(records).map(
+      (line, index) => `${index + 1}. ${line}`,
+    ),
     "",
-    "## Execution",
-    ...buildExecutionSteps(records),
-    "",
-    "## Result",
+    "## Inferred / Recommended",
     trimmed,
+    "",
+    "## Source Limits",
+    ...buildInferenceLimitLines(records).map(
+      (line, index) => `${index + 1}. ${line}`,
+    ),
     "",
     "## Next Steps",
     ...nextOptions.map((option, index) => `${index + 1}. ${option}`),
@@ -650,6 +638,7 @@ export async function POST(request: Request) {
           });
         }
 
+        const evidence = buildAgentEvidenceMetadata(toolExecutionHistory);
         controller.enqueue(
           encoder.encode(
             `@@META@@${JSON.stringify({
@@ -660,11 +649,17 @@ export async function POST(request: Request) {
                 rejectedCount: grounded.rejectedNames.length,
                 sourceToolCount: grounded.sourceTools.length,
               },
+              evidence,
             })}\n`,
           ),
         );
 
-        return grounded.text;
+        return ensureAgenticResponseStructure({
+          text: grounded.text,
+          userMessage: lastMessageText,
+          role,
+          records: toolExecutionHistory,
+        });
       };
 
       try {
@@ -990,14 +985,14 @@ For non-trivial tasks and any response that required tools, use this exact struc
 ## Fhemtek
 One short sentence that rephrases the user goal.
 
-## Plan
-Numbered list (3 steps max) describing what you did.
+## Observed from Sources
+Facts that came directly from current tool results. Do not place recommendations here.
 
-## Execution
-Numbered list summarizing key tool actions and outcomes.
+## Inferred / Recommended
+Your interpretation, recommendation, ranking, or action plan based only on the observed facts.
 
-## Result
-Final answer with data-driven insights.
+## Source Limits
+What was not fetched, missing, failed, or should not be inferred.
 
 ## Next Steps
 Exactly 3 numbered options the user can pick from.
