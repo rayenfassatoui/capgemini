@@ -1,0 +1,179 @@
+\babel@toc {english}{}\relax 
+\babel@toc {french}{}\relax 
+\contentsline {chapter}{Abstract}{i}{chapter*.1}%
+\contentsline {chapter}{Résumé}{ii}{chapter*.2}%
+\contentsline {chapter}{Mots-clés et acronymes}{x}{chapter*.6}%
+\contentsline {section}{Mots-clés}{x}{section*.7}%
+\contentsline {section}{Acronymes}{x}{section*.8}%
+\contentsline {chapter}{Introduction générale}{1}{chapter*.9}%
+\contentsline {chapter}{\numberline {1}Présentation générale}{3}{chapter.1}%
+\contentsline {section}{Introduction}{3}{section*.10}%
+\contentsline {section}{\numberline {1.1}Présentation de l'entreprise d'accueil}{3}{section.1.1}%
+\contentsline {subsection}{\numberline {1.1.1}Présentation de Capgemini et de Capgemini Engineering}{3}{subsection.1.1.1}%
+\contentsline {subsection}{\numberline {1.1.2}Structure organisationnelle pertinente pour le projet}{3}{subsection.1.1.2}%
+\contentsline {subsection}{\numberline {1.1.3}Services et périmètre numérique concernés}{4}{subsection.1.1.3}%
+\contentsline {section}{\numberline {1.2}Présentation du projet}{4}{section.1.2}%
+\contentsline {subsection}{\numberline {1.2.1}Problématique}{4}{subsection.1.2.1}%
+\contentsline {subsection}{\numberline {1.2.2}Étude synthétique des solutions existantes}{5}{subsection.1.2.2}%
+\contentsline {subsection}{\numberline {1.2.3}Objectifs du projet}{6}{subsection.1.2.3}%
+\contentsline {subsection}{\numberline {1.2.4}Solution proposée}{6}{subsection.1.2.4}%
+\contentsline {section}{\numberline {1.3}Méthodologie adoptée}{7}{section.1.3}%
+\contentsline {subsection}{\numberline {1.3.1}Choix de la méthodologie}{7}{subsection.1.3.1}%
+\contentsline {subsection}{\numberline {1.3.2}Comparaison entre approches de gestion de projet}{7}{subsection.1.3.2}%
+\contentsline {subsection}{\numberline {1.3.3}Méthodologie retenue}{8}{subsection.1.3.3}%
+\contentsline {section}{Conclusion}{8}{section*.15}%
+\contentsline {chapter}{\numberline {2}Planification et architecture}{9}{chapter.2}%
+\contentsline {section}{Introduction}{9}{section*.16}%
+\contentsline {section}{\numberline {2.1}Analyse des besoins et spécification}{9}{section.2.1}%
+\contentsline {subsection}{\numberline {2.1.1}Identification des acteurs}{9}{subsection.2.1.1}%
+\contentsline {subsection}{\numberline {2.1.2}Exigences fonctionnelles}{9}{subsection.2.1.2}%
+\contentsline {subsection}{\numberline {2.1.3}Exigences non fonctionnelles}{10}{subsection.2.1.3}%
+\contentsline {section}{\numberline {2.2}Étude analytique}{10}{section.2.2}%
+\contentsline {subsection}{\numberline {2.2.1}Diagramme global des cas d'utilisation}{10}{subsection.2.2.1}%
+\contentsline {subsection}{\numberline {2.2.2}Diagramme de classes global}{11}{subsection.2.2.2}%
+\contentsline {subsection}{\numberline {2.2.3}Vue d'ensemble du Product Backlog}{11}{subsection.2.2.3}%
+\contentsline {paragraph}{Logique de priorisation.}{12}{section*.21}%
+\contentsline {subsection}{\numberline {2.2.4}Découpage en sprints et objectifs}{14}{subsection.2.2.4}%
+\contentsline {section}{\numberline {2.3}Architecture du projet}{14}{section.2.3}%
+\contentsline {subsection}{\numberline {2.3.1}Architecture externe}{14}{subsection.2.3.1}%
+\contentsline {subsection}{\numberline {2.3.2}Architecture applicative globale}{15}{subsection.2.3.2}%
+\contentsline {paragraph}{Tableau de correspondance besoin / module / solution technique.}{16}{section*.25}%
+\contentsline {subsection}{\numberline {2.3.3}Architecture interne}{17}{subsection.2.3.3}%
+\contentsline {paragraph}{Justification du choix feature-driven.}{17}{section*.27}%
+\contentsline {paragraph}{Justification du monolithe moderne.}{17}{section*.28}%
+\contentsline {subsection}{\numberline {2.3.4}Architecture du sous-système IA}{17}{subsection.2.3.4}%
+\contentsline {paragraph}{Justification de \texttt {pgvector}.}{18}{section*.30}%
+\contentsline {paragraph}{Justification du retrieval hybride.}{18}{section*.31}%
+\contentsline {paragraph}{Justification de l'agent outillé.}{18}{section*.32}%
+\contentsline {paragraph}{Sécurité et fiabilité IA.}{18}{section*.33}%
+\contentsline {section}{\numberline {2.4}Environnement de développement et technique}{19}{section.2.4}%
+\contentsline {subsection}{\numberline {2.4.1}Outils de gestion et de documentation}{19}{subsection.2.4.1}%
+\contentsline {subsection}{\numberline {2.4.2}Environnement d'exécution et de développement}{19}{subsection.2.4.2}%
+\contentsline {subsection}{\numberline {2.4.3}Outils front-end}{19}{subsection.2.4.3}%
+\contentsline {subsection}{\numberline {2.4.4}Outils back-end}{20}{subsection.2.4.4}%
+\contentsline {subsection}{\numberline {2.4.5}Architecture de la base de données}{20}{subsection.2.4.5}%
+\contentsline {section}{Conclusion}{21}{section*.34}%
+\contentsline {chapter}{\numberline {3}Module 1 : accès, identité et points d'entrée par rôle}{22}{chapter.3}%
+\contentsline {section}{Introduction}{22}{section*.35}%
+\contentsline {section}{\numberline {3.1}Sprint 1 : objectif et périmètre}{22}{section.3.1}%
+\contentsline {subsection}{\numberline {3.1.1}Objectif du sprint}{22}{subsection.3.1.1}%
+\contentsline {subsection}{\numberline {3.1.2}Backlog du sprint}{23}{subsection.3.1.2}%
+\contentsline {section}{\numberline {3.2}Implémentation du sprint}{24}{section.3.2}%
+\contentsline {subsection}{\numberline {3.2.1}Analyse du sprint}{24}{subsection.3.2.1}%
+\contentsline {subsection}{\numberline {3.2.2}Vue fonctionnelle globale}{24}{subsection.3.2.2}%
+\contentsline {subsection}{\numberline {3.2.3}Authentification et redirection par rôle}{25}{subsection.3.2.3}%
+\contentsline {subsection}{\numberline {3.2.4}Protection du shell et contrôle d'accès}{25}{subsection.3.2.4}%
+\contentsline {subsection}{\numberline {3.2.5}Administration des comptes}{26}{subsection.3.2.5}%
+\contentsline {paragraph}{Scénarios de validation fonctionnelle.}{26}{section*.38}%
+\contentsline {section}{\numberline {3.3}Réalisation}{26}{section.3.3}%
+\contentsline {subsection}{\numberline {3.3.1}Landing page publique}{26}{subsection.3.3.1}%
+\contentsline {subsection}{\numberline {3.3.2}Page de connexion}{27}{subsection.3.3.2}%
+\contentsline {subsection}{\numberline {3.3.3}Shell de dashboard partagé}{28}{subsection.3.3.3}%
+\contentsline {subsection}{\numberline {3.3.4}Première vue métier : tableau de bord TA}{28}{subsection.3.3.4}%
+\contentsline {subsection}{\numberline {3.3.5}Gestion des utilisateurs côté administration}{28}{subsection.3.3.5}%
+\contentsline {section}{\numberline {3.4}Apport du module}{29}{section.3.4}%
+\contentsline {section}{Conclusion}{29}{section*.42}%
+\contentsline {chapter}{\numberline {4}Module 2 : vivier de CV et gestion des offres d'emploi}{30}{chapter.4}%
+\contentsline {section}{Introduction}{30}{section*.43}%
+\contentsline {section}{\numberline {4.1}Sprint 2 : objectif et périmètre}{30}{section.4.1}%
+\contentsline {subsection}{\numberline {4.1.1}Objectif du sprint}{30}{subsection.4.1.1}%
+\contentsline {subsection}{\numberline {4.1.2}Backlog du sprint}{31}{subsection.4.1.2}%
+\contentsline {section}{\numberline {4.2}Implémentation du sprint}{31}{section.4.2}%
+\contentsline {subsection}{\numberline {4.2.1}Analyse du sprint}{31}{subsection.4.2.1}%
+\contentsline {paragraph}{Qualité des données et transformation documentaire.}{32}{section*.45}%
+\contentsline {paragraph}{Tableau de transformation documentaire.}{32}{section*.46}%
+\contentsline {subsection}{\numberline {4.2.2}Vue fonctionnelle globale}{33}{subsection.4.2.2}%
+\contentsline {subsection}{\numberline {4.2.3}Pipeline d'upload et d'enrichissement d'un CV}{34}{subsection.4.2.3}%
+\contentsline {paragraph}{Lecture opérationnelle du parcours.}{34}{section*.48}%
+\contentsline {subsection}{\numberline {4.2.4}Indexation sémantique et préparation du RAG}{35}{subsection.4.2.4}%
+\contentsline {paragraph}{Différenciation des niveaux de recherche et d'indexation.}{35}{section*.50}%
+\contentsline {subsection}{\numberline {4.2.5}Création d'une offre et affectation vers le pipeline candidat}{35}{subsection.4.2.5}%
+\contentsline {section}{\numberline {4.3}Réalisation}{36}{section.4.3}%
+\contentsline {subsection}{\numberline {4.3.1}Page \textit {CV Pool}}{36}{subsection.4.3.1}%
+\contentsline {subsection}{\numberline {4.3.2}Upload en arrière-plan et robustesse d'ingestion}{37}{subsection.4.3.2}%
+\contentsline {subsection}{\numberline {4.3.3}Détection de doublons}{38}{subsection.4.3.3}%
+\contentsline {subsection}{\numberline {4.3.4}Page \textit {Jobs}}{38}{subsection.4.3.4}%
+\contentsline {subsection}{\numberline {4.3.5}Templates et fermeture contrôlée des offres}{39}{subsection.4.3.5}%
+\contentsline {subsection}{\numberline {4.3.6}Page détail d'une offre}{40}{subsection.4.3.6}%
+\contentsline {section}{\numberline {4.4}Apport du module}{40}{section.4.4}%
+\contentsline {section}{Conclusion}{41}{section*.57}%
+\contentsline {chapter}{\numberline {5}Module 3 : pipeline candidat et gestion des entretiens}{42}{chapter.5}%
+\contentsline {section}{Introduction}{42}{section*.58}%
+\contentsline {section}{\numberline {5.1}Sprint 3 : objectif et périmètre}{42}{section.5.1}%
+\contentsline {subsection}{\numberline {5.1.1}Objectif du sprint}{42}{subsection.5.1.1}%
+\contentsline {subsection}{\numberline {5.1.2}Backlog du sprint}{43}{subsection.5.1.2}%
+\contentsline {section}{\numberline {5.2}Implémentation du sprint}{43}{section.5.2}%
+\contentsline {subsection}{\numberline {5.2.1}Analyse du sprint}{43}{subsection.5.2.1}%
+\contentsline {subsection}{\numberline {5.2.2}Vue fonctionnelle globale}{44}{subsection.5.2.2}%
+\contentsline {subsection}{\numberline {5.2.3}Cycle de vie du candidat}{44}{subsection.5.2.3}%
+\contentsline {paragraph}{Tableau de transitions du pipeline candidat.}{45}{section*.60}%
+\contentsline {subsection}{\numberline {5.2.4}Affectation progressive des responsabilités}{46}{subsection.5.2.4}%
+\contentsline {paragraph}{Matrice synthétique des rôles.}{46}{section*.63}%
+\contentsline {subsection}{\numberline {5.2.5}Planification d'un entretien}{46}{subsection.5.2.5}%
+\contentsline {subsection}{\numberline {5.2.6}Rapports d'entretien et transition vers l'onboarding}{47}{subsection.5.2.6}%
+\contentsline {paragraph}{Règles métier structurantes.}{47}{section*.66}%
+\contentsline {paragraph}{Scénario end-to-end candidat.}{47}{section*.67}%
+\contentsline {section}{\numberline {5.3}Réalisation}{48}{section.5.3}%
+\contentsline {subsection}{\numberline {5.3.1}Vue Manager}{48}{subsection.5.3.1}%
+\contentsline {subsection}{\numberline {5.3.2}Vue RH}{48}{subsection.5.3.2}%
+\contentsline {subsection}{\numberline {5.3.3}Calendrier et coordination transverse}{50}{subsection.5.3.3}%
+\contentsline {subsection}{\numberline {5.3.4}Mémoire opérationnelle du processus}{50}{subsection.5.3.4}%
+\contentsline {subsection}{\numberline {5.3.5}Articulation avec les modules IA}{50}{subsection.5.3.5}%
+\contentsline {section}{\numberline {5.4}Apport du module}{51}{section.5.4}%
+\contentsline {section}{Conclusion}{51}{section*.72}%
+\contentsline {chapter}{\numberline {6}Module 4 : intelligence artificielle, matching et recherche augmentée}{52}{chapter.6}%
+\contentsline {section}{Introduction}{52}{section*.73}%
+\contentsline {section}{\numberline {6.1}Sprint 4 : objectif et périmètre}{52}{section.6.1}%
+\contentsline {subsection}{\numberline {6.1.1}Objectif du sprint}{52}{subsection.6.1.1}%
+\contentsline {subsection}{\numberline {6.1.2}Backlog du sprint}{53}{subsection.6.1.2}%
+\contentsline {section}{\numberline {6.2}Implémentation du sprint}{54}{section.6.2}%
+\contentsline {subsection}{\numberline {6.2.1}Analyse du sprint}{54}{subsection.6.2.1}%
+\contentsline {subsection}{\numberline {6.2.2}Niveaux d'intelligence du projet}{54}{subsection.6.2.2}%
+\contentsline {subsection}{\numberline {6.2.3}Matching, screening et autopilot}{55}{subsection.6.2.3}%
+\contentsline {subsection}{\numberline {6.2.4}Agent conversationnel et garde-fous}{55}{subsection.6.2.4}%
+\contentsline {section}{\numberline {6.3}Vue dynamique}{56}{section.6.3}%
+\contentsline {subsection}{\numberline {6.3.1}Orchestration agentique}{56}{subsection.6.3.1}%
+\contentsline {subsection}{\numberline {6.3.2}Pipeline RAG hybride}{56}{subsection.6.3.2}%
+\contentsline {paragraph}{Comparaison des modes de recherche et d'assistance.}{56}{section*.76}%
+\contentsline {subsection}{\numberline {6.3.3}Réécriture de requête et gestion de la complexité}{57}{subsection.6.3.3}%
+\contentsline {section}{\numberline {6.4}Réalisation}{57}{section.6.4}%
+\contentsline {subsection}{\numberline {6.4.1}IA dans le détail d'une offre}{57}{subsection.6.4.1}%
+\contentsline {subsection}{\numberline {6.4.2}Recherche sémantique et services IA avancés}{58}{subsection.6.4.2}%
+\contentsline {paragraph}{Scénario end-to-end d'usage IA.}{58}{section*.80}%
+\contentsline {subsection}{\numberline {6.4.3}Autopilot d'entretien}{59}{subsection.6.4.3}%
+\contentsline {subsection}{\numberline {6.4.4}Page statistiques et chat analytique}{59}{subsection.6.4.4}%
+\contentsline {paragraph}{Impact métier pour le recruteur.}{59}{section*.82}%
+\contentsline {subsection}{\numberline {6.4.5}Fonctionnement détaillé du chat analytique}{60}{subsection.6.4.5}%
+\contentsline {section}{\numberline {6.5}Évaluation et résultats}{61}{section.6.5}%
+\contentsline {paragraph}{Lecture des métriques.}{61}{section*.85}%
+\contentsline {section}{\numberline {6.6}Apport du module}{61}{section.6.6}%
+\contentsline {section}{Conclusion}{62}{section*.86}%
+\contentsline {chapter}{\numberline {7}Module 5 : notifications, analytique, administration et gouvernance}{63}{chapter.7}%
+\contentsline {section}{Introduction}{63}{section*.87}%
+\contentsline {section}{\numberline {7.1}Sprint 5 : objectif et périmètre}{63}{section.7.1}%
+\contentsline {subsection}{\numberline {7.1.1}Objectif du sprint}{63}{subsection.7.1.1}%
+\contentsline {subsection}{\numberline {7.1.2}Backlog du sprint}{64}{subsection.7.1.2}%
+\contentsline {section}{\numberline {7.2}Implémentation du sprint}{64}{section.7.2}%
+\contentsline {subsection}{\numberline {7.2.1}Analyse du sprint}{64}{subsection.7.2.1}%
+\contentsline {subsection}{\numberline {7.2.2}Vue fonctionnelle globale}{65}{subsection.7.2.2}%
+\contentsline {subsection}{\numberline {7.2.3}Chaîne de notification et de communication}{66}{subsection.7.2.3}%
+\contentsline {subsection}{\numberline {7.2.4}Supervision administrateur}{66}{subsection.7.2.4}%
+\contentsline {paragraph}{Lecture de gouvernance et portée de supervision.}{66}{section*.90}%
+\contentsline {subsection}{\numberline {7.2.5}Audit, logs et exports}{67}{subsection.7.2.5}%
+\contentsline {section}{\numberline {7.3}Réalisation}{67}{section.7.3}%
+\contentsline {subsection}{\numberline {7.3.1}Cloche de notification et communication in-app}{67}{subsection.7.3.1}%
+\contentsline {subsection}{\numberline {7.3.2}Tableau de bord administrateur}{68}{subsection.7.3.2}%
+\contentsline {subsection}{\numberline {7.3.3}Analytique administrateur}{69}{subsection.7.3.3}%
+\contentsline {subsection}{\numberline {7.3.4}Historique d'activité}{69}{subsection.7.3.4}%
+\contentsline {subsection}{\numberline {7.3.5}Logs d'emails}{70}{subsection.7.3.5}%
+\contentsline {subsection}{\numberline {7.3.6}Suivi détaillé de l'onboarding}{70}{subsection.7.3.6}%
+\contentsline {subsection}{\numberline {7.3.7}Exports et interopérabilité}{71}{subsection.7.3.7}%
+\contentsline {paragraph}{Lecture d'audit.}{71}{section*.96}%
+\contentsline {section}{\numberline {7.4}Apport du module}{71}{section.7.4}%
+\contentsline {section}{Conclusion}{72}{section*.97}%
+\contentsline {chapter}{Conclusion générale}{73}{chapter*.98}%
+\contentsline {paragraph}{Validation technique automatisée.}{75}{section*.101}%
+\contentsline {chapter}{Netographie}{78}{chapter*.107}%
+\contentsline {paragraph}{Sources institutionnelles et métier.}{78}{section*.108}%
+\contentsline {paragraph}{Documentation technique officielle.}{78}{section*.109}%
+\contentsline {paragraph}{Références scientifiques.}{79}{section*.110}%

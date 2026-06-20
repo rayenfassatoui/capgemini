@@ -1,0 +1,14 @@
+\begin{tikzpicture}[node distance=0.9cm and 1cm, font=\small]
+  \node[actor] (ta) {TA};
+  \node[box, right=of ta] (job) {Créer un poste\\titre, skills, séniorité};
+  \node[box, right=of job] (pool) {Rechercher un CV\\vivier / sémantique};
+  \node[box, below=of pool] (assign) {Affecter le CV\\au poste};
+  \node[box, left=of assign] (candidate) {Créer \sourcecode{candidate}\\état initial};
+  \node[box, below=of candidate] (screen) {Générer screening\\et préparer entretien};
+
+  \draw[line] (ta) -- (job);
+  \draw[line] (job) -- (pool);
+  \draw[line] (pool) -- (assign);
+  \draw[line] (assign) -- (candidate);
+  \draw[line] (candidate) -- (screen);
+\end{tikzpicture}

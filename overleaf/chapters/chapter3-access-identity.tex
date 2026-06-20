@@ -1,0 +1,178 @@
+\chapter{Module 1 : accès, identité et points d'entrée par rôle}
+
+\section*{Introduction}
+\addcontentsline{toc}{section}{Introduction}
+Ce premier module pose le socle d'usage de toute la plateforme. Son rôle ne se limite pas à afficher une page d'accueil et un formulaire de connexion : il formalise la frontière entre l'espace public et les espaces métiers, sécurise l'accès aux données de recrutement et prépare l'injection des fonctionnalités transverses comme le chat analytique. Sans cette couche, les modules de gestion des CV, du pipeline candidat et de l'IA ne pourraient pas être exposés de manière fiable dans un contexte d'entreprise.
+
+Dans \projectname{}, l'identité n'est pas un sujet périphérique. Elle détermine les données visibles, les actions autorisées, la navigation initiale et même le périmètre de l'agent conversationnel. Ce chapitre doit donc être lu comme la mise en place du premier contrat d'usage du système : entrer dans la plateforme, être reconnu, être orienté vers le bon espace et être bloqué dès que l'on sort du périmètre autorisé.
+
+\section{Sprint 1 : objectif et périmètre}
+
+\subsection{Objectif du sprint}
+L'objectif principal est de construire la couche d'accès du produit. Dans le contexte de \projectname{}, cela signifie :
+\begin{itemize}
+  \item proposer une landing page publique qui présente clairement la proposition de valeur ;
+  \item authentifier les utilisateurs par email et mot de passe ;
+  \item rediriger automatiquement chaque utilisateur vers le dashboard correspondant à son rôle ;
+  \item protéger les routes, layouts et vues métiers ;
+  \item fournir un premier niveau d'administration des comptes.
+\end{itemize}
+
+Cette séparation entre \textbf{TA}, \textbf{Manager}, \textbf{HR} et \textbf{Admin} n'est pas cosmétique. Elle est réutilisée ensuite dans les pages métiers, dans les Server Actions, dans les services IA et dans l'agent conversationnel, qui doivent tous respecter le périmètre de l'utilisateur connecté.
+
+Au-delà de l'authentification, ce sprint vise aussi trois garanties durables : une confidentialité minimale des données RH, une cohérence de navigation selon le rôle métier et une extensibilité suffisante pour brancher les futurs modules sur un shell commun sans redéfinir la logique d'accès.
+
+\subsection{Backlog du sprint}
+\begin{table}[H]
+  \centering
+  \caption{Backlog fonctionnel du module d'accès et d'identité}
+  \begin{tabularx}{\textwidth}{>{\bfseries}p{1.3cm}p{3cm}X>{\raggedright\arraybackslash}p{2cm}}
+    \toprule
+    ID & Thème & User Story & Statut \\
+    \midrule
+    1 & Marketing produit & En tant que visiteur, je peux consulter une landing page présentant la proposition de valeur de la plateforme. & Réalisé \\
+    2 & Authentification & En tant qu'utilisateur autorisé, je peux me connecter avec mon email et mon mot de passe. & Réalisé \\
+    3 & Redirection par rôle & En tant qu'utilisateur connecté, je suis redirigé vers mon espace TA, Manager, HR ou Admin. & Réalisé \\
+    4 & Protection des routes & En tant qu'utilisateur non authentifié ou non autorisé, je suis bloqué hors des espaces protégés. & Réalisé \\
+    5 & Administration des comptes & En tant qu'administrateur, je peux consulter les utilisateurs, créer un compte, modifier un rôle et bannir ou débannir un utilisateur. & Réalisé \\
+    6 & Shell de dashboard & En tant qu'utilisateur connecté, je bénéficie d'un cadre de navigation commun préparant l'accès aux modules métier et au chat analytique. & Réalisé \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+Ce backlog montre déjà que l'identité traverse toute la plateforme. Elle ne se limite pas au formulaire de connexion ; elle englobe l'interface publique, la redirection, la protection des routes, la structure des dashboards et la gouvernance des comptes.
+
+\section{Implémentation du sprint}
+
+\subsection{Analyse du sprint}
+Le comportement du module repose sur quelques briques fonctionnelles fondamentales :
+\begin{itemize}
+  \item la landing page publique ;
+  \item l'écran de connexion ;
+  \item le module d'authentification, de récupération de session et de contrôle d'accès par rôle ;
+  \item le layout protégé des espaces dashboard ;
+  \item le shell partagé des espaces métier ;
+  \item l'interface d'administration des utilisateurs ;
+  \item la première vue métier du tableau de bord TA branchée sur ce socle.
+\end{itemize}
+
+Ce module ne doit donc pas être lu comme un simple travail de design d'interface. Il formalise le premier contrat d'usage du système : qui peut entrer, où il atterrit, et à quel périmètre il a droit.
+
+D'un point de vue architectural, le sprint combine trois niveaux de contrôle complémentaires : la présentation publique et privée, la vérification serveur de la session et des rôles, puis la gouvernance des comptes côté administration. Cette superposition réduit le risque qu'une protection repose uniquement sur le client.
+
+\subsection{Vue fonctionnelle globale}
+Les usages couverts par ce sprint se regroupent en quatre blocs :
+\begin{itemize}
+  \item consulter la page d'accueil publique ;
+  \item se connecter ;
+  \item être redirigé vers un espace adapté au rôle ;
+  \item administrer les comptes si l'utilisateur est \sourcecode{admin}.
+\end{itemize}
+
+Le layout de dashboard prépare déjà l'usage futur de l'IA, car il injecte le composant \sourcecode{StatisticsChat}. Cela signifie que l'entrée conversationnelle de la plateforme a été pensée dès le départ comme une fonctionnalité authentifiée et cloisonnée.
+
+Ce point est important : l'IA n'est pas ajoutée plus tard dans un espace parallèle. Elle s'inscrit dès les fondations dans la même logique d'authentification, de layout et de séparation des rôles que le reste du produit.
+
+\subsection{Authentification et redirection par rôle}
+L'écran de connexion contient la logique de connexion. Lors de la soumission du formulaire, la fonction \sourcecode{handleSubmit()} appelle \sourcecode{authClient.signIn.email()} avec l'email et le mot de passe. Si la connexion réussit, le rôle utilisateur est lu depuis la réponse, puis une table de correspondance détermine la destination :
+\begin{itemize}
+  \item \sourcecode{ta} $\rightarrow$ \sourcecode{/ta/dashboard} ;
+  \item \sourcecode{manager} $\rightarrow$ \sourcecode{/manager/dashboard} ;
+  \item \sourcecode{hr} $\rightarrow$ \sourcecode{/hr/dashboard} ;
+  \item \sourcecode{admin} $\rightarrow$ \sourcecode{/admin}.
+\end{itemize}
+
+La même logique existe côté serveur grâce à \sourcecode{getRoleHome()} et \sourcecode{requireRole()}, ce qui évite que la sécurité repose uniquement sur le client.
+
+Le fait de disposer d'un équivalent serveur est essentiel. Même si l'interface connaît la destination à prendre, la plateforme ne fait pas confiance à la seule navigation du navigateur. Les routes sensibles restent protégées par une lecture réelle de la session et des rôles.
+
+\begin{figure}[H]
+  \centering
+  \diagraminput{figures/diagrams/auth-role-sequence}
+  \caption{Séquence d'authentification et de redirection par rôle}
+\end{figure}
+
+\subsection{Protection du shell et contrôle d'accès}
+Lorsqu'un utilisateur accède à un espace protégé, le layout principal du dashboard vérifie la présence d'une session via \sourcecode{getSession()}. Si aucune session n'existe, une redirection vers \sourcecode{/sign-in} est déclenchée. Sinon, le layout récupère le rôle et le nom de l'utilisateur, les injecte dans \sourcecode{DashboardShell} et monte aussi \sourcecode{StatisticsChat}. Ainsi, toutes les pages métier utilisent un conteneur commun déjà authentifié.
+
+Cette centralisation apporte trois bénéfices majeurs. D'une part, elle évite de dupliquer la logique d'accès dans chaque page. D'autre part, elle garantit une expérience homogène pour tous les rôles. Enfin, elle prépare les futurs composants transverses à s'exécuter dans le même contexte de sécurité que les vues métiers.
+
+\subsection{Administration des comptes}
+Sur la page d'administration, le composant \sourcecode{AdminUsersClient} exploite le plugin \sourcecode{adminClient()} de Better Auth côté client. Il permet de :
+\begin{itemize}
+  \item lister les utilisateurs avec \sourcecode{authClient.admin.listUsers()} ;
+  \item créer un utilisateur avec \sourcecode{authClient.admin.createUser()} ;
+  \item modifier un rôle avec \sourcecode{authClient.admin.setRole()} ;
+  \item bannir un utilisateur avec \sourcecode{authClient.admin.banUser()} ;
+  \item débannir un utilisateur avec \sourcecode{authClient.admin.unbanUser()}.
+\end{itemize}
+
+Cette partie montre que l'identité n'est pas seulement un écran de login. Elle inclut déjà une gouvernance minimale du cycle de vie des comptes, indispensable dans un environnement B2B où la création de comptes est pilotée par l'organisation et non par de l'auto-inscription.
+
+La possibilité de bannir ou débannir un compte apporte également une souplesse de gouvernance importante. Elle permet de suspendre rapidement un accès sans perturber toute la structure des rôles ni supprimer brutalement l'utilisateur du système.
+
+\paragraph{Scénarios de validation fonctionnelle.}
+La cohérence du module d'accès peut être vérifiée par trois scénarios simples. Premièrement, un utilisateur authentifié doit être redirigé vers l'espace correspondant à son rôle. Deuxièmement, un utilisateur sans session doit être renvoyé vers la page de connexion lorsqu'il tente d'accéder à un dashboard protégé. Troisièmement, les actions d'administration des comptes doivent rester réservées au rôle \sourcecode{admin}. Ces scénarios matérialisent le contrat principal du sprint : aucune donnée métier sensible ne doit être exposée sans session ni rôle approprié.
+
+\section{Réalisation}
+
+\subsection{Landing page publique}
+La landing page publique positionne la plateforme comme un moteur de recrutement intelligent. Elle met en avant plusieurs axes : le matching intelligent, l'automatisation des workflows, l'analytique prédictive, la collaboration d'équipe et la sécurité d'entreprise. Des appels à l'action comme \textit{Sign In}, \textit{Access Platform} et \textit{Sign In to Continue} orientent immédiatement l'utilisateur vers le point d'entrée authentifié.
+
+Cette page joue aussi un rôle de clarification stratégique. Avant même la connexion, elle pose le positionnement du produit comme une plateforme de recrutement augmentée par l'IA et non comme un simple portail de candidatures.
+
+\begin{figure}[H]
+  \centering
+  \screenshotplaceholder{Landing page}
+  \caption{Page d'accueil publique de la plateforme.}
+\end{figure}
+
+\subsection{Page de connexion}
+La page de connexion propose un formulaire simple et robuste : champ email, champ mot de passe, affichage ou masquage du mot de passe, état de chargement, message d'erreur et lien \textit{Forgot password?}. La phrase \textit{Account creation is managed by your administrator} est particulièrement significative : elle confirme que le produit n'est pas pensé comme un portail ouvert, mais comme une plateforme d'entreprise gouvernée.
+
+Sur le plan UX, le formulaire reste volontairement direct. L'objectif est de réduire l'ambiguïté au moment de l'entrée dans la plateforme et de rendre visible le caractère administré de l'accès.
+
+\begin{figure}[H]
+  \centering
+  \screenshotplaceholder{Sign-in page}
+  \caption{Page de connexion sécurisée de la plateforme.}
+\end{figure}
+
+\subsection{Shell de dashboard partagé}
+Le \sourcecode{DashboardShell} constitue un apport structurant du sprint. Il mutualise la navigation latérale, l'en-tête, le contexte utilisateur et l'enveloppe commune de rendu des pages métier. Grâce à ce shell, les modules suivants peuvent s'intégrer progressivement sans reconstruire à chaque fois les fondations de navigation et de sécurité.
+
+En pratique, ce shell joue le rôle de charnière entre sécurité et productivité. Il offre un cadre stable pour toutes les vues TA, Manager, RH et Admin, tout en garantissant qu'elles partagent les mêmes conventions d'identité et de navigation.
+
+\subsection{Première vue métier : tableau de bord TA}
+La page de tableau de bord TA illustre la première exploitation de ce socle. Elle exige le rôle \sourcecode{ta} ou \sourcecode{admin}, puis charge les statistiques globales via \sourcecode{getDashboardStatsAction()} et le planning d'entretiens du jour via \sourcecode{getTodayInterviewScheduleAction()}. Ce tableau de bord montre que le sprint ne s'arrête pas à l'identité : il ouvre déjà la porte au pilotage métier réel.
+
+Ce point est important pour la lecture du rapport : l'accès protégé n'est pas une fin en soi. Il débouche immédiatement sur une valeur métier visible, ce qui prouve que le socle construit est déjà exploitable dans l'usage quotidien.
+
+\begin{figure}[H]
+  \centering
+  \screenshotplaceholder{TA dashboard}
+  \caption{Tableau de bord TA après authentification.}
+\end{figure}
+
+\subsection{Gestion des utilisateurs côté administration}
+La page d'administration des utilisateurs affiche un espace \textit{User Management} avec le sous-titre \textit{Manage user accounts and roles}. Le composant \sourcecode{AdminUsersClient} rend cette promesse effective à travers la consultation de la liste des utilisateurs, la création d'un compte, la modification du rôle et le bannissement ou débannissement.
+
+Cette fonctionnalité matérialise un principe de responsabilité : dans une plateforme RH, les utilisateurs autorisés à voir ou manipuler les candidatures doivent eux-mêmes être gérés de manière explicite et traçable.
+
+\section{Apport du module}
+Ce premier module apporte plusieurs fondations durables au projet :
+\begin{itemize}
+  \item un point d'entrée public compréhensible pour le produit ;
+  \item une authentification alignée sur un usage d'entreprise ;
+  \item une séparation explicite par rôle, réutilisée ensuite dans les routes, les services et l'IA ;
+  \item un shell commun qui accélère tous les développements suivants ;
+  \item un environnement authentifié, contrôlé et traçable pour les futurs usages analytiques.
+\end{itemize}
+
+Autrement dit, même si ce module ne contient pas encore le cœur du pipeline RAG, il construit l'infrastructure d'usage sans laquelle une IA de recrutement ne pourrait pas être exposée de manière sûre.
+
+On peut donc le considérer comme la fondation de confiance du produit. Sans cette base, les modules suivants auraient pu exister techniquement, mais pas comme un système crédible dans un cadre professionnel exigeant.
+
+\section*{Conclusion}
+\addcontentsline{toc}{section}{Conclusion}
+Ce premier module établit les fondations d'accès et d'identité de \projectname{}. Il transforme une simple interface publique en point d'entrée vers une plateforme gouvernée par les rôles, protégée côté serveur et prête à accueillir les fonctionnalités métier et IA des modules suivants. Le chapitre suivant s'appuie sur ce socle pour traiter le premier cœur documentaire et opérationnel du produit : le vivier de CV et la gestion des offres d'emploi.

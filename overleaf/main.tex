@@ -1,0 +1,135 @@
+\documentclass[12pt,a4paper]{report}
+
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[french,english]{babel}
+\usepackage{lmodern}
+\usepackage{geometry}
+\usepackage{setspace}
+\usepackage{graphicx}
+\usepackage{array}
+\usepackage{tabularx}
+\usepackage{longtable}
+\usepackage{booktabs}
+\usepackage{enumitem}
+\usepackage{float}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{fancyhdr}
+\usepackage{caption}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,fit,calc,shapes.geometric}
+
+\geometry{margin=2.5cm}
+\setstretch{1.15}
+\captionsetup{font=small,labelfont=bf}
+\setlist[itemize]{leftmargin=1.5em}
+\setlist[enumerate]{leftmargin=1.8em}
+
+\hypersetup{
+  colorlinks=true,
+  linkcolor=blue!50!black,
+  urlcolor=blue!50!black,
+  citecolor=blue!50!black,
+  pdftitle={Capgemini Talent Intelligence - Rapport de projet},
+  pdfauthor={Auteur à compléter}
+}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\nouppercase{\leftmark}}
+\fancyhead[R]{\thepage}
+\setlength{\headheight}{15pt}
+
+\definecolor{cgblue}{HTML}{0070AD}
+\definecolor{cgdeep}{HTML}{0B1F33}
+\definecolor{cglight}{HTML}{EAF4FB}
+\definecolor{boxgray}{HTML}{F5F7FA}
+
+\tikzset{
+  box/.style={draw=cgblue, rounded corners, thick, fill=cglight, align=center, minimum height=1cm, inner sep=6pt},
+  darkbox/.style={draw=cgdeep, rounded corners, thick, fill=blue!5, align=center, minimum height=1cm, inner sep=6pt},
+  actor/.style={draw=cgdeep, rounded corners, thick, fill=white, align=center, minimum width=2.5cm, minimum height=0.9cm},
+  database/.style={draw=cgdeep, cylinder, shape border rotate=90, aspect=0.3, minimum height=1.2cm, minimum width=1.8cm, align=center, fill=blue!5},
+  line/.style={-{Latex[length=3mm]}, thick, draw=cgdeep},
+  dashedline/.style={-{Latex[length=3mm]}, thick, dashed, draw=cgdeep}
+}
+
+\newcommand{\projectname}{Capgemini Talent Intelligence}
+\newcommand{\reportinstitution}{\textit{Établissement universitaire à compléter}}
+\newcommand{\reportauthor}{\textit{À compléter}}
+\newcommand{\reportacademicadvisor}{\textit{À compléter}}
+\newcommand{\reportcompanyadvisor}{\textit{À compléter}}
+\newcommand{\screenshotplaceholder}[2][0.28\textheight]{%
+  \begin{center}
+    \begin{tikzpicture}
+      \node[draw=cgblue, rounded corners, thick, fill=boxgray, inner sep=10pt] {
+        \begin{minipage}[c][#1][c]{0.84\linewidth}
+          \centering
+          {\color{cgblue}\bfseries Illustration à insérer}\\[0.7em]
+          {\large\ttfamily #2}\\[0.9em]
+          {\small Capture d'écran prévue lors de la finalisation du mémoire.}
+        \end{minipage}
+      };
+    \end{tikzpicture}
+  \end{center}
+}
+\newsavebox{\diagrambox}
+\newcommand{\diagraminput}[1]{%
+  \sbox{\diagrambox}{\input{#1}}%
+  \ifdim\wd\diagrambox>\linewidth
+    \resizebox{0.96\linewidth}{!}{\usebox{\diagrambox}}%
+  \else
+    \usebox{\diagrambox}%
+  \fi
+}
+\newcommand{\sourcecode}[1]{\texttt{#1}}
+
+\begin{document}
+\selectlanguage{french}
+
+\begin{titlepage}
+  \centering
+  {\Large République Tunisienne\par}
+  \vspace{0.4cm}
+  {\large \reportinstitution\par}
+  \vspace{1.5cm}
+  {\Huge\bfseries Rapport de projet de fin d'études\par}
+  \vspace{0.8cm}
+  {\LARGE Conception et développement d'une plateforme de recrutement augmentée par l'IA\par}
+  \vspace{0.4cm}
+  {\Large \textbf{\projectname}\par}
+  \vspace{1.5cm}
+  \begin{tabular}{>{\bfseries}p{4.2cm}p{9.5cm}}
+    Réalisé par : & \reportauthor \\
+    Entreprise d'accueil : & Capgemini / Capgemini Engineering \\
+    Encadrant académique : & \reportacademicadvisor \\
+    Encadrant professionnel : & \reportcompanyadvisor \\
+    Année universitaire : & 2025--2026 \\
+  \end{tabular}
+  \vfill
+  {\large Version structurée pour compilation et finalisation académique sur Overleaf.\par}
+\end{titlepage}
+
+\pagenumbering{roman}
+\input{chapters/abstract-en}
+\input{chapters/resume-fr}
+\tableofcontents
+\listoffigures
+\listoftables
+\input{chapters/keywords-acronyms}
+
+\clearpage
+\pagenumbering{arabic}
+\input{chapters/intro}
+\input{chapters/chapter1-general-presentation}
+\input{chapters/chapter2-planning-architecture}
+\input{chapters/chapter3-access-identity}
+\input{chapters/chapter4-cv-jobs}
+\input{chapters/chapter5-pipeline-interviews}
+\input{chapters/chapter6-ai-intelligence}
+\input{chapters/chapter7-admin-governance}
+\input{chapters/conclusion}
+\input{chapters/netography}
+
+\end{document}

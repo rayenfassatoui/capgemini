@@ -1,0 +1,15 @@
+\begin{tikzpicture}[node distance=0.9cm and 1cm, font=\small]
+  \node[box] (event) {Événement métier\\entretien / décision};
+  \node[box, right=of event] (notif) {Créer notification\\in-app};
+  \node[box, right=of notif] (mail) {Générer / envoyer\\email};
+  \node[database, below=of notif] (log) {notifications};
+  \node[database, below=of mail] (elog) {email\_logs};
+  \node[actor, above right=of mail] (user) {Utilisateur};
+
+  \draw[line] (event) -- (notif);
+  \draw[line] (event) |- (mail);
+  \draw[line] (notif) -- (log);
+  \draw[line] (mail) -- (elog);
+  \draw[line] (notif) -- (user);
+  \draw[line] (mail) -- (user);
+\end{tikzpicture}

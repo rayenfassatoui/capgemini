@@ -1,0 +1,16 @@
+\begin{tikzpicture}[node distance=0.9cm and 1cm, font=\small]
+  \node[box] (cv) {Profil candidat\\CV structuré};
+  \node[box, right=of cv] (job) {Offre d'emploi\\must-have / nice-to-have};
+  \coordinate (topmid) at ($(cv)!0.5!(job)$);
+  \node[box, below=of topmid] (screen) {Screening IA\\score, gaps, résumé};
+  \node[box, below left=of screen] (guide) {Guide questions\\éditable};
+  \node[box, below right=of screen] (auto) {Auto-Pilot\\briefing + questions ciblées};
+  \node[box, below=of screen, yshift=-1.2cm] (ui) {UI recruteur\\détail job / candidat};
+
+  \draw[line] (cv) -- (screen);
+  \draw[line] (job) -- (screen);
+  \draw[line] (screen) -- (guide);
+  \draw[line] (screen) -- (auto);
+  \draw[line] (guide) -- (ui);
+  \draw[line] (auto) -- (ui);
+\end{tikzpicture}

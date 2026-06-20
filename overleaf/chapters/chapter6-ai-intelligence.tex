@@ -1,0 +1,260 @@
+\chapter{Module 4 : intelligence artificielle, matching et recherche augmentée}
+
+\section*{Introduction}
+\addcontentsline{toc}{section}{Introduction}
+Ce quatrième module constitue le différenciateur principal du projet. À ce stade, la plateforme dispose déjà d'un vivier de CV structuré, d'offres détaillées et d'un pipeline candidat opérationnel. L'enjeu n'est donc plus seulement de stocker, afficher ou faire circuler des données, mais de les transformer en intelligence exploitable.
+
+Ce module ne correspond pas à l'ajout d'un simple assistant textuel. Il met en place une couche IA complète qui intervient directement dans les opérations de recrutement : matching, screening, recherche sémantique, RAG, génération de guides d'entretien, comparaison de candidats, synthèses, optimisation d'offres et agent conversationnel outillé. Les fondements du RAG et de la recherche par similarité sont rattachés aux références scientifiques citées en netographie.
+
+Le point clé n'est pas uniquement la présence de modèles IA, mais la manière dont ils sont branchés sur le produit. Les traitements intelligents ne vivent pas à côté du système ; ils s'insèrent dans les pages métier, dans les services de recherche, dans les workflows d'entretien et dans les mécanismes de sécurité.
+
+\section{Sprint 4 : objectif et périmètre}
+
+\subsection{Objectif du sprint}
+L'objectif est d'intégrer l'intelligence artificielle au cœur du processus de recrutement afin d'assister les utilisateurs sans rompre la cohérence métier ni la sécurité des données. Plus précisément, ce sprint vise à :
+\begin{itemize}
+  \item accélérer le tri initial des profils ;
+  \item fournir des scores et synthèses de screening ;
+  \item rendre possible une recherche sémantique sur le vivier ;
+  \item introduire un pipeline RAG hybride pour les recherches complexes ;
+  \item générer des guides d'entretien contextualisés ;
+  \item exposer ces capacités à travers un agent conversationnel outillé ;
+  \item mesurer l'effet réel des améliorations apportées au pipeline de recherche.
+\end{itemize}
+
+Le sprint répond aussi à une exigence de crédibilité : l'IA ne doit pas être cosmétique. Elle doit améliorer la pertinence des recherches, accélérer les évaluations, enrichir les entretiens et rester contrôlable dans ses entrées comme dans ses sorties.
+
+\subsection{Backlog du sprint}
+\begin{table}[H]
+  \centering
+  \caption{Backlog fonctionnel du module intelligence artificielle}
+  \begin{tabularx}{\textwidth}{>{\bfseries}p{1.3cm}p{3.2cm}X>{\raggedright\arraybackslash}p{2cm}}
+    \toprule
+    ID & Thème & User Story & Statut \\
+    \midrule
+    24 & Screening IA & En tant que TA, je peux générer un screening IA d'un candidat sur une offre. & Réalisé \\
+    25 & Matching par compétences & En tant que TA, je peux classer des CV selon leur adéquation avec une offre. & Réalisé \\
+    26 & Recherche sémantique & En tant que recruteur, je peux rechercher des profils par similarité sémantique. & Réalisé \\
+    27 & RAG hybride & En tant qu'utilisateur avancé, je peux lancer une recherche augmentée sur les chunks de CV avec citations. & Réalisé \\
+    28 & Guides d'entretien IA & En tant qu'évaluateur, je peux générer des questions et guides d'entretien contextuels. & Réalisé \\
+    29 & Autopilot d'entretien & En tant qu'évaluateur, je peux consulter un guide enrichi structuré par axes d'évaluation. & Réalisé \\
+    30 & Agent conversationnel & En tant qu'utilisateur autorisé, je peux interroger la plateforme via un agent multi-outils. & Réalisé \\
+    31 & Smart insights & En tant que TA ou Admin, je peux consulter des statistiques enrichies et des insights IA. & Réalisé \\
+    32 & Évaluation RAG & En tant qu'équipe projet, nous pouvons mesurer la qualité et les compromis du pipeline RAG. & Réalisé \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+Le backlog montre clairement que la couche IA n'est pas mono-usage. Elle touche à la recherche, au scoring, à la préparation d'entretien, à la conversation analytique et à l'évaluation quantitative du système lui-même.
+
+\section{Implémentation du sprint}
+
+\subsection{Analyse du sprint}
+Ce sprint s'appuie principalement sur les éléments fonctionnels suivants :
+\begin{itemize}
+  \item le service de matching lexical, sémantique et hybride ;
+  \item le pipeline RAG de récupération documentaire ;
+  \item le service de génération des embeddings NVIDIA ;
+  \item les services avancés de génération et d'analyse IA ;
+  \item le service de guides d'entretien et les composants Auto-Pilot ;
+  \item le mécanisme de contrôle des noms cités par l'agent ;
+  \item la couche d'orchestration conversationnelle en SSE ;
+  \item le registre des outils métier de l'agent ;
+  \item la page statistique du recruteur et son chat analytique ;
+  \item le rapport d'évaluation quantitative du pipeline RAG.
+\end{itemize}
+
+Ce sprint est transversal : il touche à la fois aux données, à la récupération documentaire, aux modèles IA, à l'expérience utilisateur et aux mécanismes de sécurité.
+
+Cette transversalité est importante, car elle montre que la valeur IA n'a pas été concentrée dans un seul bloc démonstratif. Elle a été distribuée au plus près des besoins métier, là où elle peut réellement améliorer le travail des recruteurs.
+
+\subsection{Niveaux d'intelligence du projet}
+La couche IA n'est pas monolithique. Elle se compose de plusieurs niveaux complémentaires :
+\begin{enumerate}
+  \item \textbf{Intelligence documentaire} : extraction structurée des CV, génération d'embeddings, découpage en chunks orientés RAG, indexation vectorielle et lexicale.
+  \item \textbf{Intelligence de recrutement} : matching par compétences, matching sémantique, screening stocké en base, recommandations et synthèses IA.
+  \item \textbf{Intelligence d'entretien} : génération de questions, guides éditables, Auto-Pilot Interview Guide, débriefings et questions de suivi.
+  \item \textbf{Intelligence conversationnelle} : agent multi-outils, raisonnement en plusieurs étapes, accès contrôlé aux services métier et réponses ancrées dans les résultats disponibles.
+\end{enumerate}
+
+Cette structuration montre que l'IA n'est pas résumée à un seul modèle. Elle est distribuée dans plusieurs services spécialisés selon les usages et intégrée progressivement à mesure que les données métier se structurent.
+
+\subsection{Matching, screening et autopilot}
+Le projet distingue plusieurs formes de matching : un matching par critères explicites centré sur l'alignement entre compétences du CV et exigences du poste, une recherche sémantique fondée sur des embeddings NVIDIA NV-EmbedQA E5 V5 de dimension 1024 et une recherche hybride qui combine ranking lexical et vectoriel par \textit{Reciprocal Rank Fusion}.
+
+Le screening complète ce matching en ajoutant une lecture décisionnelle : score global, écarts, correspondances \textit{must-have} et \textit{nice-to-have}, puis résumé synthétique. Les services de guides d'entretien produisent quant à eux un guide de questions éditable et un \textit{Auto-Pilot Interview Guide} plus riche, incluant briefing, questions techniques, questions de mitigation des écarts et questions comportementales adaptées au niveau de séniorité.
+
+Cette combinaison évite de dépendre d'un seul mécanisme. Certaines requêtes bénéficient d'une lecture très structurée, d'autres d'une lecture sémantique plus souple, et les cas complexes profitent de la fusion de plusieurs signaux.
+
+\begin{figure}[H]
+  \centering
+  \diagraminput{figures/diagrams/ai-screening-autopilot}
+  \caption{Chaîne IA de screening et de génération de guide d'entretien}
+\end{figure}
+
+\subsection{Agent conversationnel et garde-fous}
+L'agent conversationnel accessible depuis la zone statistique s'appuie sur un registre de plus de cinquante outils répartis en catégories : CV Pool, Jobs, Candidates, Matching, Interviews, AI Features, Communication, Dashboard et Admin. Le registre des outils centralise les définitions, la validation Zod, l'exécution et le filtrage RBAC par rôle.
+
+Le projet ne laisse cependant pas l'agent répondre librement sur des personnes qu'il n'a pas effectivement résolues. Le mécanisme de grounding reconstruit l'ensemble de candidats autorisés à partir des résultats d'outils et valide les noms présents dans la réponse finale. Cette logique complète les garde-fous définis dans la couche d'orchestration du chat analytique : nombre maximal d'étapes, volume de sortie, timeout et seuil d'échec d'outils.
+
+Ces garde-fous répondent à une exigence forte du domaine RH : une réponse fluide mais non justifiée peut être plus dangereuse qu'une absence de réponse. Le système préfère donc encadrer l'agent plutôt que maximiser artificiellement sa liberté de génération.
+
+\section{Vue dynamique}
+
+\subsection{Orchestration agentique}
+Le flux global du chat est le suivant : authentification, construction du contexte, filtrage RBAC des outils, boucle agentique, exécution d'outil, sanitization, grounding puis diffusion SSE de la réponse. Cette architecture donne à l'agent une vraie capacité d'action tout en gardant la main sur le périmètre autorisé et sur la validation des entrées.
+
+Elle matérialise la forme la plus visible du projet côté utilisateur final : dialoguer avec le système en langage naturel tout en restant relié à des outils, à des permissions et à des résultats vérifiables.
+
+\subsection{Pipeline RAG hybride}
+Le service \sourcecode{retrieval-pipeline.ts} implémente explicitement le pipeline suivant : \textit{rewrite} $\rightarrow$ \textit{vector retrieval} $\rightarrow$ \textit{lexical retrieval} $\rightarrow$ \textit{RRF fusion} $\rightarrow$ \textit{rerank} $\rightarrow$ \textit{context assembly}. Les chunks sont stockés dans \sourcecode{cv\_chunks}, indexés à la fois par embedding et par \sourcecode{tsvector} pour la recherche plein texte.
+
+Ce point est essentiel : la génération n'est pas réalisée à vide. Le système commence par récupérer un contexte pertinent issu des données réellement disponibles, puis seulement ensuite transmet ce contexte à la couche de réponse ou d'analyse.
+
+Le RAG n'est donc pas utilisé comme un effet de mode. Il sert à réintroduire une base de justification dans les réponses IA, notamment pour les recherches complexes où une simple liste de profils ne suffit plus.
+\paragraph{Comparaison des modes de recherche et d'assistance.}
+Pour bien situer les apports du sprint, il est utile de distinguer les principaux niveaux d'accès à l'information :
+
+\begin{table}[H]
+  \centering
+  \caption{Comparaison entre recherche simple, recherche sémantique, RAG et chat agentique}
+  \begin{tabularx}{\textwidth}{>{\bfseries}p{2.8cm}p{2.8cm}X X}
+    \toprule
+    Mode & Base principale & Type de résultat & Usage métier dominant \\
+    \midrule
+    Recherche simple & champs textuels et filtres explicites & correspondances directes & retrouver rapidement un profil ou une offre connus \\
+    Recherche sémantique & embedding global des profils & profils proches par similarité & explorer des candidats au-delà des mots-clés exacts \\
+    RAG hybride & chunks, embeddings et index lexical & extraits contextualisés avec citations & répondre à des questions complexes sur le contenu des profils \\
+    Chat agentique & outils métier, retrieval et grounding & réponse raisonnée et actionnable & interroger, comparer, synthétiser et piloter en langage naturel \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+Ce tableau montre une progression de complexité mais aussi de valeur. Plus le niveau monte, plus la plateforme s'éloigne d'une simple recherche documentaire pour devenir un système d'assistance à la décision branché sur ses propres données métier.
+
+
+\begin{figure}[H]
+  \centering
+  \diagraminput{figures/diagrams/rag-pipeline}
+  \caption{Pipeline RAG hybride du projet}
+\end{figure}
+
+\subsection{Réécriture de requête et gestion de la complexité}
+Le pipeline ne traite pas toutes les requêtes de la même manière. Il classe leur complexité et ajuste dynamiquement le \textit{topK} ainsi que l'usage de la réécriture. Pour les requêtes complexes, la fonction \sourcecode{rewriteQueryWithTimeout()} ajoute une étape de reformulation avec timeout et fallback. Cela améliore la qualité de récupération sans rendre le système fragile en cas de lenteur du modèle.
+
+Cette décision illustre une approche pragmatique de l'IA : améliorer la pertinence quand cela apporte une vraie valeur, mais prévoir un repli déterministe lorsque le coût ou la latence deviennent trop élevés.
+
+\section{Réalisation}
+
+\subsection{IA dans le détail d'une offre}
+Le composant \sourcecode{JobDetailClient} constitue l'un des premiers points où l'IA est exposée directement au recruteur. Il permet de générer un screening pour un candidat sur un poste, de consulter le score et les écarts, de préparer les questions d'entretien et d'orienter la suite du processus. L'IA intervient donc au moment de la décision, là où elle produit le plus de valeur métier.
+
+Cette intégration directe évite de créer une zone IA déconnectée du reste de l'application. Les suggestions et scores apparaissent au moment où le recruteur doit réellement arbitrer.
+
+\begin{figure}[H]
+  \centering
+  \screenshotplaceholder{Job candidate AI score view}
+  \caption{Vue de score IA d'un candidat sur une offre.}
+\end{figure}
+
+\subsection{Recherche sémantique et services IA avancés}
+Les services de matching permettent plusieurs stratégies de recherche : recherche explicite par critères, recherche sémantique sur profils complets, recherche hybride combinant ranking lexical et vectoriel et \textit{bulk assignment} des meilleurs profils vers un poste.
+
+Au-delà du matching et du RAG, \sourcecode{ai-features.ts} expose plusieurs services de valeur : comparaison de candidats, score prédictif de pipeline, résumé de profil, optimisation d'exigences d'une offre, génération d'emails, questions de suivi et \textit{insights} talent. Cette diversité prouve que la couche IA du projet n'est pas mono-usage.
+
+Elle montre également que l'IA est traitée comme une boîte à outils métier, et non comme un unique point d'entrée censé tout résoudre seul.
+\paragraph{Scénario end-to-end d'usage IA.}
+Un scénario représentatif peut être résumé ainsi : un recruteur formule une question sur un profil ou sur un besoin de recrutement ; le système évalue la complexité de la requête ; il peut la réécrire ; il lance ensuite les récupérations lexicales et vectorielles nécessaires ; il fusionne et rerank les résultats ; puis, si la demande le nécessite, l'agent appelle un outil métier autorisé avant de produire une réponse grounded diffusée en SSE.
+
+Cette chaîne montre que la valeur du module IA ne tient pas à une seule génération finale. Elle tient à l'enchaînement discipliné entre récupération d'information, raisonnement outillé, validation des entrées et contrôle des sorties. C'est précisément cette discipline qui rend l'IA compatible avec un contexte RH où l'explicabilité et la maîtrise des accès priment sur la simple fluidité conversationnelle.
+
+
+\subsection{Autopilot d'entretien}
+Les composants \sourcecode{InterviewAutoPilotGuideView} et \sourcecode{interview-autopilot-guide.tsx} exposent les guides générés pour les étapes TA, Manager et HR. Cette fonctionnalité aide à homogénéiser la qualité des entretiens et à mieux exploiter les informations déjà présentes dans le CV, le poste et l'historique du pipeline.
+
+L'IA n'est donc pas utilisée seulement pour retrouver ou classer, mais aussi pour préparer une interaction humaine plus pertinente avec le candidat.
+
+\begin{figure}[H]
+  \centering
+  \screenshotplaceholder{Autopilot interview guide UI}
+  \caption{Interface d'Auto-Pilot d'entretien.}
+\end{figure}
+
+\subsection{Page statistiques et chat analytique}
+La page statistique du recruteur charge les statistiques du vivier, les statistiques des jobs et les \textit{smart insights}. Le composant \sourcecode{StatisticsChat} complète cette vue par une interaction conversationnelle SSE. Ce chat n'est pas décoratif : il ouvre un accès agentique aux données du système, avec mémoire conversationnelle, outils filtrés par rôle et exécution traçable.
+
+Cette page matérialise l'objectif du projet : donner aux recruteurs un accès naturel à une intelligence réellement branchée sur les données internes.
+\paragraph{Impact métier pour le recruteur.}
+Du point de vue métier, l'apport du sprint est concret. La recherche sémantique réduit l'effort de repérage des profils proches, le RAG améliore la justification des réponses complexes, et le chat agentique réduit le coût de navigation entre plusieurs écrans spécialisés. Le recruteur ne gagne donc pas seulement en rapidité ; il gagne aussi en lisibilité sur les raisons qui conduisent à une recommandation, un classement ou une synthèse.
+
+
+\begin{figure}[H]
+  \centering
+  \screenshotplaceholder{AI chat/statistics}
+  \caption{Page statistiques et agent conversationnel.}
+\end{figure}
+
+\subsection{Fonctionnement détaillé du chat analytique}
+Le chat du projet n'est pas un simple champ de texte connecté à un LLM. Il constitue une interface de pilotage qui permet à l'utilisateur autorisé de poser des questions métier directement sur l'état réel de la plateforme. Un recruteur peut par exemple demander un résumé du vivier, interroger la répartition des jobs, rechercher des candidats correspondant à un besoin précis ou demander une comparaison appuyée sur les données disponibles.
+
+Son fonctionnement repose sur plusieurs briques coordonnées :
+\begin{itemize}
+  \item l'authentification de l'utilisateur avant tout échange ;
+  \item la récupération de l'historique conversationnel ;
+  \item la sélection dynamique des outils accessibles selon le rôle ;
+  \item l'appel à des services métier réels plutôt qu'à une génération libre ;
+  \item la diffusion progressive de la réponse en SSE ;
+  \item l'enregistrement des conversations et des messages dans \sourcecode{chat\_conversations} et \sourcecode{chat\_messages}.
+\end{itemize}
+
+Cette architecture est importante pour le rapport car elle montre que le chat n'est pas un composant isolé. Il est branché sur le cœur applicatif et réutilise les mêmes règles de sécurité, les mêmes services métier et les mêmes contraintes de traçabilité que le reste de la plateforme.
+
+Du point de vue utilisateur, cela change profondément la manière d'accéder au système. Au lieu de naviguer manuellement entre plusieurs pages, l'utilisateur peut exprimer une intention en langage naturel, puis laisser l'agent interroger les bons outils pour reconstruire une réponse structurée. Le chat devient ainsi une surcouche d'accès aux fonctionnalités, et non un gadget conversationnel déconnecté du produit.
+
+\section{Évaluation et résultats}
+Le projet contient une preuve quantitative d'amélioration du pipeline RAG dans le rapport d'évaluation RAG de phase 2. L'évaluation couvre 40 requêtes avec une couverture \textit{ground truth} de 85\%. Les résultats comparatifs entre le baseline et la phase 2 sont les suivants.
+
+\begin{table}[H]
+  \centering
+  \caption{Résultats de l'évaluation RAG phase 2}
+  \begin{tabular}{lccc}
+    \toprule
+    Métrique & Baseline & Phase 2 & Variation \\
+    \midrule
+    Precision@5 & 4.0\% & 5.5\% & +37.5\% \\
+    Precision@10 & 2.0\% & 5.5\% & +175.0\% \\
+    MRR@10 & 0.175 & 0.200 & +14.3\% \\
+    NDCG@10 & 0.042 & 0.071 & +68.5\% \\
+    Error rate & 0.0\% & 0.0\% & 0.0\% \\
+    Latence moyenne & 369 ms & 26463 ms & +7076.9\% \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\paragraph{Lecture des métriques.}
+Les métriques utilisées ne mesurent pas toutes la même dimension. \textit{Precision@5} et \textit{Precision@10} indiquent la proportion de résultats pertinents dans les premiers éléments retournés. \textit{MRR@10} évalue la position du premier résultat pertinent, ce qui est important pour l'expérience recruteur. \textit{NDCG@10} prend en compte l'ordre des résultats pertinents dans le classement. Enfin, la latence moyenne mesure le coût opérationnel de la chaîne de retrieval. Ces définitions permettent de lire les résultats comme un compromis entre pertinence et temps de réponse, et non comme un score unique.
+
+Les valeurs obtenues restent modestes en niveau absolu, mais elles sont utiles méthodologiquement parce qu'elles comparent deux versions du pipeline sur le même protocole. Le résultat doit donc être interprété comme une amélioration expérimentale documentée, pas comme une preuve que le retrieval est définitivement optimisé.
+
+L'interprétation est claire : la phase 2 améliore nettement la pertinence des résultats, mais au prix d'une augmentation marquée de la latence. Ce compromis est important à documenter car il montre une démarche d'ingénierie réaliste : la qualité du retrieval a d'abord été renforcée, quitte à reporter une optimisation fine des performances à une étape ultérieure.
+
+Cette mesure a une forte valeur méthodologique dans le rapport. Elle prouve que le projet ne se contente pas d'affirmer que l'IA fonctionne mieux ; il cherche à objectiver les gains et à rendre visibles les coûts associés.
+
+\section{Apport du module}
+Ce module apporte la dimension la plus distinctive du projet :
+\begin{itemize}
+  \item il transforme les données de recrutement en base sémantique exploitable ;
+  \item il introduit une vraie recherche augmentée, et pas seulement un moteur de filtres ;
+  \item il assiste les recruteurs dans le scoring, le matching et la préparation des entretiens ;
+  \item il expose ces capacités à travers un agent multi-outils gouverné ;
+  \item il ajoute des garde-fous explicites contre les dérives de l'IA ;
+  \item il fournit déjà des mesures quantitatives pour évaluer les gains et les compromis.
+\end{itemize}
+
+Dans l'économie générale du rapport, ce module correspond au moment où la plateforme devient pleinement une plateforme IA de recrutement, et non une application métier à laquelle on aurait ajouté une couche cosmétique d'intelligence artificielle.
+
+Il faut surtout retenir que la valeur du module vient d'une intégration profonde : données enrichies, recherche hybride, outils métier, garde-fous, persistance des résultats et mesure de la performance.
+
+\section*{Conclusion}
+\addcontentsline{toc}{section}{Conclusion}
+La couche IA de \projectname{} est à la fois large et outillée : elle intervient sur les documents, sur les décisions et sur l'accès conversationnel au système. Surtout, elle est encadrée par des règles de validation, de sécurité et de mesure. Le dernier chapitre présentera la gouvernance opérationnelle qui complète cette intelligence par des mécanismes de supervision, de notification et d'administration.

@@ -1,0 +1,17 @@
+\begin{tikzpicture}[font=\small]
+  \node[actor] (u) at (0,0) {Utilisateur};
+  \node[box] (signin) at (4,0) {Page sign-in};
+  \node[box] (auth) at (8,0) {better-auth};
+  \node[box] (router) at (12,0) {Route home par rôle};
+
+  \draw[dashed] (u.south) -- +(0,-5.2);
+  \draw[dashed] (signin.south) -- +(0,-5.2);
+  \draw[dashed] (auth.south) -- +(0,-5.2);
+  \draw[dashed] (router.south) -- +(0,-5.2);
+
+  \draw[line] (u) -- node[above]{email + mot de passe} (signin);
+  \draw[line] ($(signin.south)+(0,-0.8)$) -- node[above]{signIn.email()} ($(auth.south)+(0,-0.8)$);
+  \draw[line] ($(auth.south)+(0,-1.8)$) -- node[above]{session + role} ($(signin.south)+(0,-1.8)$);
+  \draw[line] ($(signin.south)+(0,-2.8)$) -- node[above]{roleHome[role]} ($(router.south)+(0,-2.8)$);
+  \draw[line] ($(router.south)+(0,-3.8)$) -- node[above]{/ta, /manager, /hr, /admin} ($(u.south)+(0,-3.8)$);
+\end{tikzpicture}

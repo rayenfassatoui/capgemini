@@ -1,0 +1,42 @@
+\babel@toc {english}{}\relax 
+\babel@toc {french}{}\relax 
+\addvspace {10\p@ }
+\contentsline {figure}{\numberline {1.1}{\ignorespaces Page d'accueil institutionnelle de la plateforme.}}{4}{figure.caption.11}%
+\addvspace {10\p@ }
+\contentsline {figure}{\numberline {2.1}{\ignorespaces Cas d'utilisation global de la plateforme Capgemini Talent Intelligence{}}}{11}{figure.caption.19}%
+\contentsline {figure}{\numberline {2.2}{\ignorespaces Diagramme de classes global centré recrutement}}{11}{figure.caption.20}%
+\contentsline {figure}{\numberline {2.3}{\ignorespaces Architecture interne \textit {feature-driven} de la solution}}{15}{figure.caption.24}%
+\contentsline {figure}{\numberline {2.4}{\ignorespaces Orchestration de l'agent conversationnel et de ses outils}}{17}{figure.caption.29}%
+\addvspace {10\p@ }
+\contentsline {figure}{\numberline {3.1}{\ignorespaces Séquence d'authentification et de redirection par rôle}}{25}{figure.caption.37}%
+\contentsline {figure}{\numberline {3.2}{\ignorespaces Page d'accueil publique de la plateforme.}}{27}{figure.caption.39}%
+\contentsline {figure}{\numberline {3.3}{\ignorespaces Page de connexion sécurisée de la plateforme.}}{27}{figure.caption.40}%
+\contentsline {figure}{\numberline {3.4}{\ignorespaces Tableau de bord TA après authentification.}}{28}{figure.caption.41}%
+\addvspace {10\p@ }
+\contentsline {figure}{\numberline {4.1}{\ignorespaces Séquence d'upload, d'extraction et d'indexation d'un CV}}{34}{figure.caption.49}%
+\contentsline {figure}{\numberline {4.2}{\ignorespaces Création d'un poste et affectation d'un CV au pipeline candidat}}{36}{figure.caption.51}%
+\contentsline {figure}{\numberline {4.3}{\ignorespaces Page de gestion du vivier de CV.}}{37}{figure.caption.52}%
+\contentsline {figure}{\numberline {4.4}{\ignorespaces Dialogue de consultation détaillée d'un CV.}}{37}{figure.caption.53}%
+\contentsline {figure}{\numberline {4.5}{\ignorespaces Catalogue des offres d'emploi.}}{39}{figure.caption.54}%
+\contentsline {figure}{\numberline {4.6}{\ignorespaces Zone de création ou d'édition d'une offre d'emploi.}}{39}{figure.caption.55}%
+\contentsline {figure}{\numberline {4.7}{\ignorespaces Page détail d'une offre avec candidats associés et résultats de matching.}}{40}{figure.caption.56}%
+\addvspace {10\p@ }
+\contentsline {figure}{\numberline {5.1}{\ignorespaces Diagramme d'états du pipeline candidat}}{45}{figure.caption.62}%
+\contentsline {figure}{\numberline {5.2}{\ignorespaces Séquence de planification, notification et reporting d'un entretien}}{47}{figure.caption.65}%
+\contentsline {figure}{\numberline {5.3}{\ignorespaces Fiche candidat côté Manager.}}{48}{figure.caption.68}%
+\contentsline {figure}{\numberline {5.4}{\ignorespaces Fiche candidat côté RH.}}{49}{figure.caption.69}%
+\contentsline {figure}{\numberline {5.5}{\ignorespaces Interface de planification d'entretien.}}{49}{figure.caption.70}%
+\contentsline {figure}{\numberline {5.6}{\ignorespaces Vue calendrier des entretiens.}}{50}{figure.caption.71}%
+\addvspace {10\p@ }
+\contentsline {figure}{\numberline {6.1}{\ignorespaces Chaîne IA de screening et de génération de guide d'entretien}}{55}{figure.caption.75}%
+\contentsline {figure}{\numberline {6.2}{\ignorespaces Pipeline RAG hybride du projet}}{57}{figure.caption.78}%
+\contentsline {figure}{\numberline {6.3}{\ignorespaces Vue de score IA d'un candidat sur une offre.}}{58}{figure.caption.79}%
+\contentsline {figure}{\numberline {6.4}{\ignorespaces Interface d'Auto-Pilot d'entretien.}}{59}{figure.caption.81}%
+\contentsline {figure}{\numberline {6.5}{\ignorespaces Page statistiques et agent conversationnel.}}{60}{figure.caption.83}%
+\addvspace {10\p@ }
+\contentsline {figure}{\numberline {7.1}{\ignorespaces Chaîne de notification et de journalisation des emails}}{66}{figure.caption.89}%
+\contentsline {figure}{\numberline {7.2}{\ignorespaces Cloche de notification et état de lecture.}}{68}{figure.caption.91}%
+\contentsline {figure}{\numberline {7.3}{\ignorespaces Tableau de bord administrateur.}}{68}{figure.caption.92}%
+\contentsline {figure}{\numberline {7.4}{\ignorespaces Vue analytique administrateur.}}{69}{figure.caption.93}%
+\contentsline {figure}{\numberline {7.5}{\ignorespaces Journal d'activité.}}{70}{figure.caption.94}%
+\contentsline {figure}{\numberline {7.6}{\ignorespaces Suivi de l'onboarding.}}{71}{figure.caption.95}%

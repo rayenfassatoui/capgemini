@@ -1,0 +1,89 @@
+\begin{tikzpicture}[
+  font=\scriptsize,
+  actorname/.style={font=\scriptsize, align=center},
+  usecase/.style={
+    draw=cgblue,
+    thick,
+    ellipse,
+    fill=cglight,
+    align=center,
+    minimum width=2.95cm,
+    minimum height=0.82cm,
+    inner sep=2pt
+  },
+  association/.style={thick, draw=cgdeep},
+  systembox/.style={draw=cgdeep, rounded corners=3pt, thick}
+]
+  \node[actorname] at (0,0.95) {Utilisateur};
+  \draw[thick, draw=cgdeep] (0,0.68) circle (0.15);
+  \draw[thick, draw=cgdeep] (0,0.53) -- (0,-0.02);
+  \draw[thick, draw=cgdeep] (-0.33,0.28) -- (0.33,0.28);
+  \draw[thick, draw=cgdeep] (0,-0.02) -- (-0.28,-0.42);
+  \draw[thick, draw=cgdeep] (0,-0.02) -- (0.28,-0.42);
+  \coordinate (useractor) at (0,0.28);
+
+  \node[actorname] at (0,-0.55) {TA};
+  \draw[thick, draw=cgdeep] (0,-0.82) circle (0.15);
+  \draw[thick, draw=cgdeep] (0,-0.97) -- (0,-1.52);
+  \draw[thick, draw=cgdeep] (-0.33,-1.22) -- (0.33,-1.22);
+  \draw[thick, draw=cgdeep] (0,-1.52) -- (-0.28,-1.92);
+  \draw[thick, draw=cgdeep] (0,-1.52) -- (0.28,-1.92);
+  \coordinate (ta) at (0,-1.22);
+
+  \node[actorname] at (0,-2.12) {Manager};
+  \draw[thick, draw=cgdeep] (0,-2.42) circle (0.15);
+  \draw[thick, draw=cgdeep] (0,-2.57) -- (0,-3.12);
+  \draw[thick, draw=cgdeep] (-0.33,-2.82) -- (0.33,-2.82);
+  \draw[thick, draw=cgdeep] (0,-3.12) -- (-0.28,-3.52);
+  \draw[thick, draw=cgdeep] (0,-3.12) -- (0.28,-3.52);
+  \coordinate (manager) at (0,-2.82);
+
+  \node[actorname] at (0,-3.72) {HR};
+  \draw[thick, draw=cgdeep] (0,-4.02) circle (0.15);
+  \draw[thick, draw=cgdeep] (0,-4.17) -- (0,-4.72);
+  \draw[thick, draw=cgdeep] (-0.33,-4.42) -- (0.33,-4.42);
+  \draw[thick, draw=cgdeep] (0,-4.72) -- (-0.28,-5.12);
+  \draw[thick, draw=cgdeep] (0,-4.72) -- (0.28,-5.12);
+  \coordinate (hr) at (0,-4.42);
+
+  \node[actorname] at (11.55,-2.1) {Admin};
+  \draw[thick, draw=cgdeep] (11.55,-2.38) circle (0.15);
+  \draw[thick, draw=cgdeep] (11.55,-2.53) -- (11.55,-3.08);
+  \draw[thick, draw=cgdeep] (11.22,-2.78) -- (11.88,-2.78);
+  \draw[thick, draw=cgdeep] (11.55,-3.08) -- (11.27,-3.48);
+  \draw[thick, draw=cgdeep] (11.55,-3.08) -- (11.83,-3.48);
+  \coordinate (admin) at (11.55,-2.78);
+
+  \draw[systembox] (1.25,1.25) rectangle (10.6,-5.35);
+  \node[font=\bfseries\scriptsize] at (5.9,1.42) {\projectname{}};
+
+  \node[usecase] (auth) at (3.15,0.55) {S'authentifier\\et accéder par rôle};
+  \node[usecase] (cv) at (3.15,-0.8) {Gérer le\\vivier de CV};
+  \node[usecase] (jobs) at (3.15,-2.05) {Créer et piloter\\les offres};
+
+  \node[usecase] (pipeline) at (5.65,-2.9) {Suivre le pipeline\\candidat};
+  \node[usecase] (interviews) at (5.65,-4.15) {Planifier et évaluer\\les entretiens};
+
+  \node[usecase] (ai) at (8.15,-0.85) {Exploiter l'IA\\matching / chat / RAG};
+  \node[usecase] (governance) at (8.15,-2.75) {Superviser analytics,\\logs et onboarding};
+  \node[usecase] (notify) at (8.15,-4.45) {Recevoir notifications\\et emails};
+
+  \draw[association] (useractor) -- (auth.west);
+
+  \draw[association] (ta) -- (cv.west);
+  \draw[association] (ta) -- (jobs.west);
+  \draw[association] (ta) -- (pipeline.west);
+  \draw[association] (ta) -- (ai.west);
+
+  \draw[association] (manager) -- (pipeline.west);
+  \draw[association] (manager) -- (interviews.west);
+  \draw[association] (manager) -- (ai.west);
+
+  \draw[association] (hr) -- (pipeline.west);
+  \draw[association] (hr) -- (interviews.west);
+  \draw[association] (hr) -- (notify.west);
+
+  \draw[association] (admin) -- (ai.east);
+  \draw[association] (admin) -- (governance.east);
+  \draw[association] (admin) -- (notify.east);
+\end{tikzpicture}

@@ -1,0 +1,20 @@
+\begin{tikzpicture}[node distance=0.9cm and 1.1cm, font=\small]
+  \node[actor] (user) {Utilisateur};
+  \node[box, right=2.4cm of user] (route) {Route SSE\\\sourcecode{/api/chat/statistics}};
+  \node[box, right=of route] (context) {Contexte\\session + rôle + historique};
+  \node[box, below=of context] (tools) {Filtrage outils\\par rôle};
+  \node[box, below=of route] (llm) {Boucle agentique\\max 8 étapes};
+  \node[box, right=of llm] (exec) {Exécution outil\\RBAC + Zod};
+  \node[database, below=of exec] (db) {Base\\données};
+  \node[box, below=of llm] (ground) {Sanitization + grounding\\des réponses};
+
+  \draw[line] (user) -- (route);
+  \draw[line] (route) -- (context);
+  \draw[line] (context) -- (tools);
+  \draw[line] (tools) -- (llm);
+  \draw[line] (llm) -- (exec);
+  \draw[line] (exec) -- (db);
+  \draw[line] (db.west) -| (llm.south);
+  \draw[line] (llm) -- (ground);
+  \draw[line] (ground.west) -| (user.south);
+\end{tikzpicture}

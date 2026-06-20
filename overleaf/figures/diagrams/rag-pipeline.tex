@@ -1,0 +1,19 @@
+\begin{tikzpicture}[node distance=0.8cm and 0.9cm, font=\small]
+  \node[actor] (user) {Question};
+  \node[box, right=of user] (rewrite) {Query rewrite\\si nécessaire};
+  \node[box, right=of rewrite] (vector) {Vector retrieval\\pgvector};
+  \node[box, below=of vector] (lexical) {Lexical retrieval\\FTS / tsvector};
+  \node[box, right=of lexical] (rrf) {RRF fusion};
+  \node[box, above=of rrf] (rerank) {Rerank\\scoring};
+  \node[box, right=of rerank] (context) {Context assembly\\+ citations};
+  \node[box, below=of context] (answer) {Réponse outillée\\ou contexte LLM};
+
+  \draw[line] (user) -- (rewrite);
+  \draw[line] (rewrite) -- (vector);
+  \draw[line] (rewrite) |- (lexical);
+  \draw[line] (vector) -- (rrf);
+  \draw[line] (lexical) -- (rrf);
+  \draw[line] (rrf) -- (rerank);
+  \draw[line] (rerank) -- (context);
+  \draw[line] (context) -- (answer);
+\end{tikzpicture}

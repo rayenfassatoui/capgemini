@@ -1,0 +1,27 @@
+\begin{tikzpicture}[node distance=0.7cm and 0.8cm, font=\scriptsize]
+  \node[box] (new) {new};
+  \node[box, right=of new] (tas) {ta\_screening};
+  \node[box, right=of tas] (tai) {ta\_interview};
+  \node[box, right=of tai] (taa) {ta\_accepted};
+  \node[box, right=of taa] (mi) {manager\_interview};
+  \node[box, right=of mi] (ma) {manager\_accepted};
+  \node[box, right=of ma] (hi) {hr\_interview};
+  \node[box, right=of hi] (ha) {hr\_accepted};
+  \node[box, right=of ha] (hired) {hired};
+
+  \node[darkbox, below=1cm of tai] (tr) {ta\_rejected};
+  \node[darkbox, below=1cm of ma] (mr) {manager\_rejected};
+  \node[darkbox, below=1cm of ha] (hrr) {hr\_rejected};
+
+  \draw[line] (new) -- (tas);
+  \draw[line] (tas) -- (tai);
+  \draw[line] (tai) -- (taa);
+  \draw[line] (taa) -- (mi);
+  \draw[line] (mi) -- (ma);
+  \draw[line] (ma) -- (hi);
+  \draw[line] (hi) -- (ha);
+  \draw[line] (ha) -- (hired);
+  \draw[line] (tai) -- (tr);
+  \draw[line] (ma) -- (mr);
+  \draw[line] (ha) -- (hrr);
+\end{tikzpicture}

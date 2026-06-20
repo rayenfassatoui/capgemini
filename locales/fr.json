@@ -30,7 +30,8 @@
     "analytics": "Analytiques",
     "emails": "Emails envoyes",
     "onboarding": "Integration",
-    "settings": "Parametres"
+    "settings": "Parametres",
+    "agent": "Agent IA"
   },
   "dashboard": {
     "title": "Centre de Commande Recrutement",

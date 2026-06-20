@@ -30,7 +30,8 @@
     "analytics": "Analytics",
     "emails": "Email Logs",
     "onboarding": "Onboarding",
-    "settings": "Settings"
+    "settings": "Settings",
+    "agent": "AI Agent"
   },
   "dashboard": {
     "title": "Recruitment Command Center",

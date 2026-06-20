@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useRef, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
@@ -117,9 +117,20 @@ function EmptyState({
           Recruitment Intelligence
         </h1>
         <p className="text-[15px] font-medium text-muted-foreground leading-[1.6]">
-          A high-end analysis engine. Submit a query or upload a CV to begin
-          evaluation.
+          Ask for CV matching, pipeline analysis, job requirement review, or
+          interview kits. The agent keeps history and can process PDF or DOCX
+          files when you need document-level reasoning.
         </p>
+        <div className="flex flex-wrap justify-center gap-2 pt-1">
+          {["CV-aware", "Role-aware", "Tool trace", "Reports"].map((label) => (
+            <span
+              key={label}
+              className="rounded-full border border-border bg-card px-2.5 py-1 text-[11px] font-medium text-muted-foreground"
+            >
+              {label}
+            </span>
+          ))}
+        </div>
       </motion.div>
 
       <div className="flex flex-col gap-2.5 w-full max-w-120 mt-4">

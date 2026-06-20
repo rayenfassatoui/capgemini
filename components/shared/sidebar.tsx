@@ -33,6 +33,7 @@ import {
   IconActivity,
   IconSettings,
   IconMail,
+  IconMessageChatbot,
   IconUserCheck,
   IconChevronsLeft,
   IconChevronsRight,
@@ -97,6 +98,12 @@ const NAV_ITEMS: Record<UserRole, NavItem[]> = {
   ],
 };
 
+const AGENT_NAV_ITEM: NavItem = {
+  labelKey: "nav.agent",
+  href: "/agent",
+  icon: IconMessageChatbot,
+};
+
 const ROLE_LABELS: Record<UserRole, string> = {
   ta: "Talent Acquisition",
   manager: "Manager",
@@ -129,7 +136,7 @@ function SidebarContent({
   const pathname = usePathname();
   const { theme, setTheme } = useTheme();
   const { locale, setLocale, t } = useI18n();
-  const navItems = NAV_ITEMS[role] ?? NAV_ITEMS.ta;
+  const navItems = [AGENT_NAV_ITEM, ...(NAV_ITEMS[role] ?? NAV_ITEMS.ta)];
   const roleLabel = ROLE_LABELS[role] ?? "Talent Acquisition";
   // Prevents hydration mismatch: theme is unknown on the server.
   // We defer all theme-dependent rendering until after mount.

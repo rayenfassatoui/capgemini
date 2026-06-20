@@ -1,0 +1,249 @@
+\chapter{Module 3 : pipeline candidat et gestion des entretiens}
+
+\section*{Introduction}
+\addcontentsline{toc}{section}{Introduction}
+Une fois les CV structurés et les offres définies, la valeur du produit se déplace vers le pilotage du processus de recrutement lui-même. Ce troisième module met en place la colonne vertébrale procédurale de \projectname{} : faire progresser un candidat dans un pipeline explicite, assigner les bons évaluateurs au bon moment, planifier les entretiens, formaliser les décisions et préparer la transition vers l'onboarding.
+
+Ce module est central dans l'architecture du projet, car il relie les objets documentaires du sprint précédent aux futurs apports IA. C'est ici que les changements d'état, les rapports, les affectations et les décisions deviennent traçables et réexploitables.
+
+\section{Sprint 3 : objectif et périmètre}
+
+\subsection{Objectif du sprint}
+L'objectif est de transformer un CV affecté à une offre en un candidat piloté de bout en bout dans un workflow de recrutement multi-rôles. Il s'agit plus précisément de mettre en place :
+\begin{itemize}
+  \item un pipeline candidat explicite ;
+  \item l'assignation progressive des responsabilités entre TA, Manager et RH ;
+  \item la planification des entretiens ;
+  \item la saisie de rapports structurés ;
+  \item la prise de décision à chaque étape ;
+  \item la transition finale vers le statut \sourcecode{hired} et l'onboarding.
+\end{itemize}
+
+Cette partie est essentielle, car les screenings, les guides d'entretien, l'autopilot et les futurs \textit{insights} n'ont de sens que s'ils s'insèrent dans un pipeline métier clairement défini.
+
+Le sprint répond aussi à un enjeu de gouvernance humaine : plusieurs rôles interviennent successivement sur un même dossier, et chacun doit pouvoir agir dans un cadre clair sans perdre l'historique des décisions déjà prises.
+
+\subsection{Backlog du sprint}
+\begin{table}[H]
+  \centering
+  \caption{Backlog fonctionnel du module pipeline candidat et entretiens}
+  \begin{tabularx}{\textwidth}{>{\bfseries}p{1.3cm}p{3cm}X>{\raggedright\arraybackslash}p{2cm}}
+    \toprule
+    ID & Thème & User Story & Statut \\
+    \midrule
+    15 & Affectation candidat & En tant que TA, je peux affecter un CV à une offre afin de créer un candidat dans le pipeline. & Réalisé \\
+    16 & Progression de stage & En tant que recruteur, je peux faire évoluer un candidat d'une étape à une autre. & Réalisé \\
+    17 & Assignation Manager & En tant que TA, je peux affecter un candidat à un manager pour l'étape managériale. & Réalisé \\
+    18 & Assignation RH & En tant que manager, je peux transférer un candidat accepté vers un RH identifié. & Réalisé \\
+    19 & Planification d'entretien & En tant qu'évaluateur, je peux planifier un entretien avec date, heure et lien de réunion. & Réalisé \\
+    20 & Rapport d'entretien & En tant qu'évaluateur, je peux enregistrer un rapport structuré avec score, notes et décision. & Réalisé \\
+    21 & Calendrier & En tant que TA, je peux consulter un calendrier consolidé des entretiens. & Réalisé \\
+    22 & Décision RH & En tant que RH, je peux accepter, rejeter ou marquer un candidat comme hired. & Réalisé \\
+    23 & Onboarding & En tant que système, je peux initialiser une checklist d'onboarding pour un candidat embauché. & Réalisé \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+Ce backlog couvre toute la circulation du candidat : création, coordination, entretien, décision finale et prolongement post-recrutement.
+
+\section{Implémentation du sprint}
+
+\subsection{Analyse du sprint}
+Le sprint s'appuie principalement sur les éléments fonctionnels suivants :
+\begin{itemize}
+  \item le service de gestion du pipeline candidat ;
+  \item le service de planification, d'agenda et de calendrier des entretiens ;
+  \item le service de rapports d'entretien et de décisions ;
+  \item le service de checklist d'onboarding après embauche ;
+  \item le parcours manager, avec sa liste de candidats et sa vue de détail ;
+  \item le parcours RH, avec sa liste de candidats et sa vue de détail ;
+  \item la vue calendrier et le composant de coordination transverse des entretiens ;
+  \item l'interface d'évaluation détaillée côté manager ;
+  \item l'interface d'évaluation détaillée côté RH.
+\end{itemize}
+
+Ce module organise la circulation d'un candidat à travers plusieurs responsabilités humaines, chacune avec ses propres décisions et ses propres données. Il ne s'agit donc pas d'une simple vue de candidatures reçues, mais du moteur procédural du recrutement.
+
+\subsection{Vue fonctionnelle globale}
+Les usages couverts se regroupent en quatre blocs :
+\begin{enumerate}
+  \item \textbf{Création et suivi du candidat} : affecter un CV à une offre, créer un candidat et suivre son état dans le pipeline.
+  \item \textbf{Coordination des rôles} : assigner un Manager, assigner un RH et exposer à chaque rôle uniquement les candidats qui lui sont confiés.
+  \item \textbf{Gestion des entretiens} : planifier un entretien, envoyer une invitation, marquer un entretien comme complété et consulter le calendrier consolidé.
+  \item \textbf{Décision et clôture} : enregistrer un rapport, accepter ou rejeter un candidat, le marquer comme \sourcecode{hired} et initialiser l'onboarding.
+\end{enumerate}
+
+Cette structuration montre que le produit orchestre désormais un processus collaboratif complet, et non plus seulement la gestion d'objets documentaires.
+
+\subsection{Cycle de vie du candidat}
+Le pipeline est formalisé dans le schéma de données via une suite d'états explicites. Le candidat peut progresser selon le chemin principal suivant :
+\begin{center}
+\sourcecode{new} $\rightarrow$ \sourcecode{ta\_screening} $\rightarrow$ \sourcecode{ta\_interview} $\rightarrow$ \sourcecode{ta\_accepted} $\rightarrow$ \sourcecode{manager\_interview} $\rightarrow$ \sourcecode{manager\_accepted} $\rightarrow$ \sourcecode{hr\_interview} $\rightarrow$ \sourcecode{hr\_accepted} $\rightarrow$ \sourcecode{hired}
+\end{center}
+
+À cette trajectoire s'ajoutent les branches de rejet \sourcecode{ta\_rejected}, \sourcecode{manager\_rejected} et \sourcecode{hr\_rejected}. Cette modélisation est importante, car elle montre que le processus de recrutement n'est pas implicite : chaque étape porte un sens métier, une responsabilité et des données associées.
+
+Elle permet également d'éviter l'ambiguïté organisationnelle : lorsqu'un candidat se trouve dans un état donné, la plateforme sait quels acteurs sont concernés, quelles actions sont permises et quelles informations doivent être affichées.
+\paragraph{Tableau de transitions du pipeline candidat.}
+La logique d'état peut être synthétisée par le tableau suivant :
+
+\begin{table}[H]
+  \centering
+  \caption{Transitions principales du pipeline candidat}
+  \begin{tabularx}{\textwidth}{>{\bfseries}p{2.4cm}p{2.8cm}X X}
+    \toprule
+    État courant & Acteur responsable & Action principale & État suivant possible \\
+    \midrule
+    \sourcecode{new} & TA & analyser le profil et lancer la présélection & \sourcecode{ta\_screening} \\
+    \sourcecode{ta\_screening} & TA & planifier ou conclure l'évaluation initiale & \sourcecode{ta\_interview}, \sourcecode{ta\_rejected} \\
+    \sourcecode{ta\_interview} & TA & enregistrer le rapport d'entretien TA & \sourcecode{ta\_accepted}, \sourcecode{ta\_rejected} \\
+    \sourcecode{ta\_accepted} & TA & affecter un manager & \sourcecode{manager\_interview} \\
+    \sourcecode{manager\_interview} & Manager & conduire l'entretien manager & \sourcecode{manager\_accepted}, \sourcecode{manager\_rejected} \\
+    \sourcecode{manager\_accepted} & Manager & affecter un RH pour validation finale & \sourcecode{hr\_interview} \\
+    \sourcecode{hr\_interview} & RH & conclure l'entretien RH et décider & \sourcecode{hr\_accepted}, \sourcecode{hr\_rejected} \\
+    \sourcecode{hr\_accepted} & RH & valider l'embauche & \sourcecode{hired} \\
+    \sourcecode{hired} & RH / Admin & déclencher et suivre l'onboarding & tâches d'intégration actives \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+Ce tableau rend explicite un point important : chaque transition correspond à une responsabilité humaine identifiable. Le pipeline n'est donc pas seulement une suite de statuts techniques, mais une représentation formalisée du processus de décision du recrutement.
+
+
+\begin{figure}[H]
+  \centering
+  \diagraminput{figures/diagrams/candidate-state-diagram}
+  \caption{Diagramme d'états du pipeline candidat}
+\end{figure}
+
+\subsection{Affectation progressive des responsabilités}
+Le service \sourcecode{assignManagerToCandidate()} positionne explicitement \sourcecode{assignedManagerId} et fait passer le candidat à l'état \sourcecode{manager\_interview}. De même, \sourcecode{assignHrToCandidate()} renseigne \sourcecode{assignedHrId} et fait passer le candidat à l'état \sourcecode{hr\_interview}. Au lieu de laisser les responsabilités flotter de manière implicite, le système associe chaque étape clé à un acteur identifié, ce qui améliore la gouvernance du pipeline et la traçabilité des décisions.
+
+Cette approche réduit le risque de zone grise fréquent dans les recrutements, où un candidat change de main sans que la responsabilité opérationnelle soit clairement matérialisée dans l'outil.
+\paragraph{Matrice synthétique des rôles.}
+La répartition des responsabilités peut être résumée de la manière suivante :
+
+\begin{table}[H]
+  \centering
+  \caption{Rôles et responsabilités dans le pipeline candidat}
+  \begin{tabularx}{\textwidth}{>{\bfseries}p{2cm}X X X}
+    \toprule
+    Rôle & Données principalement visibles & Décisions possibles & Responsabilité principale \\
+    \midrule
+    TA & CV, offres, candidats en entrée de pipeline, agenda initial & affecter un CV, planifier l'entretien TA, rejeter en amont, transmettre au manager & ouvrir et qualifier le dossier candidat \\
+    Manager & candidats affectés, rapports TA, guide manager, entretien managérial & accepter, rejeter, transférer vers un RH & produire la décision d'évaluation métier ou technique \\
+    RH & candidat finaliste, rapports antérieurs, entretien RH, email de décision, onboarding & accepter, rejeter, marquer comme \sourcecode{hired} & formaliser la décision finale et prolonger vers l'intégration \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+Cette matrice montre que la plateforme ne distribue pas seulement des écrans différents. Elle distribue des périmètres d'action distincts, ce qui permet d'aligner l'outil sur l'organisation réelle du recrutement.
+
+
+\subsection{Planification d'un entretien}
+Le service \sourcecode{scheduleInterview()} valide les données d'entrée, crée l'entretien, aligne l'état du candidat sur le niveau concerné, puis déclenche les mécanismes de notification et de log associés. Ensuite, selon l'interface utilisée, un email peut être envoyé au candidat via \sourcecode{sendInterviewEmailAction()}.
+
+Le flux général est le suivant : choix du candidat et de l'étape, saisie de la date, de l'heure et du lien de réunion, création de l'entretien, éventuelle mise à jour du stage, envoi de l'invitation puis suivi jusqu'à \sourcecode{completed} ou \sourcecode{cancelled}.
+
+Ce flux couple donc opérationnel et traçabilité : chaque entretien planifié est à la fois un événement métier, un objet d'agenda et une source future de reporting.
+
+\begin{figure}[H]
+  \centering
+  \diagraminput{figures/diagrams/interview-sequence}
+  \caption{Séquence de planification, notification et reporting d'un entretien}
+\end{figure}
+
+\subsection{Rapports d'entretien et transition vers l'onboarding}
+Le service \sourcecode{saveInterviewReport()} enregistre un rapport structuré contenant notamment l'identifiant de l'entretien, le candidat, l'étape, les notes, les réponses du candidat, l'évaluation globale, le score et la décision. Cette structure transforme un entretien en objet exploitable, comparable et réutilisable.
+
+Lorsque le candidat atteint l'état \sourcecode{hired}, le système crée automatiquement une checklist par défaut via \sourcecode{createOnboardingChecklist()}. La plateforme ne s'arrête donc pas à la décision finale ; elle prolonge le suivi au-delà du recrutement.
+
+L'entretien n'est plus une simple discussion suivie d'un avis informel. Il devient une production de données métier structurées, reliées à une étape précise et réexploitables plus tard dans l'analyse globale du recrutement.
+
+\paragraph{Règles métier structurantes.}
+Plusieurs règles implicites du workflow méritent d'être formulées explicitement. Un manager n'intervient qu'après qualification initiale par TA. Le transfert vers le RH n'a de sens que si l'évaluation managériale a abouti à un avis positif. Le statut \sourcecode{hired} ne doit être atteint qu'au terme de la validation RH. Enfin, l'onboarding ne démarre qu'après cette décision finale, afin d'éviter toute ouverture prématurée d'un suivi d'intégration.
+
+Ces règles sont importantes pour la robustesse métier du système : elles empêchent qu'un candidat progresse de manière incohérente dans le pipeline et garantissent que chaque étape repose sur une décision antérieure traçable.
+
+\paragraph{Scénario end-to-end candidat.}
+Le scénario métier central part d'un CV affecté à une offre. Le TA qualifie le dossier, planifie ou conclut une première étape, puis transmet le candidat au Manager si le profil est retenu. Le Manager produit ensuite une évaluation structurée et peut transférer le dossier vers un RH. Le RH formalise la décision finale, envoie la communication nécessaire et déclenche l'état \sourcecode{hired} lorsque l'embauche est validée. Ce scénario montre que le module ne se limite pas à changer un statut : il organise la responsabilité, la preuve et la continuité du dossier candidat.
+
+\section{Réalisation}
+
+\subsection{Vue Manager}
+La vue manager charge uniquement les candidats affectés au manager courant dans les états \sourcecode{manager\_interview}, \sourcecode{manager\_accepted} et \sourcecode{manager\_rejected}. La page détail récupère ensuite le candidat, les rapports TA, le guide d'entretien manager, l'entretien manager courant, la liste des RH et le guide autopilot si disponible.
+
+Le composant \sourcecode{ManagerCandidateDetailClient} organise l'évaluation en étapes successives : génération des questions d'entretien, édition et sauvegarde des questions, planification de l'entretien, envoi de l'email, marquage de l'entretien comme complété, saisie du rapport puis décision finale de rejet ou de transfert vers un RH identifié.
+
+Cette logique reflète bien le rôle du manager dans le produit : il ne se contente pas de visualiser un profil, il produit une décision structurée sur la base d'un dossier enrichi.
+
+\begin{figure}[H]
+  \centering
+  \screenshotplaceholder{Manager candidate review}
+  \caption{Fiche candidat côté Manager.}
+\end{figure}
+
+\subsection{Vue RH}
+La vue RH charge les candidats assignés au RH courant dans les états \sourcecode{hr\_interview}, \sourcecode{hr\_accepted}, \sourcecode{hr\_rejected} et \sourcecode{hired}. La page détail agrège le candidat, les rapports précédents TA et Manager, le guide RH, l'entretien RH courant et l'autopilot RH.
+
+Le composant \sourcecode{HRCandidateDetailClient} ouvre alors plusieurs actions : consultation des rapports antérieurs, planification optionnelle d'une réunion RH, marquage de la réunion comme complétée, décision \sourcecode{hr\_accepted} ou \sourcecode{hr\_rejected}, génération IA d'un email de décision, envoi de cet email et passage au statut \sourcecode{hired}.
+
+Cette étape montre bien que le RH joue à la fois un rôle décisionnel et un rôle de communication formelle avec le candidat.
+
+\begin{figure}[H]
+  \centering
+  \screenshotplaceholder{HR decision page}
+  \caption{Fiche candidat côté RH.}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \screenshotplaceholder{Interview scheduling UI}
+  \caption{Interface de planification d'entretien.}
+\end{figure}
+
+\subsection{Calendrier et coordination transverse}
+La vue calendrier donne accès à \sourcecode{CalendarView}, qui fournit une vue consolidée des entretiens. Le service \sourcecode{getInterviewCalendar()} récupère les entretiens d'un utilisateur sur une plage de dates, ce qui permet une lecture plus large que la simple liste journalière. Cette vue complète les pages de détail candidat et offre une lecture transversale de la charge de recrutement.
+
+Elle apporte une vision organisationnelle souvent absente des outils simplifiés : voir le recrutement non seulement candidat par candidat, mais aussi comme une activité collective à synchroniser entre plusieurs agendas et plusieurs étapes.
+
+\begin{figure}[H]
+  \centering
+  \screenshotplaceholder{Calendar}
+  \caption{Vue calendrier des entretiens.}
+\end{figure}
+
+\subsection{Mémoire opérationnelle du processus}
+Ce module introduit la mémoire procédurale du recrutement. Les rapports, décisions, états d'entretien, notifications et tâches d'onboarding forment ensemble une trace continue de ce qui s'est passé. Cette matière sera réexploitée ensuite par les modules IA pour produire des débriefings, des recommandations et des exports de décision.
+
+La mémoire produite ici a donc une double fonction : sécuriser le pilotage humain du processus et alimenter les futures couches d'analyse et de synthèse.
+
+\subsection{Articulation avec les modules IA}
+Même si le chapitre suivant détaille davantage l'intelligence artificielle, ce sprint prépare déjà plusieurs usages concrets :
+\begin{itemize}
+  \item les guides d'entretien sont récupérés et affichés selon l'étape du pipeline ;
+  \item les vues Manager et HR intègrent l'\sourcecode{InterviewAutoPilotGuideView} lorsque le guide est disponible ;
+  \item les rapports d'entretien fournissent la matière nécessaire aux débriefings, synthèses et recommandations futures ;
+  \item la structure du pipeline permet de contextualiser les décisions, les transitions et les prochaines actions.
+\end{itemize}
+
+Autrement dit, ce sprint rend l'IA situationnelle. Les données ne sont plus seulement documentaires : elles sont contextualisées par un moment précis du processus de recrutement. Cette contextualisation permet ensuite à la couche IA de produire une aide plus utile qu'une génération générique, car elle sait à quelle étape se trouve le candidat, quelles décisions ont déjà été prises et quelles questions restent ouvertes.
+
+\section{Apport du module}
+Ce module apporte une contribution structurante au projet :
+\begin{itemize}
+  \item il transforme un CV affecté en candidature pilotée ;
+  \item il explicite les responsabilités de chaque rôle ;
+  \item il donne un cadre formel aux entretiens et aux décisions ;
+  \item il rend les étapes de recrutement traçables et justifiables ;
+  \item il prépare la transition vers l'onboarding ;
+  \item il enrichit fortement la base métier qui sera exploitée par les modules IA.
+\end{itemize}
+
+Dans l'économie générale du rapport, ce module correspond au moment où la plateforme cesse d'être uniquement documentaire pour devenir un système de décision et de coordination.
+
+Cette transformation n'est pas seulement technique. Elle améliore aussi la qualité du recrutement lui-même : meilleure visibilité, responsabilités mieux distribuées, décisions plus explicites et continuité plus forte entre les acteurs.
+
+\section*{Conclusion}
+\addcontentsline{toc}{section}{Conclusion}
+Ce troisième module a donné au produit sa structure procédurale complète : progression du candidat, assignation des rôles, planification des entretiens, rapports, décisions et démarrage de l'onboarding. Il fournit la continuité métier indispensable à une plateforme de recrutement intelligente. Le chapitre suivant s'appuiera sur ce socle pour détailler la couche d'intelligence artificielle, notamment le matching, la recherche sémantique, le RAG et l'assistance agentique.
