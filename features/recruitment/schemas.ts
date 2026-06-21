@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { GOVERNANCE_AUDIT_STATUSES } from './types';
 
 // ---------- Enums ----------
 
@@ -395,3 +396,37 @@ export const statisticsChatRequestSchema = z.object({
   attachments: z.array(chatAttachmentSchema).max(5).optional(),
   confirmation: agentActionConfirmationSchema.optional(),
 });
+
+const optionalGovernanceSearchParam = z.preprocess((value) => {
+  const first = Array.isArray(value) ? value[0] : value;
+  if (typeof first !== 'string') return undefined;
+  const trimmed = first.trim();
+  return trimmed.length > 0 && trimmed !== 'all' ? trimmed : undefined;
+}, z.string().optional());
+
+const governanceDateParam = optionalGovernanceSearchParam.refine(
+  (value) => !value || /^\d{4}-\d{2}-\d{2}$/.test(value),
+  'Date must use YYYY-MM-DD format',
+);
+
+export const governanceAuditFilterSchema = z.object({
+  from: governanceDateParam,
+  to: governanceDateParam,
+  actorId: optionalGovernanceSearchParam,
+  candidateId: optionalGovernanceSearchParam.refine(
+    (value) => !value || z.string().uuid().safeParse(value).success,
+    'Candidate ID must be a UUID',
+  ),
+  action: optionalGovernanceSearchParam,
+  status: optionalGovernanceSearchParam.refine(
+    (value) =>
+      !value ||
+      (GOVERNANCE_AUDIT_STATUSES as readonly string[]).includes(value),
+    'Unsupported governance status',
+  ),
+  limit: z.preprocess((value) => {
+    const first = Array.isArray(value) ? value[0] : value;
+    return first ?? undefined;
+  }, z.coerce.number().int().min(1).max(500).default(200)),
+});
+export type GovernanceAuditFilterSchema = z.infer<typeof governanceAuditFilterSchema>;

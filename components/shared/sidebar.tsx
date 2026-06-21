@@ -31,6 +31,7 @@ import {
   IconLanguage,
   IconCalendar,
   IconActivity,
+  IconShieldCheck,
   IconSettings,
   IconMail,
   IconMessageChatbot,
@@ -87,6 +88,7 @@ const NAV_ITEMS: Record<UserRole, NavItem[]> = {
     },
     { labelKey: "nav.users", href: "/admin", icon: IconUserShield },
     { labelKey: "nav.activity", href: "/admin/activity", icon: IconActivity },
+    { labelKey: "nav.governance", href: "/admin/governance", icon: IconShieldCheck },
     { labelKey: "nav.analytics", href: "/admin/analytics", icon: IconChartBar },
     { labelKey: "nav.emails", href: "/admin/emails", icon: IconMail },
     {

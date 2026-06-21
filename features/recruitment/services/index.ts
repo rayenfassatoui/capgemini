@@ -245,6 +245,17 @@ export type {
 } from "./pending-agent-actions";
 
 export {
+  getGovernanceAuditReport,
+  exportGovernanceAuditCsv,
+} from "./governance";
+export type {
+  GovernanceAuditReport,
+  GovernanceAuditRow,
+  GovernanceAuditFilters,
+  GovernanceAuditOptions,
+} from "./governance-types";
+
+export {
   runEvaluation,
   runComparisonEvaluation,
   printEvalReport,

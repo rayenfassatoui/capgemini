@@ -1,5 +1,18 @@
 export type UserRole = 'ta' | 'manager' | 'hr' | 'admin';
 
+export const GOVERNANCE_AUDIT_STATUSES = [
+  'recorded',
+  'logged',
+  'pending',
+  'confirmed',
+  'cancelled',
+  'expired',
+  'executed',
+  'failed',
+] as const;
+
+export type GovernanceAuditStatus = (typeof GOVERNANCE_AUDIT_STATUSES)[number];
+
 export type CandidateStage =
   | 'new'
   | 'ta_screening'

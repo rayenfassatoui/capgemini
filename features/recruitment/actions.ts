@@ -782,6 +782,18 @@ export async function getEmailLogsAction(limit = 100) {
   return services.getEmailLogs(limit);
 }
 
+export async function getGovernanceAuditReportAction(filters: unknown) {
+  await requireRole(['admin']);
+  const services = await getServices();
+  return services.getGovernanceAuditReport(filters);
+}
+
+export async function exportGovernanceAuditCsvAction(filters: unknown) {
+  await requireRole(['admin']);
+  const services = await getServices();
+  return services.exportGovernanceAuditCsv(filters);
+}
+
 export async function getHiredCandidatesOnboardingAction() {
   await requireRole(['admin']);
   const services = await getServices();
