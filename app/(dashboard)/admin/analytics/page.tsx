@@ -9,9 +9,9 @@ export default async function AdminAnalyticsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Recruitment Analytics</h1>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Recruitment Analytics Governance</h1>
         <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-          Pipeline performance, hiring metrics, and recruitment insights
+          Source-backed pipeline metrics for interpreting hiring performance, bottlenecks, and measurement gaps.
         </p>
       </div>
       <AdminAnalyticsClient analytics={analytics} />

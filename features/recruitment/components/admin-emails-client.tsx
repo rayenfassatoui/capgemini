@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -20,13 +20,21 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { IconSearch, IconMail, IconMailCheck, IconMailX, IconFileSpreadsheet, IconEye } from "@tabler/icons-react";
+import { IconSearch, IconMail, IconMailCheck, IconMailX, IconFileSpreadsheet, IconEye, IconAlertTriangle, IconBrain, IconReportAnalytics } from "@tabler/icons-react";
 import type { EmailLogEntry } from "@/features/recruitment/services/admin";
 import { exportEmailLogsExcelAction } from "@/features/recruitment/actions";
+import { usePathname, useRouter } from "next/navigation";
+import { AdminAgentEvidencePanel } from "./admin-agent-evidence-panel";
+import {
+  buildAdminAgentPrompt,
+  buildEmailAdminEvidence,
+} from "./admin-agent-helpers";
+
 import { toast } from "sonner";
 
 interface AdminEmailsClientProps {
   emails: EmailLogEntry[];
+  initialEmailId: string | null;
 }
 
 const STATUS_STYLES: Record<string, { className: string; icon: typeof IconMail }> = {
@@ -50,10 +58,92 @@ const getStageBadgeColor = (stage: string | null) => {
   return "bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-800 dark:text-gray-300";
 };
 
-export function AdminEmailsClient({ emails }: AdminEmailsClientProps) {
+export function AdminEmailsClient({
+  emails,
+  initialEmailId,
+}: AdminEmailsClientProps) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const [emailId, setEmailId] = useState<string | null>(initialEmailId);
   const [search, setSearch] = useState("");
   const [selectedEmail, setSelectedEmail] = useState<EmailLogEntry | null>(null);
   const [isExporting, setIsExporting] = useState(false);
+  const emailEvidence = buildEmailAdminEvidence(emails);
+  const agentActions = [
+    {
+      label: "Delivery risks",
+      description: "Review failed, unlinked, and stage-less communication rows.",
+      icon: IconAlertTriangle,
+      prompt: buildAdminAgentPrompt({
+        task: "Review email and notification delivery risks. Separate logged delivery facts from inferred risks and call out missing provider/notification evidence.",
+        summary: emailEvidence,
+      }),
+    },
+    {
+      label: "Summarize communications",
+      description: "Create a concise admin communication audit brief.",
+      icon: IconReportAnalytics,
+      prompt: buildAdminAgentPrompt({
+        task: "Summarize recruitment communication logs for an admin. Include sent versus failed counts, unlinked rows, missing evidence, and recommended checks.",
+        summary: emailEvidence,
+      }),
+    },
+    {
+      label: "Source limits",
+      description: "Identify what cannot be proven from email logs alone.",
+      icon: IconBrain,
+      prompt: buildAdminAgentPrompt({
+        task: "Explain the source limits of the email log table. Identify what cannot be inferred about notification delivery, bounce handling, retries, or candidate receipt.",
+        summary: emailEvidence,
+      }),
+    },
+  ] as const;
+
+  const updateEmailQuery = useCallback(
+    (value: string | null) => {
+      setEmailId(value);
+      router.replace(value ? `${pathname}?emailId=${value}` : pathname, {
+        scroll: false,
+      });
+    },
+    [pathname, router],
+  );
+
+  useEffect(() => {
+    if (!emailId) {
+      setSelectedEmail(null);
+      return;
+    }
+
+    const match = emails.find((email) => email.id === emailId);
+    if (match) {
+      setSelectedEmail((current) => (current?.id === match.id ? current : match));
+    }
+  }, [emailId, emails]);
+
+  const handleOpenEmail = useCallback(
+    (email: EmailLogEntry) => {
+      setSelectedEmail(email);
+      if (emailId !== email.id) {
+        updateEmailQuery(email.id);
+      }
+    },
+    [emailId, updateEmailQuery],
+  );
+
+  const handleEmailDialogChange = useCallback(
+    (open: boolean) => {
+      if (!open) {
+        setSelectedEmail(null);
+        if (emailId) {
+          updateEmailQuery(null);
+        }
+      }
+    },
+    [emailId, updateEmailQuery],
+  );
+
+
 
   const filtered = useMemo(() => {
     if (!search) return emails;
@@ -94,7 +184,9 @@ export function AdminEmailsClient({ emails }: AdminEmailsClientProps) {
   };
 
   return (
-    <Card>
+    <div className="space-y-6">
+      <AdminAgentEvidencePanel summary={emailEvidence} actions={agentActions} />
+      <Card>
       <CardHeader>
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <CardTitle className="text-base">
@@ -195,7 +287,7 @@ export function AdminEmailsClient({ emails }: AdminEmailsClientProps) {
                           variant="outline"
                           size="sm"
                           className="h-8 w-8 p-0"
-                          onClick={() => setSelectedEmail(email)}
+                          onClick={() => handleOpenEmail(email)}
                         >
                           <IconEye className="h-4 w-4" />
                           <span className="sr-only">Details</span>
@@ -210,7 +302,7 @@ export function AdminEmailsClient({ emails }: AdminEmailsClientProps) {
         )}
       </CardContent>
 
-      <Dialog open={!!selectedEmail} onOpenChange={(open) => !open && setSelectedEmail(null)}>
+      <Dialog open={!!selectedEmail} onOpenChange={handleEmailDialogChange}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>Email Details</DialogTitle>
@@ -267,6 +359,7 @@ export function AdminEmailsClient({ emails }: AdminEmailsClientProps) {
           )}
         </DialogContent>
       </Dialog>
-    </Card>
+      </Card>
+      </div>
   );
 }

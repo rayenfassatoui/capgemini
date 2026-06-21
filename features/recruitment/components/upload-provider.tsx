@@ -57,13 +57,29 @@ interface UploadContextValue {
 }
 
 const UploadContext = createContext<UploadContextValue | null>(null);
+const EMPTY_UPLOAD_CONTEXT: UploadContextValue = {
+  items: [],
+  isProcessing: false,
+  enqueueFiles: () => {},
+  removeItem: () => {},
+  clearCompleted: () => {},
+  retryFailed: () => {},
+  dismiss: () => {},
+  isWidgetVisible: false,
+};
+
 
 export function useUploadQueue() {
   const ctx = useContext(UploadContext);
-  if (!ctx) {
-    throw new Error('useUploadQueue must be used within <UploadProvider>');
+  if (ctx) {
+    return ctx;
   }
-  return ctx;
+
+  if (typeof window === 'undefined') {
+    return EMPTY_UPLOAD_CONTEXT;
+  }
+
+  throw new Error('useUploadQueue must be used within <UploadProvider>');
 }
 
 // ---------- Constants ----------

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -26,11 +26,17 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
-import { IconSearch, IconFilter, IconFileSpreadsheet, IconEye } from "@tabler/icons-react";
+import { IconSearch, IconFilter, IconFileSpreadsheet, IconEye, IconActivity, IconAlertTriangle, IconBrain } from "@tabler/icons-react";
 import { toast } from "sonner";
 import { exportActivityLogExcelAction } from "@/features/recruitment/actions";
+import { usePathname, useRouter } from "next/navigation";
+import { AdminAgentEvidencePanel } from "./admin-agent-evidence-panel";
+import {
+  buildActivityAdminEvidence,
+  buildAdminAgentPrompt,
+} from "./admin-agent-helpers";
+
 
 interface ActivityEntry {
   id: string;
@@ -47,6 +53,7 @@ interface ActivityEntry {
 
 interface AdminActivityClientProps {
   activityLog: ActivityEntry[];
+  initialActivityId: string | null;
 }
 
 const ACTION_COLORS: Record<string, string> = {
@@ -81,10 +88,93 @@ function getStageColor(stage: string | null): string {
   return "bg-gray-500/10 text-gray-600 border-gray-500/20 dark:text-gray-400";
 }
 
-export function AdminActivityClient({ activityLog }: AdminActivityClientProps) {
+export function AdminActivityClient({
+  activityLog,
+  initialActivityId,
+}: AdminActivityClientProps) {
   const [search, setSearch] = useState("");
+  const router = useRouter();
+  const pathname = usePathname();
+  const [activityId, setActivityId] = useState<string | null>(initialActivityId);
+  const [selectedActivity, setSelectedActivity] = useState<ActivityEntry | null>(null);
   const [entityFilter, setEntityFilter] = useState("all");
   const [isExporting, setIsExporting] = useState(false);
+  const activityEvidence = buildActivityAdminEvidence(activityLog);
+  const agentActions = [
+    {
+      label: "Summarize activity",
+      description: "Produce a source-backed activity brief from loaded rows.",
+      icon: IconActivity,
+      prompt: buildAdminAgentPrompt({
+        task: "Summarize system activity from the loaded admin audit rows. Separate observed events, inferred operational risks, and source limits.",
+        summary: activityEvidence,
+      }),
+    },
+    {
+      label: "Flag audit risks",
+      description: "Review destructive or narrow audit coverage patterns.",
+      icon: IconAlertTriangle,
+      prompt: buildAdminAgentPrompt({
+        task: "Flag audit risks in the loaded activity log. Focus on destructive actions, actor concentration, missing before/after diffs, and incomplete telemetry.",
+        summary: activityEvidence,
+      }),
+    },
+    {
+      label: "Next checks",
+      description: "List safe follow-up checks for platform governance.",
+      icon: IconBrain,
+      prompt: buildAdminAgentPrompt({
+        task: "Create the next governance checks from this activity log. Keep facts separate from inferred risks and avoid inventing unobserved records.",
+        summary: activityEvidence,
+      }),
+    },
+  ] as const;
+
+  const updateActivityQuery = useCallback(
+    (value: string | null) => {
+      setActivityId(value);
+      router.replace(value ? `${pathname}?activityId=${value}` : pathname, {
+        scroll: false,
+      });
+    },
+    [pathname, router],
+  );
+
+  useEffect(() => {
+    if (!activityId) {
+      setSelectedActivity(null);
+      return;
+    }
+
+    const match = activityLog.find((entry) => entry.id === activityId);
+    if (match) {
+      setSelectedActivity((current) => (current?.id === match.id ? current : match));
+    }
+  }, [activityId, activityLog]);
+
+  const handleOpenActivity = useCallback(
+    (entry: ActivityEntry) => {
+      setSelectedActivity(entry);
+      if (activityId !== entry.id) {
+        updateActivityQuery(entry.id);
+      }
+    },
+    [activityId, updateActivityQuery],
+  );
+
+  const handleActivityDialogChange = useCallback(
+    (open: boolean) => {
+      if (!open) {
+        setSelectedActivity(null);
+        if (activityId) {
+          updateActivityQuery(null);
+        }
+      }
+    },
+    [activityId, updateActivityQuery],
+  );
+
+
 
   const entityTypes = useMemo(() => {
     const types = new Set(activityLog.map((a) => a.entityType));
@@ -134,7 +224,9 @@ export function AdminActivityClient({ activityLog }: AdminActivityClientProps) {
   };
 
   return (
-    <Card>
+    <div className="space-y-6">
+      <AdminAgentEvidencePanel summary={activityEvidence} actions={agentActions} />
+      <Card>
       <CardHeader>
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <CardTitle className="text-base">All Activity ({filtered.length})</CardTitle>
@@ -235,77 +327,15 @@ export function AdminActivityClient({ activityLog }: AdminActivityClientProps) {
                       </span>
                     </TableCell>
                     <TableCell>
-                      <Dialog>
-                        <DialogTrigger render={
-                          <Button variant="outline" size="sm" className="h-8 w-8 p-0">
-                            <IconEye className="h-4 w-4" />
-                          </Button>
-                        } />
-                        <DialogContent>
-                          <DialogHeader>
-                            <DialogTitle>Activity Details</DialogTitle>
-                            <DialogDescription>
-                              Complete information about this activity log entry.
-                            </DialogDescription>
-                          </DialogHeader>
-                          <div className="grid gap-4 py-4">
-                            <div className="grid grid-cols-4 items-center gap-4">
-                              <span className="font-medium text-sm text-right">User</span>
-                              <div className="col-span-3 flex flex-col">
-                                <span className="text-sm font-medium">{entry.userName}</span>
-                                <span className="text-xs text-muted-foreground">{entry.userEmail}</span>
-                              </div>
-                            </div>
-                            <div className="grid grid-cols-4 items-center gap-4">
-                              <span className="font-medium text-sm text-right">Action</span>
-                              <div className="col-span-3">
-                                <Badge variant="outline" className={getActionColor(entry.action)}>
-                                  {entry.action}
-                                </Badge>
-                              </div>
-                            </div>
-                            <div className="grid grid-cols-4 items-center gap-4">
-                              <span className="font-medium text-sm text-right">Entity</span>
-                              <div className="col-span-3 flex flex-col">
-                                <span className="text-sm capitalize">{entry.entityType}</span>
-                                {entry.entityId && (
-                                  <span className="text-xs text-muted-foreground font-mono">
-                                    ID: {entry.entityId}
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                            {entry.candidateStage && (
-                              <div className="grid grid-cols-4 items-center gap-4">
-                                <span className="font-medium text-sm text-right">Stage</span>
-                                <div className="col-span-3">
-                                  <Badge variant="outline" className={getStageColor(entry.candidateStage)}>
-                                    {entry.candidateStage}
-                                  </Badge>
-                                </div>
-                              </div>
-                            )}
-                            <div className="grid grid-cols-4 gap-4">
-                              <span className="font-medium text-sm text-right pt-1">Details</span>
-                              <div className="col-span-3">
-                                <p className="text-sm text-muted-foreground whitespace-pre-wrap">
-                                  {entry.details || "No additional details provided."}
-                                </p>
-                              </div>
-                            </div>
-                            <div className="grid grid-cols-4 items-center gap-4">
-                              <span className="font-medium text-sm text-right">Timestamp</span>
-                              <div className="col-span-3">
-                                <span className="text-sm text-muted-foreground tabular-nums">
-                                  {entry.createdAt
-                                    ? new Date(entry.createdAt).toLocaleString()
-                                    : "Unknown"}
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-                        </DialogContent>
-                      </Dialog>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-8 w-8 p-0"
+                        onClick={() => handleOpenActivity(entry)}
+                      >
+                        <IconEye className="h-4 w-4" />
+                        <span className="sr-only">Details</span>
+                      </Button>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -314,6 +344,78 @@ export function AdminActivityClient({ activityLog }: AdminActivityClientProps) {
           </div>
         )}
       </CardContent>
-    </Card>
+      </Card>
+
+      <Dialog open={!!selectedActivity} onOpenChange={handleActivityDialogChange}>
+        <DialogContent>
+          {selectedActivity && (
+            <>
+              <DialogHeader>
+                <DialogTitle>Activity Details</DialogTitle>
+                <DialogDescription>
+                  Complete information about this activity log entry.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="grid gap-4 py-4">
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <span className="font-medium text-sm text-right">User</span>
+                  <div className="col-span-3 flex flex-col">
+                    <span className="text-sm font-medium">{selectedActivity.userName}</span>
+                    <span className="text-xs text-muted-foreground">{selectedActivity.userEmail}</span>
+                  </div>
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <span className="font-medium text-sm text-right">Action</span>
+                  <div className="col-span-3">
+                    <Badge variant="outline" className={getActionColor(selectedActivity.action)}>
+                      {selectedActivity.action}
+                    </Badge>
+                  </div>
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <span className="font-medium text-sm text-right">Entity</span>
+                  <div className="col-span-3 flex flex-col">
+                    <span className="text-sm capitalize">{selectedActivity.entityType}</span>
+                    {selectedActivity.entityId && (
+                      <span className="text-xs text-muted-foreground font-mono">
+                        ID: {selectedActivity.entityId}
+                      </span>
+                    )}
+                  </div>
+                </div>
+                {selectedActivity.candidateStage && (
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <span className="font-medium text-sm text-right">Stage</span>
+                    <div className="col-span-3">
+                      <Badge variant="outline" className={getStageColor(selectedActivity.candidateStage)}>
+                        {selectedActivity.candidateStage}
+                      </Badge>
+                    </div>
+                  </div>
+                )}
+                <div className="grid grid-cols-4 gap-4">
+                  <span className="font-medium text-sm text-right pt-1">Details</span>
+                  <div className="col-span-3">
+                    <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+                      {selectedActivity.details || "No additional details provided."}
+                    </p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <span className="font-medium text-sm text-right">Timestamp</span>
+                  <div className="col-span-3">
+                    <span className="text-sm text-muted-foreground tabular-nums">
+                      {selectedActivity.createdAt
+                        ? new Date(selectedActivity.createdAt).toLocaleString()
+                        : "Unknown"}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+    </div>
   );
 }

@@ -93,11 +93,10 @@ Cette combinaison évite de dépendre d'un seul mécanisme. Certaines requêtes 
 \end{figure}
 
 \subsection{Agent conversationnel et garde-fous}
-L'agent conversationnel accessible depuis la zone statistique s'appuie sur un registre de plus de cinquante outils répartis en catégories : CV Pool, Jobs, Candidates, Matching, Interviews, AI Features, Communication, Dashboard et Admin. Le registre des outils centralise les définitions, la validation Zod, l'exécution et le filtrage RBAC par rôle.
-
-Le projet ne laisse cependant pas l'agent répondre librement sur des personnes qu'il n'a pas effectivement résolues. Le mécanisme de grounding reconstruit l'ensemble de candidats autorisés à partir des résultats d'outils et valide les noms présents dans la réponse finale. Cette logique complète les garde-fous définis dans la couche d'orchestration du chat analytique : nombre maximal d'étapes, volume de sortie, timeout et seuil d'échec d'outils.
-
-Ces garde-fous répondent à une exigence forte du domaine RH : une réponse fluide mais non justifiée peut être plus dangereuse qu'une absence de réponse. Le système préfère donc encadrer l'agent plutôt que maximiser artificiellement sa liberté de génération.
+L'agent conversationnel ne se limite plus à une simple fenêtre de chat sur la page statistique. Il suit désormais un schéma hybride : une assistance flottante reste disponible dans les espaces métier pour les demandes rapides, tandis qu'un workspace dédié \sourcecode{/agent} prend en charge les analyses longues, les traces d'exécution, les pièces jointes et l'historique conversationnel complet.
+Sur le plan technique, cet agent s'appuie sur un registre de plus de cinquante outils répartis en catégories : CV Pool, Jobs, Candidates, Matching, Interviews, AI Features, Communication, Dashboard et Admin. Le registre centralise les définitions, la validation Zod, l'exécution et le filtrage RBAC par rôle.
+Le projet ne laisse cependant pas l'agent répondre librement sur des personnes qu'il n'a pas effectivement résolues. Le mécanisme de grounding reconstruit l'ensemble de candidats autorisés à partir des résultats d'outils et valide les noms présents dans la réponse finale. Cette logique complète les garde-fous définis dans la couche d'orchestration : nombre maximal d'étapes, volume de sortie, timeout, seuil d'échec d'outils et séparation explicite entre faits observés et recommandations.
+Ces garde-fous répondent à une exigence forte du domaine RH : une réponse fluide mais non justifiée peut être plus dangereuse qu'une absence de réponse. Le système préfère donc encadrer l'agent, afficher sa \textit{evidence trace} et pointer ses limites plutôt que maximiser artificiellement sa liberté de génération.
 
 \section{Vue dynamique}
 
@@ -180,23 +179,17 @@ L'IA n'est donc pas utilisée seulement pour retrouver ou classer, mais aussi po
   \caption{Interface d'Auto-Pilot d'entretien.}
 \end{figure}
 
-\subsection{Page statistiques et chat analytique}
-La page statistique du recruteur charge les statistiques du vivier, les statistiques des jobs et les \textit{smart insights}. Le composant \sourcecode{StatisticsChat} complète cette vue par une interaction conversationnelle SSE. Ce chat n'est pas décoratif : il ouvre un accès agentique aux données du système, avec mémoire conversationnelle, outils filtrés par rôle et exécution traçable.
-
-Cette page matérialise l'objectif du projet : donner aux recruteurs un accès naturel à une intelligence réellement branchée sur les données internes.
-\paragraph{Impact métier pour le recruteur.}
+\subsection{Page statistiques, workspace agentique et réponses sourcées}
+La page statistique du recruteur charge les statistiques du vivier, les statistiques des jobs et les \textit{smart insights}. Le composant \sourcecode{StatisticsChat} complète cette vue par une interaction conversationnelle SSE, mais il n'est plus seul : la navigation expose aussi une page \sourcecode{/agent} plein écran conçue pour les analyses longues, la consultation de l'historique et les traces détaillées.
+Cette couche conversationnelle n'est pas décorative. Elle ouvre un accès agentique aux données du système, avec mémoire conversationnelle, outils filtrés par rôle, exécution traçable et prompts contextuels injectés depuis les pages métier. Les boutons \textit{Ask Agent} disséminés dans le vivier, les offres, les fiches Manager, les fiches RH et les surfaces Admin réutilisent les données du contexte courant pour préremplir la demande.
 Du point de vue métier, l'apport du sprint est concret. La recherche sémantique réduit l'effort de repérage des profils proches, le RAG améliore la justification des réponses complexes, et le chat agentique réduit le coût de navigation entre plusieurs écrans spécialisés. Le recruteur ne gagne donc pas seulement en rapidité ; il gagne aussi en lisibilité sur les raisons qui conduisent à une recommandation, un classement ou une synthèse.
-
-
 \begin{figure}[H]
   \centering
   \screenshotplaceholder{AI chat/statistics}
-  \caption{Page statistiques et agent conversationnel.}
+  \caption{Page statistiques, assistant flottant et workspace agentique.}
 \end{figure}
-
 \subsection{Fonctionnement détaillé du chat analytique}
 Le chat du projet n'est pas un simple champ de texte connecté à un LLM. Il constitue une interface de pilotage qui permet à l'utilisateur autorisé de poser des questions métier directement sur l'état réel de la plateforme. Un recruteur peut par exemple demander un résumé du vivier, interroger la répartition des jobs, rechercher des candidats correspondant à un besoin précis ou demander une comparaison appuyée sur les données disponibles.
-
 Son fonctionnement repose sur plusieurs briques coordonnées :
 \begin{itemize}
   \item l'authentification de l'utilisateur avant tout échange ;
@@ -204,12 +197,11 @@ Son fonctionnement repose sur plusieurs briques coordonnées :
   \item la sélection dynamique des outils accessibles selon le rôle ;
   \item l'appel à des services métier réels plutôt qu'à une génération libre ;
   \item la diffusion progressive de la réponse en SSE ;
-  \item l'enregistrement des conversations et des messages dans \sourcecode{chat\_conversations} et \sourcecode{chat\_messages}.
+  \item l'enregistrement des conversations et des messages dans \sourcecode{chat\_conversations} et \sourcecode{chat\_messages} ;
+  \item l'émission de métadonnées de preuve : sources, blocs d'évidence, garde-fous de grounding et liens profonds vers les écrans métier.
 \end{itemize}
-
-Cette architecture est importante pour le rapport car elle montre que le chat n'est pas un composant isolé. Il est branché sur le cœur applicatif et réutilise les mêmes règles de sécurité, les mêmes services métier et les mêmes contraintes de traçabilité que le reste de la plateforme.
-
-Du point de vue utilisateur, cela change profondément la manière d'accéder au système. Au lieu de naviguer manuellement entre plusieurs pages, l'utilisateur peut exprimer une intention en langage naturel, puis laisser l'agent interroger les bons outils pour reconstruire une réponse structurée. Le chat devient ainsi une surcouche d'accès aux fonctionnalités, et non un gadget conversationnel déconnecté du produit.
+Cette architecture est importante pour le rapport car elle montre que le chat n'est pas un composant isolé. Il est branché sur le cœur applicatif et réutilise les mêmes règles de sécurité, les mêmes services métier et les mêmes contraintes de traçabilité que le reste de la plateforme. L'interface finale réorganise ensuite la réponse en sections \textit{Observed from Sources}, \textit{Inferred / Recommended} et \textit{Source Limits}, puis affiche des puces de source cliquables et des liens profonds vers les CV, candidats, jobs ou surfaces d'audit.
+Du point de vue utilisateur, cela change profondément la manière d'accéder au système. Au lieu de naviguer manuellement entre plusieurs pages, l'utilisateur peut exprimer une intention en langage naturel, puis laisser l'agent interroger les bons outils pour reconstruire une réponse structurée, sourcée et re-navigable. Le chat devient ainsi une surcouche d'accès aux fonctionnalités, et non un gadget conversationnel déconnecté du produit.
 
 \section{Évaluation et résultats}
 Le projet contient une preuve quantitative d'amélioration du pipeline RAG dans le rapport d'évaluation RAG de phase 2. L'évaluation couvre 40 requêtes avec une couverture \textit{ground truth} de 85\%. Les résultats comparatifs entre le baseline et la phase 2 sont les suivants.

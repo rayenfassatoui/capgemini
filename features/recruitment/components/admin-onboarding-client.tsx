@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -30,16 +30,33 @@ import {
   IconListCheck,
   IconMail,
   IconPhone,
+  IconAlertTriangle,
+  IconBrain,
+  IconReportAnalytics,
 } from "@tabler/icons-react";
 import { toast } from "sonner";
 import type { OnboardingDetailedEntry } from "@/features/recruitment/services/admin";
 import { exportOnboardingExcelAction } from "@/features/recruitment/actions";
+import { usePathname, useRouter } from "next/navigation";
+import { AdminAgentEvidencePanel } from "./admin-agent-evidence-panel";
+import {
+  buildAdminAgentPrompt,
+  buildOnboardingAdminEvidence,
+} from "./admin-agent-helpers";
+
 
 interface AdminOnboardingClientProps {
   candidates: OnboardingDetailedEntry[];
+  initialCandidateId: string | null;
 }
 
-export function AdminOnboardingClient({ candidates }: AdminOnboardingClientProps) {
+export function AdminOnboardingClient({
+  candidates,
+  initialCandidateId,
+}: AdminOnboardingClientProps) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const [candidateId, setCandidateId] = useState<string | null>(initialCandidateId);
   const [selectedCandidate, setSelectedCandidate] = useState<OnboardingDetailedEntry | null>(null);
   const [isExporting, setIsExporting] = useState(false);
 
@@ -51,6 +68,83 @@ export function AdminOnboardingClient({ candidates }: AdminOnboardingClientProps
     (c) => c.totalTasks === 0
   ).length;
   const inProgress = totalHired - fullyOnboarded - pendingOnboarding;
+  const onboardingEvidence = buildOnboardingAdminEvidence(candidates);
+  const agentActions = [
+    {
+      label: "Find anomalies",
+      description: "Review missing checklists, thin evidence, and contact gaps.",
+      icon: IconAlertTriangle,
+      prompt: buildAdminAgentPrompt({
+        task: "Find onboarding anomalies for hired candidates. Separate observed checklist/contact facts from inferred operational risks and list concrete follow-up checks.",
+        summary: onboardingEvidence,
+      }),
+    },
+    {
+      label: "Summarize readiness",
+      description: "Prepare an onboarding governance brief for HR operations.",
+      icon: IconReportAnalytics,
+      prompt: buildAdminAgentPrompt({
+        task: "Summarize onboarding readiness for HR operations. Include completed versus incomplete onboarding, missing evidence, and safest next actions.",
+        summary: onboardingEvidence,
+      }),
+    },
+    {
+      label: "Risk review",
+      description: "Assess candidate handoff and compliance risk signals.",
+      icon: IconBrain,
+      prompt: buildAdminAgentPrompt({
+        task: "Review onboarding risk signals for hired candidates. Focus on missing checklist tasks, missing contact details, thin CV evidence, and source limits.",
+        summary: onboardingEvidence,
+      }),
+    },
+  ] as const;
+
+
+  const updateCandidateQuery = useCallback(
+    (value: string | null) => {
+      setCandidateId(value);
+      router.replace(value ? `${pathname}?candidateId=${value}` : pathname, {
+        scroll: false,
+      });
+    },
+    [pathname, router],
+  );
+
+  useEffect(() => {
+    if (!candidateId) {
+      setSelectedCandidate(null);
+      return;
+    }
+
+    const match = candidates.find((candidate) => candidate.candidateId === candidateId);
+    if (match) {
+      setSelectedCandidate((current) =>
+        current?.candidateId === match.candidateId ? current : match,
+      );
+    }
+  }, [candidateId, candidates]);
+
+  const handleOpenCandidate = useCallback(
+    (candidate: OnboardingDetailedEntry) => {
+      setSelectedCandidate(candidate);
+      if (candidateId !== candidate.candidateId) {
+        updateCandidateQuery(candidate.candidateId);
+      }
+    },
+    [candidateId, updateCandidateQuery],
+  );
+
+  const handleCandidateDialogChange = useCallback(
+    (open: boolean) => {
+      if (!open) {
+        setSelectedCandidate(null);
+        if (candidateId) {
+          updateCandidateQuery(null);
+        }
+      }
+    },
+    [candidateId, updateCandidateQuery],
+  );
 
   const handleExport = async () => {
     try {
@@ -152,6 +246,8 @@ export function AdminOnboardingClient({ candidates }: AdminOnboardingClientProps
           </CardContent>
         </Card>
       </div>
+
+      <AdminAgentEvidencePanel summary={onboardingEvidence} actions={agentActions} />
 
       {/* Candidates Table */}
       <Card>
@@ -288,7 +384,7 @@ export function AdminOnboardingClient({ candidates }: AdminOnboardingClientProps
                             variant="outline"
                             size="sm"
                             className="h-8 w-8 p-0"
-                            onClick={() => setSelectedCandidate(c)}
+                            onClick={() => handleOpenCandidate(c)}
                           >
                             <IconEye className="h-4 w-4" />
                             <span className="sr-only">Details</span>
@@ -304,7 +400,7 @@ export function AdminOnboardingClient({ candidates }: AdminOnboardingClientProps
         </CardContent>
       </Card>
 
-      <Dialog open={!!selectedCandidate} onOpenChange={(open) => !open && setSelectedCandidate(null)}>
+      <Dialog open={!!selectedCandidate} onOpenChange={handleCandidateDialogChange}>
         <DialogContent className="max-w-3xl max-h-[85vh] p-0 overflow-hidden flex flex-col">
           {selectedCandidate && (
             <>

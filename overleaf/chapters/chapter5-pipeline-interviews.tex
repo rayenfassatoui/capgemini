@@ -172,10 +172,9 @@ Le scénario métier central part d'un CV affecté à une offre. Le TA qualifie 
 
 \subsection{Vue Manager}
 La vue manager charge uniquement les candidats affectés au manager courant dans les états \sourcecode{manager\_interview}, \sourcecode{manager\_accepted} et \sourcecode{manager\_rejected}. La page détail récupère ensuite le candidat, les rapports TA, le guide d'entretien manager, l'entretien manager courant, la liste des RH et le guide autopilot si disponible.
-
 Le composant \sourcecode{ManagerCandidateDetailClient} organise l'évaluation en étapes successives : génération des questions d'entretien, édition et sauvegarde des questions, planification de l'entretien, envoi de l'email, marquage de l'entretien comme complété, saisie du rapport puis décision finale de rejet ou de transfert vers un RH identifié.
-
-Cette logique reflète bien le rôle du manager dans le produit : il ne se contente pas de visualiser un profil, il produit une décision structurée sur la base d'un dossier enrichi.
+La fiche manager intègre en plus un panneau d'\textit{evidence readiness} qui expose le score de screening disponible, le dernier état d'entretien, la décision antérieure, les éléments manquants et les risques avant tout raisonnement IA. Les actions \textit{Ask Agent}, \textit{Explain score}, \textit{Summarize feedback} et \textit{Decision risks} réutilisent ensuite ce contexte de preuve pour produire des prompts plus sûrs et plus situés.
+Cette logique reflète bien le rôle du manager dans le produit : il ne se contente pas de visualiser un profil, il produit une décision structurée sur la base d'un dossier enrichi et explicitement qualifié.
 
 \begin{figure}[H]
   \centering
@@ -185,10 +184,9 @@ Cette logique reflète bien le rôle du manager dans le produit : il ne se conte
 
 \subsection{Vue RH}
 La vue RH charge les candidats assignés au RH courant dans les états \sourcecode{hr\_interview}, \sourcecode{hr\_accepted}, \sourcecode{hr\_rejected} et \sourcecode{hired}. La page détail agrège le candidat, les rapports précédents TA et Manager, le guide RH, l'entretien RH courant et l'autopilot RH.
-
 Le composant \sourcecode{HRCandidateDetailClient} ouvre alors plusieurs actions : consultation des rapports antérieurs, planification optionnelle d'une réunion RH, marquage de la réunion comme complétée, décision \sourcecode{hr\_accepted} ou \sourcecode{hr\_rejected}, génération IA d'un email de décision, envoi de cet email et passage au statut \sourcecode{hired}.
-
-Cette étape montre bien que le RH joue à la fois un rôle décisionnel et un rôle de communication formelle avec le candidat.
+Comme côté manager, un panneau d'\textit{evidence readiness} résume les faits observés, les trous documentaires et les signaux de risque avant la décision finale. Les actions agentiques RH réinjectent ce contexte pour produire des rapports de décision et des analyses de risque séparant mieux les constats des recommandations.
+Cette étape montre bien que le RH joue à la fois un rôle décisionnel et un rôle de communication formelle avec le candidat, avec un niveau de justification plus explicite qu'une simple lecture de notes brutes.
 
 \begin{figure}[H]
   \centering
@@ -223,11 +221,11 @@ Même si le chapitre suivant détaille davantage l'intelligence artificielle, ce
 \begin{itemize}
   \item les guides d'entretien sont récupérés et affichés selon l'étape du pipeline ;
   \item les vues Manager et HR intègrent l'\sourcecode{InterviewAutoPilotGuideView} lorsque le guide est disponible ;
+  \item les panneaux d'\textit{evidence readiness} exposent les faits disponibles, les données manquantes et les risques avant l'appel à l'agent ;
   \item les rapports d'entretien fournissent la matière nécessaire aux débriefings, synthèses et recommandations futures ;
   \item la structure du pipeline permet de contextualiser les décisions, les transitions et les prochaines actions.
 \end{itemize}
-
-Autrement dit, ce sprint rend l'IA situationnelle. Les données ne sont plus seulement documentaires : elles sont contextualisées par un moment précis du processus de recrutement. Cette contextualisation permet ensuite à la couche IA de produire une aide plus utile qu'une génération générique, car elle sait à quelle étape se trouve le candidat, quelles décisions ont déjà été prises et quelles questions restent ouvertes.
+Autrement dit, ce sprint rend l'IA situationnelle. Les données ne sont plus seulement documentaires : elles sont contextualisées par un moment précis du processus de recrutement et par un niveau explicite de préparation de la preuve. Cette contextualisation permet ensuite à la couche IA de produire une aide plus utile qu'une génération générique, car elle sait à quelle étape se trouve le candidat, quelles décisions ont déjà été prises et quelles questions restent ouvertes.
 
 \section{Apport du module}
 Ce module apporte une contribution structurante au projet :

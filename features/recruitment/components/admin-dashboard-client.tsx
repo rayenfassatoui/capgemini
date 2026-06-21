@@ -10,9 +10,16 @@ import {
   IconCalendarEvent,
   IconUserShield,
   IconActivity,
-  IconTrendingUp,
+  IconBrain,
+  IconFileAnalytics,
+  IconShieldCheck,
 } from "@tabler/icons-react";
 import type { SystemOverview } from "@/features/recruitment/services/admin";
+import { AdminAgentEvidencePanel } from "./admin-agent-evidence-panel";
+import {
+  buildAdminAgentPrompt,
+  buildDashboardAdminEvidence,
+} from "./admin-agent-helpers";
 
 interface AdminDashboardClientProps {
   overview: SystemOverview | null;
@@ -98,6 +105,46 @@ export function AdminDashboardClient({ overview }: AdminDashboardClientProps) {
       gradient: "from-rose-500/20 to-rose-600/5",
     },
   ];
+  const adminEvidence = buildDashboardAdminEvidence(overview);
+  const agentActions = [
+    {
+      label: "Summarize activity",
+      description: "Explain recent platform activity and operational signal quality.",
+      icon: IconActivity,
+      prompt: buildAdminAgentPrompt({
+        task: "Summarize recent system activity for an admin. Highlight what is observed, what cannot be concluded from this snapshot, and which actions need follow-up.",
+        summary: adminEvidence,
+      }),
+    },
+    {
+      label: "Review access mix",
+      description: "Assess role distribution and least-privilege review points.",
+      icon: IconShieldCheck,
+      prompt: buildAdminAgentPrompt({
+        task: "Review the current user-role distribution for governance and least-privilege risks. Identify observed role counts, missing access evidence, and recommended review actions.",
+        summary: adminEvidence,
+      }),
+    },
+    {
+      label: "Find ops anomalies",
+      description: "Surface workload or audit anomalies worth investigating.",
+      icon: IconFileAnalytics,
+      prompt: buildAdminAgentPrompt({
+        task: "Find operational anomalies in this admin overview. Consider workload volume, recent audited actions, destructive actions, and missing telemetry.",
+        summary: adminEvidence,
+      }),
+    },
+    {
+      label: "Governance brief",
+      description: "Create a concise admin handoff with risks and next checks.",
+      icon: IconBrain,
+      prompt: buildAdminAgentPrompt({
+        task: "Prepare a governance brief for the recruitment platform owner. Separate facts from inferred risks and list the safest next checks.",
+        summary: adminEvidence,
+      }),
+    },
+  ] as const;
+
 
   return (
     <motion.div
@@ -119,9 +166,8 @@ export function AdminDashboardClient({ overview }: AdminDashboardClientProps) {
                     <div className={`p-2.5 rounded-xl ${stat.bg} ring-1 ring-inset ring-black/5 dark:ring-white/10`}>
                       <Icon className={`h-5 w-5 ${stat.color}`} />
                     </div>
-                    <div className="flex items-center text-xs font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
-                      <IconTrendingUp className="h-3 w-3 mr-1" />
-                      +2.5%
+                    <div className="flex items-center text-xs font-medium text-muted-foreground bg-muted px-2 py-0.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
+                      Admin source
                     </div>
                   </div>
                   <div>
@@ -134,6 +180,10 @@ export function AdminDashboardClient({ overview }: AdminDashboardClientProps) {
           );
         })}
       </div>
+
+      <motion.div variants={itemVariants}>
+        <AdminAgentEvidencePanel summary={adminEvidence} actions={agentActions} />
+      </motion.div>
 
       {/* Users by Role + Recent Activity */}
       <div className="grid gap-6 lg:grid-cols-2">
@@ -149,7 +199,7 @@ export function AdminDashboardClient({ overview }: AdminDashboardClientProps) {
                     </div>
                     Users by Role
                   </CardTitle>
-                  <CardDescription className="mt-1">Distribution of platform users across roles</CardDescription>
+                  <CardDescription className="mt-1">Role distribution for access governance review</CardDescription>
                 </div>
               </div>
             </CardHeader>
@@ -206,7 +256,7 @@ export function AdminDashboardClient({ overview }: AdminDashboardClientProps) {
                     </div>
                     Recent Activity
                   </CardTitle>
-                  <CardDescription className="mt-1">Latest system actions and updates</CardDescription>
+                  <CardDescription className="mt-1">Latest audited platform actions visible in this overview</CardDescription>
                 </div>
               </div>
             </CardHeader>

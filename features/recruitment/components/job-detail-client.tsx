@@ -186,6 +186,7 @@ export function JobDetailClient({
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const activeTab = getJobDetailTab(searchParams.get('tab'));
+  const highlightedCandidateId = searchParams.get('candidateId');
 
   // Sync state with props when server revalidates
   React.useEffect(() => {
@@ -195,6 +196,16 @@ export function JobDetailClient({
   React.useEffect(() => {
     setJobStatus(job.status);
   }, [job.status]);
+
+  React.useEffect(() => {
+    if (activeTab !== 'candidates' || !highlightedCandidateId) return;
+
+    const selector = `[data-candidate-id="${highlightedCandidateId}"]`;
+    const candidateCard = document.querySelector(selector);
+    if (candidateCard instanceof HTMLElement) {
+      candidateCard.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    }
+  }, [activeTab, highlightedCandidateId]);
 
   // Dialog States
   const [scheduleDialogOpen, setScheduleDialogOpen] = React.useState(false);
@@ -647,7 +658,15 @@ export function JobDetailClient({
               </div>
             ) : (
               candidates.map((candidate) => (
-                <Card key={candidate.id} className="flex flex-col">
+                <Card
+                  key={candidate.id}
+                  data-candidate-id={candidate.id}
+                  className={`flex flex-col transition-colors ${
+                    highlightedCandidateId === candidate.id
+                      ? 'border-primary shadow-lg shadow-primary/10'
+                      : ''
+                  }`}
+                >
                   <CardHeader className="pb-3">
                     <div className="flex justify-between items-start">
                       <div>

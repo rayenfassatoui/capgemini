@@ -1,15 +1,19 @@
-import { Suspense } from 'react';
 import { listCvPoolAction, getCvPoolStatsAction } from '@/features/recruitment/actions';
 import { requireRole } from '@/lib/auth';
 import { CvPoolClient } from '@/features/recruitment/components/cv-pool-client';
-import { IconLoader2 } from '@tabler/icons-react';
 
-export default async function CvPoolPage() {
+
+export default async function CvPoolPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ reviewCvId?: string }>;
+}) {
   await requireRole(['ta', 'admin']);
   const [cvList, stats] = await Promise.all([
     listCvPoolAction(),
     getCvPoolStatsAction(),
   ]);
+  const { reviewCvId } = await searchParams;
 
   return (
     <div className="space-y-8">
@@ -20,15 +24,11 @@ export default async function CvPoolPage() {
         </p>
       </div>
 
-      <Suspense
-        fallback={
-          <div className="flex h-[400px] w-full items-center justify-center">
-            <IconLoader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-          </div>
-        }
-      >
-        <CvPoolClient initialData={cvList} stats={stats} />
-      </Suspense>
+      <CvPoolClient
+        initialData={cvList}
+        stats={stats}
+        initialReviewCvId={reviewCvId ?? null}
+      />
     </div>
   );
 }

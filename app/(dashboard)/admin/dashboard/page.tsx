@@ -10,10 +10,10 @@ export default async function AdminDashboardPage() {
     <div className="space-y-8 bg-mesh min-h-[calc(100vh-4rem)] p-8 rounded-xl border border-border/50 shadow-sm glass">
       <div className="flex flex-col gap-1">
         <h1 className="text-3xl font-bold tracking-tight text-gradient w-fit">
-          System Overview
+          Governance Overview
         </h1>
         <p className="text-muted-foreground text-lg max-w-2xl">
-          Real-time insights into your recruitment pipeline and platform activity.
+          Admin control surface for role distribution, workload volume, and audited recruitment operations.
         </p>
       </div>
       

@@ -1,10 +1,11 @@
 "use client";
 
+import Link from "next/link";
 import { useRef, useEffect, useCallback, useState } from "react";
 import { motion } from "framer-motion";
 import { Streamdown } from "streamdown";
 import { mermaid } from "@streamdown/mermaid";
-import { IconArrowDown, IconCheck, IconCopy, IconDatabase, IconDownload, IconFile, IconInfoCircle, IconLoader2, IconQuote } from "@tabler/icons-react";
+import { IconArrowDown, IconCheck, IconCopy, IconDatabase, IconDownload, IconExternalLink, IconFile, IconInfoCircle, IconLoader2, IconQuote } from "@tabler/icons-react";
 import { cn } from "@/lib/utils";
 import { CapgeminiIcons } from "@/components/shared/icons";
 import type { ChatMessage, ToolEvent } from "./chat-types";
@@ -167,26 +168,46 @@ function SourceEvidencePanel({
       </div>
 
       <div className="flex flex-wrap gap-2" aria-label="Source chips">
-        {evidence.sources.map((source) => (
-          <span
-            key={source.id}
-            className={cn(
-              "inline-flex max-w-full items-center gap-2 rounded-full border px-2.5 py-1 text-[11px] font-medium",
-              source.status === "success"
-                ? "border-primary/20 bg-primary/10 text-primary"
-                : "border-destructive/20 bg-destructive/10 text-destructive",
-            )}
-            aria-label={`${source.label}: ${source.status}`}
-          >
-            <span className="rounded-full bg-background/70 px-1.5 py-0.5 text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
-              {getSourceKindLabel(source.kind)}
+        {evidence.sources.map((source) => {
+          const chipClass = cn(
+            "inline-flex max-w-full items-center gap-2 rounded-full border px-2.5 py-1 text-[11px] font-medium",
+            source.status === "success"
+              ? "border-primary/20 bg-primary/10 text-primary"
+              : "border-destructive/20 bg-destructive/10 text-destructive",
+          );
+
+          const content = (
+            <>
+              <span className="rounded-full bg-background/70 px-1.5 py-0.5 text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+                {getSourceKindLabel(source.kind)}
+              </span>
+              <span className="truncate">{source.label}</span>
+              {typeof source.count === "number" ? (
+                <span className="text-muted-foreground">{source.count}</span>
+              ) : null}
+              {source.link ? <IconExternalLink className="size-3 text-current/70" /> : null}
+            </>
+          );
+
+          return source.link ? (
+            <Link
+              key={source.id}
+              href={source.link.href}
+              className={chipClass}
+              aria-label={`${source.label}: ${source.status}. ${source.link.label}.`}
+            >
+              {content}
+            </Link>
+          ) : (
+            <span
+              key={source.id}
+              className={chipClass}
+              aria-label={`${source.label}: ${source.status}`}
+            >
+              {content}
             </span>
-            <span className="truncate">{source.label}</span>
-            {typeof source.count === "number" ? (
-              <span className="text-muted-foreground">{source.count}</span>
-            ) : null}
-          </span>
-        ))}
+          );
+        })}
       </div>
 
       <div className="mt-3 grid gap-3 sm:grid-cols-2">
@@ -227,7 +248,21 @@ function SourceEvidencePanel({
                 </p>
                 <ul className="space-y-1 text-xs leading-5 text-muted-foreground">
                   {block.items.map((item) => (
-                    <li key={`${block.id}-${item}`}>{item}</li>
+                    <li
+                      key={`${block.id}-${item.text}`}
+                      className="flex items-start justify-between gap-3"
+                    >
+                      <span className="flex-1">{item.text}</span>
+                      {item.link ? (
+                        <Link
+                          href={item.link.href}
+                          className="inline-flex shrink-0 items-center gap-1 rounded-full border border-border/60 bg-background/70 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-foreground transition-colors hover:border-primary/40 hover:text-primary"
+                        >
+                          {item.link.label}
+                          <IconExternalLink className="size-3" />
+                        </Link>
+                      ) : null}
+                    </li>
                   ))}
                 </ul>
               </div>

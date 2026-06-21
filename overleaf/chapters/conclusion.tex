@@ -21,20 +21,22 @@ La validation retenue pour ce rapport combine deux niveaux complémentaires : d'
     Vivier de CV & Un recruteur importe un CV PDF ou DOCX dans le vivier. & Le document entre dans la file d'upload, le texte est extrait, le profil devient consultable et l'enrichissement avancé continue en arrière-plan. & Couvert par le pipeline d'upload, l'extraction structurée, la vérification de doublons et l'indexation progressive décrits dans le sprint 2. \\
     Pipeline candidat & Un CV est affecté à une offre, puis transmis entre TA, Manager et RH. & Création d'un candidat, transitions d'état explicites et traçabilité des responsabilités. & Couvert par le workflow candidat, les affectations successives et la structuration par étapes du sprint 3. \\
     Entretiens et décisions & Un entretien est planifié, réalisé puis formalisé par un rapport. & Création de l'entretien, mise à jour de l'étape, enregistrement du rapport et ouverture de l'onboarding en cas d'embauche. & Couvert par les services de planification, de reporting et par la génération automatique de checklist d'onboarding. \\
-    Administration et gouvernance & Un administrateur consulte les vues système, analytics, activité, emails et onboarding. & Accès à une supervision consolidée, à des traces d'audit et à des exports exploitables. & Couvert par les vues administrateur, les logs, les notifications et les exports du sprint 5. \\
-    Chat analytique & Un utilisateur autorisé interroge le système en langage naturel depuis la page statistique. & Filtrage des outils par rôle, réponse diffusée en SSE et contenu final ancré dans les données accessibles. & Couvert par le chat analytique, le registre d'outils, le grounding et les garde-fous de l'orchestration agentique. \\
+    Administration et gouvernance & Un administrateur consulte les vues système, analytics, activité, emails et onboarding. & Accès à une supervision consolidée, à des traces d'audit et à des exports exploitables. & Couvert par les vues administrateur, les logs, les notifications, les exports et les panneaux d'évidence source-backed du sprint 5. \\
+    Chat analytique & Un utilisateur autorisé interroge le système en langage naturel depuis le chat flottant ou depuis le workspace \sourcecode{/agent}. & Filtrage des outils par rôle, réponse diffusée en SSE, séparation entre faits observés et recommandations, puis navigation vers les écrans source. & Couvert par le chat analytique, le registre d'outils, le grounding, les métadonnées d'évidence et les liens profonds de l'orchestration agentique. \\
     \bottomrule
   \end{tabularx}
 \end{table}
 
 \paragraph{Validation technique automatisée.}
-Sur le plan technique, la preuve automatisée principale a été exécutée via la commande \sourcecode{bun run test}. Cette exécution passe avec succès et valide 21 tests répartis sur 2 fichiers de test Vitest.
+Sur le plan technique, la preuve automatisée principale a été exécutée via la commande \sourcecode{bun run test}. Cette exécution passe avec succès et valide 32 tests répartis sur 5 fichiers de test Vitest.
 
 Les vérifications automatisées couvrent notamment :
 \begin{itemize}
   \item le grounding des noms candidats, avec rejet des noms absents des résultats d'outils, acceptation des noms autorisés et remplacement déterministe des classements hallucinés ;
   \item l'isolation de périmètre, avec filtrage des résultats pour les utilisateurs non administrateurs, prévention des fuites inter-utilisateurs et séparation des clés de cache selon l'utilisateur et le rôle ;
-  \item le comportement du chat en cas d'absence de résultats exploitables, avec réponse de repli grounded au lieu d'une fabrication libre.
+  \item le comportement du chat en cas d'absence de résultats exploitables, avec réponse de repli grounded au lieu d'une fabrication libre ;
+  \item la génération des métadonnées d'évidence, des liens profonds et des résumés de gouvernance administrateur ;
+  \item la qualification des panneaux d'\textit{evidence readiness} côté candidat et côté vivier documentaire.
 \end{itemize}
 
 Enfin, la couche de retrieval fait l'objet d'une validation quantitative spécifique déjà documentée dans le projet. Le rapport d'évaluation RAG de phase 2 couvre 40 requêtes avec 85\% de couverture \textit{ground truth} et montre une amélioration mesurable de Precision@5, Precision@10, MRR@10 et NDCG@10. Cette mesure complète utilement la validation fonctionnelle, car elle montre non seulement que le produit fonctionne, mais aussi que sa couche de recherche augmentée est évaluée de manière chiffrée.

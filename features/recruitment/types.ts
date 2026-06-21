@@ -266,6 +266,11 @@ export type AgentSourceKind =
 
 export type AgentSourceStatus = 'success' | 'error';
 
+export interface AgentNavigationLink {
+  href: string;
+  label: string;
+}
+
 export interface AgentSourceReference {
   id: string;
   label: string;
@@ -274,13 +279,20 @@ export interface AgentSourceReference {
   status: AgentSourceStatus;
   detail?: string;
   count?: number;
+  link?: AgentNavigationLink;
+}
+
+
+export interface AgentEvidenceItem {
+  text: string;
+  link?: AgentNavigationLink;
 }
 
 export interface AgentEvidenceBlock {
   id: string;
   sourceId: string;
   title: string;
-  items: string[];
+  items: AgentEvidenceItem[];
 }
 
 export interface AgentEvidenceMetadata {

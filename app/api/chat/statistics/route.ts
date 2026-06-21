@@ -638,7 +638,9 @@ export async function POST(request: Request) {
           });
         }
 
-        const evidence = buildAgentEvidenceMetadata(toolExecutionHistory);
+        const evidence = buildAgentEvidenceMetadata(toolExecutionHistory, {
+          role,
+        });
         controller.enqueue(
           encoder.encode(
             `@@META@@${JSON.stringify({

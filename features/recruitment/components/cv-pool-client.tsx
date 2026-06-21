@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import {
   IconUpload,
   IconTrash,
@@ -58,6 +58,7 @@ import {
 } from './evidence-readiness';
 import type { CvPoolStats } from '../types';
 
+
 // Define the CV type based on what we expect from the server
 interface CvRecord {
   id: string;
@@ -86,10 +87,17 @@ interface CvFullDetails {
 interface CvPoolClientProps {
   initialData: CvRecord[];
   stats: CvPoolStats;
+  initialReviewCvId: string | null;
 }
 
-export function CvPoolClient({ initialData, stats }: CvPoolClientProps) {
+export function CvPoolClient({
+  initialData,
+  stats,
+  initialReviewCvId,
+}: CvPoolClientProps) {
   const router = useRouter();
+  const pathname = usePathname();
+
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [dragActive, setDragActive] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -107,6 +115,9 @@ export function CvPoolClient({ initialData, stats }: CvPoolClientProps) {
   const [reviewOpen, setReviewOpen] = useState(false);
   const [reviewData, setReviewData] = useState<CvFullDetails | null>(null);
   const [isLoadingReview, setIsLoadingReview] = useState(false);
+  const [requestedReviewId, setRequestedReviewId] = useState<string | null>(
+    initialReviewCvId,
+  );
 
   // Filter CVs based on search query
   const filteredCvs = initialData.filter((cv) => {
@@ -253,7 +264,17 @@ export function CvPoolClient({ initialData, stats }: CvPoolClientProps) {
     }
   };
 
-  const handleViewCv = async (cvId: string) => {
+  const updateReviewQuery = useCallback(
+    (cvId: string | null) => {
+      router.replace(cvId ? `${pathname}?reviewCvId=${cvId}` : pathname, {
+        scroll: false,
+      });
+    },
+    [pathname, router],
+  );
+
+
+  const handleViewCv = useCallback(async (cvId: string) => {
     setIsLoadingReview(true);
     setReviewOpen(true);
     try {
@@ -263,10 +284,39 @@ export function CvPoolClient({ initialData, stats }: CvPoolClientProps) {
       console.error('Review error:', error);
       toast.error('Failed to load CV details');
       setReviewOpen(false);
+      setRequestedReviewId(null);
+      updateReviewQuery(null);
     } finally {
       setIsLoadingReview(false);
     }
-  };
+  }, [updateReviewQuery]);
+
+  useEffect(() => {
+    if (!requestedReviewId) return;
+    if (reviewData?.id === requestedReviewId || isLoadingReview) return;
+    void handleViewCv(requestedReviewId);
+  }, [handleViewCv, isLoadingReview, requestedReviewId, reviewData?.id]);
+
+  const handleOpenReview = useCallback(
+    (cvId: string) => {
+      setRequestedReviewId(cvId);
+      updateReviewQuery(cvId);
+      void handleViewCv(cvId);
+    },
+    [handleViewCv, updateReviewQuery],
+  );
+
+  const handleReviewDialogChange = useCallback(
+    (open: boolean) => {
+      setReviewOpen(open);
+      if (!open) {
+        setReviewData(null);
+        setRequestedReviewId(null);
+        updateReviewQuery(null);
+      }
+    },
+    [updateReviewQuery],
+  );
 
   const handleDownloadCv = async (cvId: string, filename: string) => {
     try {
@@ -759,7 +809,7 @@ export function CvPoolClient({ initialData, stats }: CvPoolClientProps) {
                           variant="ghost"
                           size="icon"
                           className="h-8 w-8"
-                          onClick={() => handleViewCv(cv.id)}
+                          onClick={() => handleOpenReview(cv.id)}
                           title="Review CV"
                         >
                           <IconEye className="h-4 w-4" />
@@ -802,7 +852,7 @@ export function CvPoolClient({ initialData, stats }: CvPoolClientProps) {
       </Card>
 
       {/* CV Review Dialog */}
-      <Dialog open={reviewOpen} onOpenChange={setReviewOpen}>
+      <Dialog open={reviewOpen} onOpenChange={handleReviewDialogChange}>
         <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>CV Review</DialogTitle>

@@ -69,9 +69,8 @@ Les usages couverts par ce sprint se regroupent en quatre blocs :
   \item administrer les comptes si l'utilisateur est \sourcecode{admin}.
 \end{itemize}
 
-Le layout de dashboard prépare déjà l'usage futur de l'IA, car il injecte le composant \sourcecode{StatisticsChat}. Cela signifie que l'entrée conversationnelle de la plateforme a été pensée dès le départ comme une fonctionnalité authentifiée et cloisonnée.
-
-Ce point est important : l'IA n'est pas ajoutée plus tard dans un espace parallèle. Elle s'inscrit dès les fondations dans la même logique d'authentification, de layout et de séparation des rôles que le reste du produit.
+Le layout de dashboard prépare déjà l'usage futur de l'IA à deux niveaux : un assistant flottant disponible dans les espaces métier et un workspace dédié \sourcecode{/agent} pour les analyses longues. L'entrée conversationnelle de la plateforme a donc été pensée dès le départ comme une fonctionnalité authentifiée, cloisonnée par rôle et intégrée à la navigation latérale.
+Ce point est important : l'IA n'est pas ajoutée plus tard dans un espace parallèle. Elle s'inscrit dès les fondations dans la même logique d'authentification, de layout et de séparation des rôles que le reste du produit, tout en offrant un parcours hybride entre aide contextuelle rapide et espace d'analyse approfondie.
 
 \subsection{Authentification et redirection par rôle}
 L'écran de connexion contient la logique de connexion. Lors de la soumission du formulaire, la fonction \sourcecode{handleSubmit()} appelle \sourcecode{authClient.signIn.email()} avec l'email et le mot de passe. Si la connexion réussit, le rôle utilisateur est lu depuis la réponse, puis une table de correspondance détermine la destination :

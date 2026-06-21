@@ -95,10 +95,9 @@ Cette couche améliore la réactivité du produit et réduit le risque qu'une é
 
 \subsection{Supervision administrateur}
 La couche \sourcecode{admin.ts} agrège plusieurs vues de haut niveau : \sourcecode{getSystemOverview()} calcule une vision consolidée du système, \sourcecode{getRecruitmentAnalytics()} fournit des métriques de performance et de répartition, \sourcecode{getEmailLogs()} expose l'historique des emails et \sourcecode{getHiredCandidatesOnboardingDetailed()} restitue l'état détaillé de l'onboarding.
-
 Cette agrégation montre que la plateforme ne sépare pas l'opérationnel du décisionnel. Les données utilisées pour exécuter le recrutement sont aussi réutilisées pour le piloter.
-
-Cette réutilisation des mêmes données constitue un point fort du projet : elle évite de dupliquer la vérité métier dans un outil de reporting distinct et renforce la cohérence entre exécution et supervision.
+La version actuelle ajoute à ces surfaces des panneaux d'évidence administrateur et des entrées agentiques gouvernées. Chaque vue peut maintenant résumer les faits observés, signaler les données opérationnelles manquantes et proposer des actions \textit{Agent} dédiées à la synthèse d'activité, à l'interprétation analytique, aux anomalies d'onboarding ou aux risques de communication.
+Cette réutilisation des mêmes données constitue un point fort du projet : elle évite de dupliquer la vérité métier dans un outil de reporting distinct et renforce la cohérence entre exécution, supervision et assistance à la décision.
 \paragraph{Lecture de gouvernance et portée de supervision.}
 
 Elle permet surtout de distinguer clairement deux niveaux de lecture. Le niveau opérationnel sert à faire avancer les dossiers candidats, à planifier des entretiens et à envoyer des communications. Le niveau de gouvernance sert, lui, à vérifier que ces actions ont bien été réalisées, à en mesurer les effets, à en conserver la preuve et à fournir aux responsables une vision consolidée du système.
@@ -126,8 +125,8 @@ Elle renforce aussi la dimension temps réel du produit : les événements impor
 
 \subsection{Tableau de bord administrateur}
 La page de tableau de bord administrateur appelle \sourcecode{getSystemOverviewAction()} et alimente \sourcecode{AdminDashboardClient}. Cette page donne une vision d'ensemble sur l'état du produit avec un discours orienté supervision : volumes, activité et santé fonctionnelle du pipeline.
-
-C'est le point de contrôle macro du système, là où l'administrateur peut comprendre rapidement la situation globale de la plateforme.
+Elle combine maintenant les cartes KPI avec un panneau \textit{Governance snapshot} source-backed et plusieurs CTAs agentiques dédiés à la synthèse d'activité, à la revue des rôles, aux anomalies opérationnelles et au brief de gouvernance.
+C'est le point de contrôle macro du système, là où l'administrateur peut comprendre rapidement la situation globale de la plateforme puis basculer, si nécessaire, vers une analyse agentique plus approfondie.
 
 \begin{figure}[H]
   \centering
@@ -137,8 +136,8 @@ C'est le point de contrôle macro du système, là où l'administrateur peut com
 
 \subsection{Analytique administrateur}
 La page analytique administrateur repose sur \sourcecode{getRecruitmentAnalyticsAction()} et sur \sourcecode{AdminAnalyticsClient}. Elle transforme les données opérationnelles en indicateurs lisibles : performance du pipeline, répartition des volumes, tendances de recrutement et signaux utiles au pilotage global.
-
-Elle donne à l'administration la possibilité de lire les flux de recrutement comme un ensemble dynamique, et non comme une simple accumulation de dossiers.
+Elle ne se limite plus aux graphiques. Un panneau d'évidence dédié récapitule désormais les faits observés, les limites de mesure et les risques d'interprétation, tandis que des actions \textit{Explain trends}, \textit{Find bottlenecks} et \textit{Governance risks} ouvrent l'agent avec un contexte déjà cadré.
+Elle donne ainsi à l'administration la possibilité de lire les flux de recrutement comme un ensemble dynamique, et non comme une simple accumulation de dossiers.
 
 \begin{figure}[H]
   \centering
@@ -146,29 +145,22 @@ Elle donne à l'administration la possibilité de lire les flux de recrutement c
   \caption{Vue analytique administrateur.}
 \end{figure}
 
-\subsection{Historique d'activité}
-La page du journal d'activité exploite \sourcecode{getActivityLogEnrichedAction(100)} et le composant \sourcecode{AdminActivityClient}. L'objectif est d'exposer une lecture enrichie du journal d'activité afin de reconstituer les séquences d'action importantes.
-
+\subsection{Historique d'activité et logs d'emails}
+La page du journal d'activité exploite \sourcecode{getActivityLogEnrichedAction(100)} et le composant \sourcecode{AdminActivityClient}. L'objectif est d'exposer une lecture enrichie du journal d'activité afin de reconstituer les séquences d'action importantes. Un panneau d'évidence et des actions \textit{Agent} permettent en parallèle de synthétiser les lignes chargées, de signaler les actions destructrices et de rappeler les limites de couverture de l'audit courant.
 Cette fonctionnalité est centrale pour l'audit interne, l'analyse d'incident, la compréhension des décisions et la justification d'un enchaînement métier. Dans une plateforme de recrutement augmentée par l'IA, cette traçabilité a encore plus de valeur, car elle permet d'observer ce qui a été automatisé, ce qui a été décidé et dans quel ordre.
-
 Le journal d'activité ne sert donc pas seulement à voir ce qui s'est passé. Il sert aussi à rendre le système explicable lorsqu'une décision, une communication ou un changement de statut doit être revu.
-
 \begin{figure}[H]
   \centering
   \screenshotplaceholder{Activity log}
   \caption{Journal d'activité.}
 \end{figure}
-
-\subsection{Logs d'emails}
-La page des logs d'emails charge \sourcecode{getEmailLogsAction()} puis transmet les données au composant \sourcecode{AdminEmailsClient}. Cette vue constitue l'\textit{audit trail} des communications sortantes de la plateforme.
-
+La page des logs d'emails charge \sourcecode{getEmailLogsAction()} puis transmet les données au composant \sourcecode{AdminEmailsClient}. Cette vue constitue l'\textit{audit trail} des communications sortantes de la plateforme, mais elle bénéficie à présent des mêmes principes : panneau \textit{Communication evidence readiness}, CTAs agentiques dédiés aux risques de livraison et liens profonds vers les entrées auditées.
 Elle est particulièrement importante dans le contexte RH, où les invitations, confirmations, refus et communications de décision doivent rester consultables et vérifiables. La consultation centralisée de ces logs évite qu'une partie sensible du processus reste cachée dans une boîte noire extérieure au produit.
-
 Cette séparation entre journal d'activité et logs d'emails clarifie la gouvernance : le premier explique les actions métier réalisées dans l'application, tandis que les seconds documentent les communications envoyées vers les candidats ou les parties prenantes.
 
 \subsection{Suivi détaillé de l'onboarding}
 La page de suivi détaillé de l'onboarding s'appuie sur \sourcecode{getHiredCandidatesOnboardingDetailedAction()} et \sourcecode{AdminOnboardingClient}. Elle ne montre pas seulement une liste de candidats embauchés ; elle expose aussi l'état détaillé des tâches d'intégration, ce qui prolonge le recrutement après la décision finale.
-
+Le tableau embarque désormais un panneau d'évidence consacré aux anomalies d'onboarding : checklists absentes, coordonnées incomplètes, profils pauvres en signaux et autres trous de couverture. Les CTAs \textit{Find anomalies}, \textit{Summarize readiness} et \textit{Risk review} transmettent ensuite ces constats à l'agent sans réintroduire de génération libre.
 Ce prolongement vers l'onboarding est important pour la cohérence globale du produit : le cycle de vie géré par la plateforme ne s'arrête pas à la validation finale, mais continue jusqu'au suivi de l'entrée effective dans l'organisation.
 
 \begin{figure}[H]

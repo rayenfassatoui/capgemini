@@ -173,8 +173,8 @@ La page du vivier de CV charge la liste des CV ainsi que les statistiques du viv
 \end{itemize}
 
 La page présente aussi un niveau de synthèse à travers \sourcecode{CvPoolStats} : nombre total de CV, top compétences, distribution des langues et tendance d'upload sur les sept derniers jours.
-
-Cette interface montre que le vivier n'est pas une simple liste de fichiers. C'est une base de profils analysés, consultables et réexploitables, avec une lecture à la fois opérationnelle et analytique.
+La version actuelle va plus loin qu'une simple revue documentaire : le dialogue de consultation détaillée embarque désormais un bloc d'\textit{evidence readiness} qui explicite les faits observés, les données manquantes et les risques documentaires avant toute action IA. Les actions \textit{Explain CV with Agent} et \textit{Draft Questions with Agent} ouvrent ensuite le workspace \sourcecode{/agent} avec un prompt prérempli qui réinjecte ce contexte de preuve plutôt que de repartir d'une page blanche.
+Cette interface montre ainsi que le vivier n'est pas une simple liste de fichiers. C'est une base de profils analysés, consultables et réexploitables, avec une lecture à la fois opérationnelle, analytique et déjà branchée sur l'assistance agentique.
 
 \begin{figure}[H]
   \centering
@@ -226,8 +226,8 @@ Elle illustre une approche importante du projet : une action d'administration si
 
 \subsection{Page détail d'une offre}
 La page de détail d'une offre charge l'offre, les candidats qui lui sont liés et la liste des managers. Le composant \sourcecode{JobDetailClient} transforme ensuite cette page en espace de pilotage avancé, avec génération de screening IA, consultation du score, génération et édition des questions d'entretien, planification, envoi d'emails, mise à jour des étapes candidat, assignation à un manager et matching \textit{inline} de CV.
-
-Ce point montre que ce module n'est pas isolé. Le détail d'une offre devient le point de convergence entre la demande de recrutement, la base documentaire des profils et les futurs mécanismes de décision.
+L'interface distingue désormais explicitement les actions directes des actions de raisonnement IA. L'ouverture du matching de CV et celle des entretiens reposent sur des onglets pilotés par l'URL, ce qui rend les liens profonds robustes et permet au recruteur d'atterrir directement sur le bon sous-espace. À côté de cela, les entrées agentiques restent dédiées à l'explication du matching, à la revue d'exigences et à la synthèse raisonnée.
+Ce point montre que ce module n'est pas isolé. Le détail d'une offre devient le point de convergence entre la demande de recrutement, la base documentaire des profils, les parcours directs du produit et les futurs mécanismes de décision.
 
 \begin{figure}[H]
   \centering
