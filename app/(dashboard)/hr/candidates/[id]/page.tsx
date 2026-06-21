@@ -1,12 +1,13 @@
-import { getCandidateAction, getInterviewReportsByCandidateAction, getInterviewGuideAction, getInterviewByCandidateAndStageAction, getInterviewAutoPilotAction, getScreeningAction, getJobAction } from '@/features/recruitment/actions';
+import { getCandidateAction, getCandidateStageHistoryAction, getInterviewReportsByCandidateAction, getInterviewGuideAction, getInterviewByCandidateAndStageAction, getInterviewAutoPilotAction, getScreeningAction, getJobAction } from '@/features/recruitment/actions';
 import { requireRole } from '@/lib/auth';
 import { HRCandidateDetailClient } from '@/features/recruitment/components/hr-candidate-detail-client';
+import { normalizeCandidateStageHistory } from '@/features/recruitment/components/candidate-stage-history-timeline';
 import { notFound } from 'next/navigation';
 
 import Link from 'next/link';
 import { IconArrowLeft } from '@tabler/icons-react';
 export default async function HRCandidateDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  await requireRole(['hr', 'admin']);
+  const session = await requireRole(['hr', 'admin']);
   const { id } = await params;
   const candidate = await getCandidateAction(id);
   
@@ -14,13 +15,14 @@ export default async function HRCandidateDetailPage({ params }: { params: Promis
     notFound();
   }
 
-  const [previousReports, interviewGuide, currentInterview, autoPilotGuide, screening, job] = await Promise.all([
+  const [previousReports, interviewGuide, currentInterview, autoPilotGuide, screening, job, stageHistoryRecords] = await Promise.all([
     getInterviewReportsByCandidateAction(id).catch(() => []),
     candidate.jobId ? getInterviewGuideAction(id, candidate.jobId, 'hr').catch(() => null) : null,
     getInterviewByCandidateAndStageAction(id, 'hr').catch(() => null),
     candidate.jobId ? getInterviewAutoPilotAction(id, candidate.jobId, 'hr').catch(() => null) : null,
     candidate.jobId ? getScreeningAction(id, candidate.jobId).catch(() => null) : null,
     candidate.jobId ? getJobAction(candidate.jobId).catch(() => null) : null,
+    getCandidateStageHistoryAction(id).catch(() => []),
   ]);
 
   // Filter TA and Manager reports
@@ -39,6 +41,8 @@ export default async function HRCandidateDetailPage({ params }: { params: Promis
       <HRCandidateDetailClient 
         candidate={candidate}
         priorReports={priorReports}
+        stageHistory={normalizeCandidateStageHistory(stageHistoryRecords)}
+        showStageHistoryActors={session.user.role === 'hr' || session.user.role === 'admin'}
         interviewGuide={interviewGuide}
         currentInterview={currentInterview}
         screening={screening}

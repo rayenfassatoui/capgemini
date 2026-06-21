@@ -47,6 +47,10 @@ import {
   buildCandidateEvidenceReadiness,
   formatEvidenceReadinessForAgent,
 } from './evidence-readiness';
+import {
+  CandidateStageHistoryTimeline,
+  type CandidateStageHistoryTimelineEntry,
+} from './candidate-stage-history-timeline';
 
 interface Candidate {
   id: string;
@@ -91,10 +95,11 @@ interface Screening {
   matchedNiceToHave: string[];
   aiSummary?: string | null;
 }
-
 interface HRCandidateDetailClientProps {
   candidate: Candidate;
   priorReports: Report[];
+  stageHistory: CandidateStageHistoryTimelineEntry[];
+  showStageHistoryActors: boolean;
   interviewGuide?: InterviewGuide | null;
   currentInterview?: Interview | null;
   screening?: Screening | null;
@@ -105,6 +110,8 @@ interface HRCandidateDetailClientProps {
 export function HRCandidateDetailClient({ 
   candidate, 
   priorReports, 
+  stageHistory,
+  showStageHistoryActors,
   interviewGuide, 
   currentInterview,
   screening,
@@ -353,6 +360,11 @@ export function HRCandidateDetailClient({
         readiness={evidenceReadiness}
         title="Candidate evidence readiness"
         description="HR decision context split into observed facts, missing evidence, and risk flags before Agent reasoning."
+      />
+
+      <CandidateStageHistoryTimeline
+        entries={stageHistory}
+        showActorDetails={showStageHistoryActors}
       />
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">

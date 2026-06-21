@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation';
 import { 
   getCandidateAction,
+  getCandidateStageHistoryAction,
   getInterviewReportsByCandidateAction,
   getInterviewGuideAction,
   getInterviewByCandidateAndStageAction,
@@ -11,11 +12,12 @@ import {
 } from '@/features/recruitment/actions';
 import { requireRole } from '@/lib/auth';
 import { ManagerCandidateDetailClient } from '@/features/recruitment/components/manager-candidate-detail-client';
+import { normalizeCandidateStageHistory } from '@/features/recruitment/components/candidate-stage-history-timeline';
 import Link from 'next/link';
 import { IconArrowLeft } from '@tabler/icons-react';
 
 export default async function ManagerCandidateDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  await requireRole(['manager', 'admin']);
+  const session = await requireRole(['manager', 'admin']);
   const { id } = await params;
   
   // We can't fetch guide without job ID, but we need candidate first to get job ID.
@@ -26,7 +28,7 @@ export default async function ManagerCandidateDetailPage({ params }: { params: P
     notFound();
   }
 
-  const [reports, guide, managerInterview, hrUsers, autoPilotGuide, screening, job] = await Promise.all([
+  const [reports, guide, managerInterview, hrUsers, autoPilotGuide, screening, job, stageHistoryRecords] = await Promise.all([
     getInterviewReportsByCandidateAction(id).catch(() => []),
     candidate.jobId ? getInterviewGuideAction(id, candidate.jobId, 'manager').catch(() => null) : null,
     getInterviewByCandidateAndStageAction(id, 'manager').catch(() => null),
@@ -34,6 +36,7 @@ export default async function ManagerCandidateDetailPage({ params }: { params: P
     candidate.jobId ? getInterviewAutoPilotAction(id, candidate.jobId, 'manager').catch(() => null) : null,
     candidate.jobId ? getScreeningAction(id, candidate.jobId).catch(() => null) : null,
     candidate.jobId ? getJobAction(candidate.jobId).catch(() => null) : null,
+    getCandidateStageHistoryAction(id).catch(() => []),
   ]);
 
   // Filter reports for TA stage
@@ -58,6 +61,8 @@ export default async function ManagerCandidateDetailPage({ params }: { params: P
 
       <ManagerCandidateDetailClient 
         candidate={candidate}
+        stageHistory={normalizeCandidateStageHistory(stageHistoryRecords)}
+        showStageHistoryActors={session.user.role === 'admin'}
         taReports={taReports}
         interviewGuide={guide}
         currentInterview={currentInterview}

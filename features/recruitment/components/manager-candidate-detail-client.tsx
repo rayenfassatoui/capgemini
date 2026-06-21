@@ -32,6 +32,10 @@ import {
   buildCandidateEvidenceReadiness,
   formatEvidenceReadinessForAgent,
 } from './evidence-readiness';
+import {
+  CandidateStageHistoryTimeline,
+  type CandidateStageHistoryTimelineEntry,
+} from './candidate-stage-history-timeline';
 
 interface InterviewGuide {
   id: string;
@@ -84,6 +88,8 @@ interface UserListItem {
 interface ManagerCandidateDetailClientProps {
   candidate: Candidate;
   taReports: Report[];
+  stageHistory: CandidateStageHistoryTimelineEntry[];
+  showStageHistoryActors: boolean;
   interviewGuide?: InterviewGuide | null;
   currentInterview?: Interview | null;
   screening?: Screening | null;
@@ -112,6 +118,8 @@ function StepIndicator({ step, label, done, active }: { step: number; label: str
 export function ManagerCandidateDetailClient({
   candidate,
   taReports,
+  stageHistory,
+  showStageHistoryActors,
   interviewGuide,
   currentInterview,
   screening,
@@ -409,6 +417,11 @@ export function ManagerCandidateDetailClient({
         readiness={evidenceReadiness}
         title="Candidate evidence readiness"
         description="Manager decision context split into observed facts, missing evidence, and risk flags before Agent reasoning."
+      />
+
+      <CandidateStageHistoryTimeline
+        entries={stageHistory}
+        showActorDetails={showStageHistoryActors}
       />
 
       {/* Progress Bar */}
