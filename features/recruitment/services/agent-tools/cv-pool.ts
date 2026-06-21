@@ -202,9 +202,12 @@ export const executors: Record<string, ToolHandler> = {
     );
   },
 
-  get_cv_details: async (args, { services, resolveId, sanitizeForJson }) => {
+  get_cv_details: async (args, { services, resolveId, sanitizeForJson, ctx }) => {
     return sanitizeForJson(
-      await services.getCvDetails(await resolveId(args.cvId, 'cvId'))
+      await services.getCvDetails(await resolveId(args.cvId, 'cvId'), {
+        userId: ctx.userId,
+        role: ctx.role,
+      })
     );
   },
 

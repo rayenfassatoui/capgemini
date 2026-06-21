@@ -39,7 +39,11 @@ export async function scheduleInterview(
     manager: 'manager_interview',
     hr: 'hr_interview',
   };
-  await updateCandidateStage(validated.candidateId, stageMap[validated.stage]);
+  await updateCandidateStage(validated.candidateId, stageMap[validated.stage], {
+    changedBy: userId,
+    source: 'interview_scheduled',
+    reason: `${validated.stage.toUpperCase()} interview scheduled`,
+  });
 
   const candidate = await getCandidate(validated.candidateId);
   const job = await getJob(validated.jobId);

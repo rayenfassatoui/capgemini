@@ -22,13 +22,13 @@ La validation retenue pour ce rapport combine deux niveaux complémentaires : d'
     Pipeline candidat & Un CV est affecté à une offre, puis transmis entre TA, Manager et RH. & Création d'un candidat, transitions d'état explicites et traçabilité des responsabilités. & Couvert par le workflow candidat, les affectations successives et la structuration par étapes du sprint 3. \\
     Entretiens et décisions & Un entretien est planifié, réalisé puis formalisé par un rapport. & Création de l'entretien, mise à jour de l'étape, enregistrement du rapport et ouverture de l'onboarding en cas d'embauche. & Couvert par les services de planification, de reporting et par la génération automatique de checklist d'onboarding. \\
     Administration et gouvernance & Un administrateur consulte les vues système, analytics, activité, emails et onboarding. & Accès à une supervision consolidée, à des traces d'audit et à des exports exploitables. & Couvert par les vues administrateur, les logs, les notifications, les exports et les panneaux d'évidence source-backed du sprint 5. \\
-    Chat analytique & Un utilisateur autorisé interroge le système en langage naturel depuis le chat flottant ou depuis le workspace \sourcecode{/agent}. & Filtrage des outils par rôle, réponse diffusée en SSE, séparation entre faits observés et recommandations, puis navigation vers les écrans source. & Couvert par le chat analytique, le registre d'outils, le grounding, les métadonnées d'évidence et les liens profonds de l'orchestration agentique. \\
+    Chat analytique & Un utilisateur interroge le système depuis le chat flottant ou \sourcecode{/agent}. & Outils filtrés par rôle, streaming SSE, verdict lisible, preuves et graphiques si la demande est analytique. & Couvert par l'orchestration agentique, le grounding, les métadonnées d'évidence, les liens profonds et les cartes graphiques. \\
     \bottomrule
   \end{tabularx}
 \end{table}
 
 \paragraph{Validation technique automatisée.}
-Sur le plan technique, la preuve automatisée principale a été exécutée via la commande \sourcecode{bun run test}. Cette exécution passe avec succès et valide 32 tests répartis sur 5 fichiers de test Vitest.
+Sur le plan technique, la preuve automatisée principale a été exécutée via la commande \sourcecode{bun run test}. Cette exécution passe avec succès et valide 37 tests répartis sur 7 fichiers de test Vitest.
 
 Les vérifications automatisées couvrent notamment :
 \begin{itemize}
@@ -36,7 +36,8 @@ Les vérifications automatisées couvrent notamment :
   \item l'isolation de périmètre, avec filtrage des résultats pour les utilisateurs non administrateurs, prévention des fuites inter-utilisateurs et séparation des clés de cache selon l'utilisateur et le rôle ;
   \item le comportement du chat en cas d'absence de résultats exploitables, avec réponse de repli grounded au lieu d'une fabrication libre ;
   \item la génération des métadonnées d'évidence, des liens profonds et des résumés de gouvernance administrateur ;
-  \item la qualification des panneaux d'\textit{evidence readiness} côté candidat et côté vivier documentaire.
+  \item la qualification des panneaux d'\textit{evidence readiness} côté candidat et côté vivier documentaire ;
+  \item la génération, la sérialisation et l'extraction des graphiques du chat analytique, afin que les réponses visuelles restent fondées sur des sorties d'outils validées.
 \end{itemize}
 
 Enfin, la couche de retrieval fait l'objet d'une validation quantitative spécifique déjà documentée dans le projet. Le rapport d'évaluation RAG de phase 2 couvre 40 requêtes avec 85\% de couverture \textit{ground truth} et montre une amélioration mesurable de Precision@5, Precision@10, MRR@10 et NDCG@10. Cette mesure complète utilement la validation fonctionnelle, car elle montre non seulement que le produit fonctionne, mais aussi que sa couche de recherche augmentée est évaluée de manière chiffrée.
@@ -48,6 +49,8 @@ La chaîne de retrieval enrichie donne au système une lecture plus complète de
 Les mécanismes de grounding jouent ici un rôle déterminant. Sans eux, le gain de fluidité conversationnelle pourrait se payer par des réponses plus séduisantes que fiables. Le grounding garantit que les noms candidats, les classements et les restitutions restent bornés par les résultats réellement accessibles à l'utilisateur. Dans un contexte RH, cette contrainte est essentielle, car une réponse plausible mais non fondée peut dégrader la confiance dans l'outil et produire des erreurs de décision.
 
 Pour le recruteur, l'impact réel de ces résultats est double. D'un côté, la plateforme réduit l'effort de recherche, de comparaison et de préparation grâce à une récupération plus pertinente et à un accès conversationnel outillé. De l'autre, elle conserve une logique de contrôle compatible avec un usage professionnel : les réponses sont contextualisées, les outils sont filtrés par rôle et les sorties sensibles sont vérifiées. Le résultat n'est donc pas seulement une IA plus performante, mais une IA plus exploitable dans un processus de recrutement gouverné.
+L'ajout de visualisations directement dans les réponses agentiques renforce ce résultat côté usage. Les questions analytiques ne produisent plus uniquement une synthèse textuelle : lorsque les données s'y prêtent, elles affichent une courbe ou des barres qui rendent les tendances, les goulets d'étranglement et les écarts de compétences plus immédiatement compréhensibles.
+
 \section*{Vue d'ensemble des acquis}
 La vue d'ensemble du projet met en évidence une progression cohérente entre les objectifs initiaux, le Product Backlog et les sprints de réalisation. Le produit démarre par un accès sécurisé, construit ensuite ses objets métier principaux, organise le workflow candidat, ajoute une couche IA gouvernée puis termine par des capacités de supervision. Cette continuité donne au rapport une lecture claire : chaque module apporte une valeur immédiate tout en préparant les modules suivants.
 

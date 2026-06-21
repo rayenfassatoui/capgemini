@@ -49,10 +49,11 @@ export async function saveInterviewReport(
       manager: 'manager_accepted',
       hr: 'hr_accepted',
     };
-    await updateCandidateStage(
-      validated.candidateId,
-      acceptedStageMap[validated.stage]
-    );
+    await updateCandidateStage(validated.candidateId, acceptedStageMap[validated.stage], {
+      changedBy: userId,
+      source: 'interview_report',
+      reason: `${validated.stage.toUpperCase()} interview accepted`,
+    });
 
     // Generate acceptance Excel with CV + formation + report data
     generateCandidateAcceptExcel(validated.candidateId, validated.stage).then(() => {
@@ -72,7 +73,11 @@ export async function saveInterviewReport(
     };
     const nextStage = nextStageMap[validated.stage];
     if (nextStage) {
-      await updateCandidateStage(validated.candidateId, nextStage);
+      await updateCandidateStage(validated.candidateId, nextStage, {
+        changedBy: userId,
+        source: 'interview_report',
+        reason: `Advanced after accepted ${validated.stage.toUpperCase()} interview`,
+      });
 
       // Auto-create onboarding checklist when candidate is hired
       if (nextStage === 'hired') {
@@ -92,10 +97,11 @@ export async function saveInterviewReport(
       manager: 'manager_rejected',
       hr: 'hr_rejected',
     };
-    await updateCandidateStage(
-      validated.candidateId,
-      rejectedStageMap[validated.stage]
-    );
+    await updateCandidateStage(validated.candidateId, rejectedStageMap[validated.stage], {
+      changedBy: userId,
+      source: 'interview_report',
+      reason: `${validated.stage.toUpperCase()} interview rejected`,
+    });
   }
 
   return report;

@@ -9,6 +9,7 @@ import {
   activityLogs,
   emailLogs,
   onboardingTasks,
+  candidateStageHistory,
 } from '@/db/schema';
 import type { CandidateStage } from '../types';
 
@@ -103,7 +104,12 @@ export async function getSystemOverview(): Promise<SystemOverview> {
 export async function getRecruitmentAnalytics(): Promise<RecruitmentAnalytics> {
   // Pipeline funnel
   const allCandidates = await db
-    .select({ stage: candidates.stage, createdAt: candidates.createdAt })
+    .select({
+      id: candidates.id,
+      stage: candidates.stage,
+      createdAt: candidates.createdAt,
+      updatedAt: candidates.updatedAt,
+    })
     .from(candidates);
 
   const pipelineFunnel: Record<CandidateStage, number> = {
@@ -136,6 +142,38 @@ export async function getRecruitmentAnalytics(): Promise<RecruitmentAnalytics> {
 
   const hiringRate = total > 0 ? Math.round((hiredCount / total) * 100) : 0;
   const rejectionRate = total > 0 ? Math.round((rejectedCount / total) * 100) : 0;
+
+  const hiredStageChanges = await db
+    .select({
+      candidateId: candidateStageHistory.candidateId,
+      createdAt: candidateStageHistory.createdAt,
+    })
+    .from(candidateStageHistory)
+    .where(eq(candidateStageHistory.newStage, 'hired'));
+
+  const hiredAtByCandidate = new Map<string, Date>();
+  for (const change of hiredStageChanges) {
+    const current = hiredAtByCandidate.get(change.candidateId);
+    if (!current || change.createdAt < current) {
+      hiredAtByCandidate.set(change.candidateId, change.createdAt);
+    }
+  }
+
+  const timeToHireDays: number[] = [];
+  for (const candidate of allCandidates) {
+    if (candidate.stage !== 'hired') continue;
+
+    const hiredAt = hiredAtByCandidate.get(candidate.id) ?? candidate.updatedAt;
+    const durationMs = hiredAt.getTime() - candidate.createdAt.getTime();
+    if (durationMs >= 0) {
+      timeToHireDays.push(Math.round(durationMs / 86_400_000));
+    }
+  }
+
+  const averageTimeToHire =
+    timeToHireDays.length > 0
+      ? Math.round(timeToHireDays.reduce((sum, days) => sum + days, 0) / timeToHireDays.length)
+      : null;
 
   // Candidates per job (top 10)
   const jobCandidateCounts = await db
@@ -218,7 +256,7 @@ export async function getRecruitmentAnalytics(): Promise<RecruitmentAnalytics> {
     candidatesPerJob,
     interviewsPerStage,
     monthlyHiringTrend,
-    averageTimeToHire: null, // Would need hired_at timestamp to compute
+    averageTimeToHire,
     topRecruiters,
   };
 }

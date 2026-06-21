@@ -215,10 +215,15 @@ export const executors: Record<string, ToolHandler> = {
     );
   },
 
-  update_candidate_stage: async (args, { services, resolveId, sanitizeForJson }) => {
+  update_candidate_stage: async (args, { services, resolveId, sanitizeForJson, ctx }) => {
     const updated = await services.updateCandidateStage(
       await resolveId(args.candidateId, 'candidateId'),
-      args.newStage as CandidateStage
+      args.newStage as CandidateStage,
+      {
+        changedBy: ctx.userId,
+        source: 'agent',
+        allowInvalidTransition: ctx.role === 'admin',
+      }
     );
     return sanitizeForJson(updated);
   },
@@ -251,7 +256,7 @@ export const executors: Record<string, ToolHandler> = {
     );
   },
 
-  bulk_update_candidate_stage: async (args, { services, resolveId, sanitizeForJson, truncateArray }) => {
+  bulk_update_candidate_stage: async (args, { services, resolveId, sanitizeForJson, truncateArray, ctx }) => {
     const rawIds = args.candidateIds as string[];
     const resolvedIds: string[] = [];
     for (const id of rawIds) {
@@ -259,7 +264,12 @@ export const executors: Record<string, ToolHandler> = {
     }
     const updated = await services.bulkUpdateCandidateStage(
       resolvedIds,
-      args.newStage as CandidateStage
+      args.newStage as CandidateStage,
+      {
+        changedBy: ctx.userId,
+        source: 'bulk',
+        allowInvalidTransition: ctx.role === 'admin',
+      }
     );
     return {
       updatedCount: updated.length,

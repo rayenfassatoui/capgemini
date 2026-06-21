@@ -238,10 +238,11 @@ export const executors: Record<string, ToolHandler> = {
     );
   },
 
-  generate_screening: async (args, { services, resolveId, sanitizeForJson }) => {
+  generate_screening: async (args, { services, resolveId, sanitizeForJson, ctx }) => {
     const screening = await services.generateScreeningWithAI(
       await resolveId(args.candidateId, 'candidateId'),
-      await resolveId(args.jobId, 'jobId')
+      await resolveId(args.jobId, 'jobId'),
+      ctx.userId
     );
     return sanitizeForJson(screening);
   },

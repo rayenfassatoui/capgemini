@@ -57,6 +57,8 @@ export {
   bulkUpdateCandidateStage,
   assignManagerToCandidate,
   assignHrToCandidate,
+  getCandidateStageHistory,
+  isCandidateStageTransitionAllowed,
   getCandidatesByStageAndAssignee,
 } from "./candidates";
 
@@ -228,6 +230,19 @@ export {
   getAllCacheMetrics,
 } from "./cache";
 export type { CacheMetrics } from "./cache";
+
+export {
+  createPendingAgentAction,
+  confirmPendingAgentAction,
+  cancelPendingAgentAction,
+  markPendingAgentActionExecuted,
+  requiresAgentActionConfirmation,
+} from "./pending-agent-actions";
+export type {
+  PendingAgentActionClientView,
+  PendingAgentActionDecision,
+  PendingAgentActionStatus,
+} from "./pending-agent-actions";
 
 export {
   runEvaluation,

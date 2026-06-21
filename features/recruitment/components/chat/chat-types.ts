@@ -1,6 +1,6 @@
 import type { AgentEvidenceMetadata, RecruitmentAnalyticsChart } from "../../types";
 
-export type ToolEventStatus = "queued" | "running" | "success" | "error";
+export type ToolEventStatus = "queued" | "running" | "pending_confirmation" | "success" | "error";
 
 export type ToolTraceFilter = "all" | ToolEventStatus;
 
@@ -60,6 +60,15 @@ export interface FileDownload {
   contentType: string;
 }
 
+export interface AgentActionConfirmation {
+  id: string;
+  toolName: string;
+  summary: string;
+  args: ToolTraceJson;
+  expiresAt: string;
+  status: "pending" | "confirmed" | "cancelled";
+}
+
 export interface ChatMessage {
   id: string;
   role: "user" | "assistant";
@@ -69,6 +78,7 @@ export interface ChatMessage {
   fileDownloads?: FileDownload[];
   charts?: RecruitmentAnalyticsChart[];
   metadata?: ChatResponseMetadata;
+  confirmations?: AgentActionConfirmation[];
 }
 
 export interface Conversation {

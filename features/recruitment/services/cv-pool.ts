@@ -2,9 +2,22 @@ import { and, desc, eq } from 'drizzle-orm';
 import { db } from '@/lib/db';
 import { cvPool } from '@/db/schema';
 import { cvExtractionSchema, uploadCvSchema } from '../schemas';
-import type { CvExtractionResult, UploadCvInput } from '../types';
+import type { CvExtractionResult, UploadCvInput, UserRole } from '../types';
 import { callOpenRouter, cleanJsonResponse } from './ai';
 import { aiCvExtractionOutputSchema } from '../schemas';
+
+type CvAccessScope = {
+  userId: string;
+  role: UserRole;
+};
+
+function cvAccessCondition(cvId: string, scope: CvAccessScope) {
+  if (scope.role === 'admin') {
+    return eq(cvPool.id, cvId);
+  }
+
+  return and(eq(cvPool.id, cvId), eq(cvPool.uploadedBy, scope.userId));
+}
 
 export async function uploadCv(input: UploadCvInput, userId: string) {
   const validated = uploadCvSchema.parse(input);
@@ -115,8 +128,6 @@ export async function listCvPool(userId: string) {
       filename: cvPool.filename,
       contentType: cvPool.contentType,
       size: cvPool.size,
-      rawText: cvPool.rawText,
-      rawBytes: cvPool.rawBytes,
       extractedName: cvPool.extractedName,
       extractedEmail: cvPool.extractedEmail,
       extractedPhone: cvPool.extractedPhone,
@@ -139,15 +150,13 @@ export async function deleteCv(cvId: string, userId: string) {
     .where(and(eq(cvPool.id, cvId), eq(cvPool.uploadedBy, userId)));
 }
 
-export async function getCvDetails(cvId: string) {
+export async function getCvDetails(cvId: string, scope: CvAccessScope) {
   const [cv] = await db
     .select({
       id: cvPool.id,
       filename: cvPool.filename,
       contentType: cvPool.contentType,
       size: cvPool.size,
-      rawText: cvPool.rawText,
-      rawBytes: cvPool.rawBytes,
       extractedName: cvPool.extractedName,
       extractedEmail: cvPool.extractedEmail,
       extractedPhone: cvPool.extractedPhone,
@@ -160,11 +169,11 @@ export async function getCvDetails(cvId: string) {
       createdAt: cvPool.createdAt,
     })
     .from(cvPool)
-    .where(eq(cvPool.id, cvId));
+    .where(cvAccessCondition(cvId, scope));
   return cv ?? null;
 }
 
-export async function getCvFile(cvId: string) {
+export async function getCvFile(cvId: string, scope: CvAccessScope) {
   const [cv] = await db
     .select({
       id: cvPool.id,
@@ -173,7 +182,7 @@ export async function getCvFile(cvId: string) {
       rawBytes: cvPool.rawBytes,
     })
     .from(cvPool)
-    .where(eq(cvPool.id, cvId));
+    .where(cvAccessCondition(cvId, scope));
 
   return cv ?? null;
 }
@@ -192,8 +201,6 @@ export async function searchCvPool(userId: string, filters: SearchCvPoolFilters)
       filename: cvPool.filename,
       contentType: cvPool.contentType,
       size: cvPool.size,
-      rawText: cvPool.rawText,
-      rawBytes: cvPool.rawBytes,
       extractedName: cvPool.extractedName,
       extractedEmail: cvPool.extractedEmail,
       extractedPhone: cvPool.extractedPhone,

@@ -192,14 +192,25 @@ export async function getCandidateAction(candidateId: string) {
   return services.getCandidate(candidateId);
 }
 
+export async function getCandidateStageHistoryAction(candidateId: string) {
+  await requireRole(['ta', 'manager', 'hr', 'admin']);
+  const services = await getServices();
+  return services.getCandidateStageHistory(candidateId);
+}
+
 export async function updateCandidateStageAction(
   candidateId: string,
   newStage: CandidateStage
 ) {
   try {
-    await requireRole(['ta', 'manager', 'hr', 'admin']);
+    const session = await requireRole(['ta', 'manager', 'hr', 'admin']);
     const services = await getServices();
-    const result = await services.updateCandidateStage(candidateId, newStage);
+    const role = (session.user.role ?? 'ta') as UserRole;
+    const result = await services.updateCandidateStage(candidateId, newStage, {
+      changedBy: session.user.id,
+      source: 'manual',
+      allowInvalidTransition: role === 'admin',
+    });
     revalidatePath('/ta/jobs');
     revalidatePath('/manager/candidates');
     revalidatePath('/hr/candidates');
@@ -216,9 +227,9 @@ export async function generateScreeningAction(
   jobId: string
 ) {
   try {
-    await requireRole(['ta', 'admin']);
+    const session = await requireRole(['ta', 'admin']);
     const services = await getServices();
-    const result = await services.generateScreeningWithAI(candidateId, jobId);
+    const result = await services.generateScreeningWithAI(candidateId, jobId, session.user.id);
     revalidatePath(`/ta/jobs/${jobId}`);
     return result;
   } catch (error) {
@@ -454,15 +465,17 @@ export async function exportCvPoolAction() {
 }
 
 export async function getCvDetailsAction(cvId: string) {
-  await requireRole(['ta', 'admin']);
+  const session = await requireRole(['ta', 'admin']);
   const services = await getServices();
-  return services.getCvDetails(cvId);
+  const role = (session.user.role ?? 'ta') as UserRole;
+  return services.getCvDetails(cvId, { userId: session.user.id, role });
 }
 
 export async function getCvFileAction(cvId: string) {
-  await requireRole(['ta', 'admin']);
+  const session = await requireRole(['ta', 'admin']);
   const services = await getServices();
-  return services.getCvFile(cvId);
+  const role = (session.user.role ?? 'ta') as UserRole;
+  return services.getCvFile(cvId, { userId: session.user.id, role });
 }
 
 // ==================== SINGLE/MULTI CV EXCEL EXPORT ACTIONS ====================
@@ -672,9 +685,14 @@ export async function bulkUpdateCandidateStageAction(
   newStage: CandidateStage
 ) {
   try {
-    await requireRole(['ta', 'manager', 'hr', 'admin']);
+    const session = await requireRole(['ta', 'manager', 'hr', 'admin']);
     const services = await getServices();
-    const result = await services.bulkUpdateCandidateStage(candidateIds, newStage);
+    const role = (session.user.role ?? 'ta') as UserRole;
+    const result = await services.bulkUpdateCandidateStage(candidateIds, newStage, {
+      changedBy: session.user.id,
+      source: 'bulk',
+      allowInvalidTransition: role === 'admin',
+    });
     revalidatePath('/ta/jobs');
     revalidatePath('/manager/candidates');
     revalidatePath('/hr/candidates');
@@ -707,9 +725,9 @@ export async function assignManagerToCandidateAction(
   managerId: string
 ) {
   try {
-    await requireRole(['ta', 'admin']);
+    const session = await requireRole(['ta', 'admin']);
     const services = await getServices();
-    const result = await services.assignManagerToCandidate(candidateId, managerId);
+    const result = await services.assignManagerToCandidate(candidateId, managerId, session.user.id);
     revalidatePath('/ta/jobs');
     revalidatePath('/manager/candidates');
     return result;
@@ -723,9 +741,9 @@ export async function assignHrToCandidateAction(
   hrId: string
 ) {
   try {
-    await requireRole(['manager', 'admin']);
+    const session = await requireRole(['manager', 'admin']);
     const services = await getServices();
-    const result = await services.assignHrToCandidate(candidateId, hrId);
+    const result = await services.assignHrToCandidate(candidateId, hrId, session.user.id);
     revalidatePath('/manager/candidates');
     revalidatePath('/hr/candidates');
     return result;

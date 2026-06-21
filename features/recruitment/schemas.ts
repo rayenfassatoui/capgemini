@@ -384,8 +384,14 @@ export const chatAttachmentSchema = z.object({
   rawBytes: z.string().min(1), // base64
 });
 
+export const agentActionConfirmationSchema = z.object({
+  actionId: z.string().uuid(),
+  decision: z.enum(['confirm', 'cancel']),
+});
+
 export const statisticsChatRequestSchema = z.object({
   conversationId: z.string().uuid().optional(),
   messages: z.array(chatMessageSchema).min(1).max(20),
   attachments: z.array(chatAttachmentSchema).max(5).optional(),
+  confirmation: agentActionConfirmationSchema.optional(),
 });

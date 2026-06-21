@@ -10,6 +10,7 @@ import {
 import type { RecruitmentAnalyticsChart } from "../../types";
 
 import type {
+  AgentActionConfirmation,
   ChatMessage,
   ChatResponseMetadata,
   ChatView,
@@ -65,9 +66,10 @@ export interface StatisticsChatController {
   createNewChat: () => Promise<void>;
   deleteConversation: (conversationId: string) => Promise<void>;
   handleStop: () => void;
-  sendMessage: (text: string) => Promise<void>;
+  sendMessage: (text: string, confirmation?: { actionId: string; decision: "confirm" | "cancel" }) => Promise<void>;
   attachFile: (file: File) => void;
   removeFile: () => void;
+  confirmAction: (confirmation: AgentActionConfirmation, decision: "confirm" | "cancel") => Promise<void>;
 }
 
 export function useStatisticsChatController({
@@ -197,7 +199,7 @@ export function useStatisticsChatController({
   }, []);
 
   const sendMessage = useCallback(
-    async (text: string) => {
+    async (text: string, confirmationRequest?: { actionId: string; decision: "confirm" | "cancel" }) => {
       const trimmed =
         text.trim() ||
         (attachedFile ? `Upload and process ${attachedFile.name}` : "");
@@ -287,6 +289,7 @@ export function useStatisticsChatController({
             conversationId: convId,
             messages: history,
             ...(attachments ? { attachments } : {}),
+            ...(confirmationRequest ? { confirmation: confirmationRequest } : {}),
           }),
           signal: controller.signal,
         });
@@ -318,6 +321,7 @@ export function useStatisticsChatController({
         const toolEventsAccum: ToolEvent[] = [];
         const fileDownloadsAccum: FileDownload[] = [];
         const chartsAccum: RecruitmentAnalyticsChart[] = [];
+        const confirmationsAccum: AgentActionConfirmation[] = [];
 
         const mergeToolEvent = (evt: ToolEvent) => {
           const idx = toolEventsAccum.findIndex(
@@ -474,6 +478,35 @@ export function useStatisticsChatController({
               } catch {
                 // Ignore malformed file events from partial chunks.
               }
+            } else if (line.startsWith("@@CONFIRMATION@@")) {
+              try {
+                const payload = JSON.parse(
+                  line.slice("@@CONFIRMATION@@".length),
+                ) as {
+                  id: string;
+                  toolName: string;
+                  summary: string;
+                  args: AgentActionConfirmation["args"];
+                  expiresAt: string;
+                };
+                confirmationsAccum.push({
+                  id: payload.id,
+                  toolName: payload.toolName,
+                  summary: payload.summary,
+                  args: payload.args,
+                  expiresAt: payload.expiresAt,
+                  status: "pending",
+                });
+                setMessages((prev) =>
+                  prev.map((m) =>
+                    m.id === assistantMsg.id
+                      ? { ...m, confirmations: [...confirmationsAccum] }
+                      : m,
+                  ),
+                );
+              } catch {
+                // Ignore malformed confirmation events from partial chunks.
+              }
             } else if (line.startsWith("@@META@@")) {
               try {
                 const parsedMetadata = JSON.parse(
@@ -539,7 +572,8 @@ export function useStatisticsChatController({
           } else if (
             !accumulated.startsWith("@@TOOL_") &&
             !accumulated.startsWith("@@FILE@@") &&
-            !accumulated.startsWith("@@META@@")
+            !accumulated.startsWith("@@META@@") &&
+            !accumulated.startsWith("@@CONFIRMATION@@")
           ) {
             textContent += accumulated;
           }
@@ -548,7 +582,8 @@ export function useStatisticsChatController({
         if (
           textContent ||
           fileDownloadsAccum.length > 0 ||
-          chartsAccum.length > 0
+          chartsAccum.length > 0 ||
+          confirmationsAccum.length > 0
         ) {
           setMessages((prev) =>
             prev.map((m) =>
@@ -565,6 +600,10 @@ export function useStatisticsChatController({
                         ? [...fileDownloadsAccum]
                         : undefined,
                     metadata: metadataAccum,
+                    confirmations:
+                      confirmationsAccum.length > 0
+                        ? [...confirmationsAccum]
+                        : undefined,
                     charts:
                       chartsAccum.length > 0 ? [...chartsAccum] : undefined,
                   }
@@ -612,6 +651,39 @@ export function useStatisticsChatController({
     [isStreaming, messages, activeConversationId, attachedFile],
   );
 
+  const confirmAction = useCallback(
+    async (
+      confirmation: AgentActionConfirmation,
+      decision: "confirm" | "cancel",
+    ) => {
+      if (isStreaming || confirmation.status !== "pending") return;
+
+      setMessages((prev) =>
+        prev.map((message) => ({
+          ...message,
+          confirmations: message.confirmations?.map((item) =>
+            item.id === confirmation.id
+              ? {
+                  ...item,
+                  status: decision === "confirm" ? "confirmed" : "cancelled",
+                }
+              : item,
+          ),
+        })),
+      );
+
+      const verb = decision === "confirm" ? "Confirm" : "Cancel";
+      await sendMessage(
+        `${verb} action: ${confirmation.toolName.replace(/_/g, " ")}`,
+        {
+          actionId: confirmation.id,
+          decision,
+        },
+      );
+    },
+    [isStreaming, sendMessage],
+  );
+
   return {
     view,
     setView,
@@ -630,5 +702,6 @@ export function useStatisticsChatController({
     sendMessage,
     attachFile: setAttachedFile,
     removeFile: () => setAttachedFile(null),
+    confirmAction,
   };
 }

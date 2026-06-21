@@ -234,6 +234,26 @@ export const candidates = pgTable('candidates', {
 });
 
 /**
+ * Candidate stage history: immutable audit trail of pipeline movement.
+ */
+export const candidateStageHistory = pgTable('candidate_stage_history', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  candidateId: uuid('candidate_id')
+    .notNull()
+    .references(() => candidates.id, { onDelete: 'cascade' }),
+  previousStage: candidateStageEnum('previous_stage'),
+  newStage: candidateStageEnum('new_stage').notNull(),
+  changedBy: text('changed_by').references(() => users.id, { onDelete: 'set null' }),
+  reason: text('reason'),
+  source: text('source').notNull().default('manual'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (table) => [
+  index('candidate_stage_history_candidate_id_idx').on(table.candidateId),
+  index('candidate_stage_history_changed_by_idx').on(table.changedBy),
+  index('candidate_stage_history_created_at_idx').on(table.createdAt),
+]);
+
+/**
  * Screenings: AI-generated match score between a CV and a job.
  */
 export const screenings = pgTable('screenings', {
@@ -362,6 +382,33 @@ export const chatMessages = pgTable('chat_messages', {
 });
 
 /**
+ * Pending agent actions: server-enforced confirmation queue for mutating AI tools.
+ */
+export const pendingAgentActions = pgTable('pending_agent_actions', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: text('user_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  conversationId: uuid('conversation_id')
+    .notNull()
+    .references(() => chatConversations.id, { onDelete: 'cascade' }),
+  toolName: text('tool_name').notNull(),
+  args: jsonb('args').$type<Record<string, unknown>>().notNull(),
+  summary: text('summary').notNull(),
+  status: text('status').notNull().default('pending'),
+  expiresAt: timestamp('expires_at').notNull(),
+  confirmedAt: timestamp('confirmed_at'),
+  cancelledAt: timestamp('cancelled_at'),
+  executedAt: timestamp('executed_at'),
+  error: text('error'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (table) => [
+  index('pending_agent_actions_user_status_idx').on(table.userId, table.status),
+  index('pending_agent_actions_conversation_idx').on(table.conversationId),
+  index('pending_agent_actions_expires_at_idx').on(table.expiresAt),
+]);
+
+/**
  * Email log: tracks all emails sent from the system.
  */
 export const emailLogs = pgTable('email_logs', {
@@ -451,12 +498,14 @@ export const usersRelations = relations(users, ({ many }) => ({
   assignedCandidates: many(candidates, { relationName: 'assignedByUser' }),
   managedCandidates: many(candidates, { relationName: 'assignedManager' }),
   hrCandidates: many(candidates, { relationName: 'assignedHr' }),
+  stageChanges: many(candidateStageHistory),
   interviewGuides: many(interviewGuides),
   interviews: many(interviews),
   interviewReports: many(interviewReports),
   uploadedCvs: many(cvPool),
   emailLogs: many(emailLogs),
   chatConversations: many(chatConversations),
+  pendingAgentActions: many(pendingAgentActions),
   notifications: many(notifications),
   candidateNotes: many(candidateNotes),
   activityLogs: many(activityLogs),
@@ -501,6 +550,12 @@ export const candidatesRelations = relations(candidates, ({ one, many }) => ({
   interviewReports: many(interviewReports),
   notes: many(candidateNotes),
   onboardingTasks: many(onboardingTasks),
+  stageHistory: many(candidateStageHistory),
+}));
+
+export const candidateStageHistoryRelations = relations(candidateStageHistory, ({ one }) => ({
+  candidate: one(candidates, { fields: [candidateStageHistory.candidateId], references: [candidates.id] }),
+  changedByUser: one(users, { fields: [candidateStageHistory.changedBy], references: [users.id] }),
 }));
 
 export const screeningsRelations = relations(screenings, ({ one }) => ({
@@ -535,10 +590,16 @@ export const emailLogsRelations = relations(emailLogs, ({ one }) => ({
 export const chatConversationsRelations = relations(chatConversations, ({ one, many }) => ({
   user: one(users, { fields: [chatConversations.userId], references: [users.id] }),
   messages: many(chatMessages),
+  pendingAgentActions: many(pendingAgentActions),
 }));
 
 export const chatMessagesRelations = relations(chatMessages, ({ one }) => ({
   conversation: one(chatConversations, { fields: [chatMessages.conversationId], references: [chatConversations.id] }),
+}));
+
+export const pendingAgentActionsRelations = relations(pendingAgentActions, ({ one }) => ({
+  user: one(users, { fields: [pendingAgentActions.userId], references: [users.id] }),
+  conversation: one(chatConversations, { fields: [pendingAgentActions.conversationId], references: [chatConversations.id] }),
 }));
 
 export const notificationsRelations = relations(notifications, ({ one }) => ({

@@ -6,7 +6,7 @@ import { callOpenRouter, cleanJsonResponse } from './ai';
 import { getJob } from './jobs';
 import { getCandidate, updateCandidateStage } from './candidates';
 
-export async function generateScreeningWithAI(candidateId: string, jobId: string) {
+export async function generateScreeningWithAI(candidateId: string, jobId: string, userId: string) {
   const candidate = await getCandidate(candidateId);
   if (!candidate) throw new Error('Candidate not found');
 
@@ -63,7 +63,11 @@ Summary: ${cv.extractedSummary ?? 'N/A'}`;
     })
     .returning();
 
-  await updateCandidateStage(candidateId, 'ta_screening');
+  await updateCandidateStage(candidateId, 'ta_screening', {
+    changedBy: userId,
+    source: 'screening',
+    reason: 'AI screening generated',
+  });
 
   return screening;
 }

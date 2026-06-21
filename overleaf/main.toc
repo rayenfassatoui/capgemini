@@ -130,7 +130,7 @@
 \contentsline {subsection}{\numberline {6.2.1}Analyse du sprint}{55}{subsection.6.2.1}%
 \contentsline {subsection}{\numberline {6.2.2}Niveaux d'intelligence du projet}{55}{subsection.6.2.2}%
 \contentsline {subsection}{\numberline {6.2.3}Matching, screening et autopilot}{56}{subsection.6.2.3}%
-\contentsline {subsection}{\numberline {6.2.4}Agent conversationnel et garde-fous}{56}{subsection.6.2.4}%
+\contentsline {subsection}{\numberline {6.2.4}Agent conversationnel, réponses exploitables et garde-fous}{56}{subsection.6.2.4}%
 \contentsline {section}{\numberline {6.3}Vue dynamique}{57}{section.6.3}%
 \contentsline {subsection}{\numberline {6.3.1}Orchestration agentique}{57}{subsection.6.3.1}%
 \contentsline {subsection}{\numberline {6.3.2}Pipeline RAG hybride}{57}{subsection.6.3.2}%
@@ -143,35 +143,36 @@
 \contentsline {subsection}{\numberline {6.4.3}Autopilot d'entretien}{60}{subsection.6.4.3}%
 \contentsline {subsection}{\numberline {6.4.4}Page statistiques, workspace agentique et réponses sourcées}{60}{subsection.6.4.4}%
 \contentsline {subsection}{\numberline {6.4.5}Fonctionnement détaillé du chat analytique}{61}{subsection.6.4.5}%
-\contentsline {section}{\numberline {6.5}Évaluation et résultats}{62}{section.6.5}%
-\contentsline {paragraph}{Lecture des métriques.}{62}{section*.84}%
-\contentsline {section}{\numberline {6.6}Apport du module}{63}{section.6.6}%
-\contentsline {section}{Conclusion}{63}{section*.85}%
-\contentsline {chapter}{\numberline {7}Module 5 : notifications, analytique, administration et gouvernance}{64}{chapter.7}%
-\contentsline {section}{Introduction}{64}{section*.86}%
-\contentsline {section}{\numberline {7.1}Sprint 5 : objectif et périmètre}{64}{section.7.1}%
-\contentsline {subsection}{\numberline {7.1.1}Objectif du sprint}{64}{subsection.7.1.1}%
-\contentsline {subsection}{\numberline {7.1.2}Backlog du sprint}{65}{subsection.7.1.2}%
-\contentsline {section}{\numberline {7.2}Implémentation du sprint}{65}{section.7.2}%
-\contentsline {subsection}{\numberline {7.2.1}Analyse du sprint}{65}{subsection.7.2.1}%
-\contentsline {subsection}{\numberline {7.2.2}Vue fonctionnelle globale}{66}{subsection.7.2.2}%
-\contentsline {subsection}{\numberline {7.2.3}Chaîne de notification et de communication}{67}{subsection.7.2.3}%
-\contentsline {subsection}{\numberline {7.2.4}Supervision administrateur}{67}{subsection.7.2.4}%
-\contentsline {paragraph}{Lecture de gouvernance et portée de supervision.}{68}{section*.89}%
-\contentsline {subsection}{\numberline {7.2.5}Audit, logs et exports}{68}{subsection.7.2.5}%
-\contentsline {section}{\numberline {7.3}Réalisation}{68}{section.7.3}%
-\contentsline {subsection}{\numberline {7.3.1}Cloche de notification et communication in-app}{68}{subsection.7.3.1}%
-\contentsline {subsection}{\numberline {7.3.2}Tableau de bord administrateur}{69}{subsection.7.3.2}%
-\contentsline {subsection}{\numberline {7.3.3}Analytique administrateur}{70}{subsection.7.3.3}%
-\contentsline {subsection}{\numberline {7.3.4}Historique d'activité et logs d'emails}{70}{subsection.7.3.4}%
-\contentsline {subsection}{\numberline {7.3.5}Suivi détaillé de l'onboarding}{71}{subsection.7.3.5}%
-\contentsline {subsection}{\numberline {7.3.6}Exports et interopérabilité}{72}{subsection.7.3.6}%
-\contentsline {paragraph}{Lecture d'audit.}{72}{section*.95}%
-\contentsline {section}{\numberline {7.4}Apport du module}{72}{section.7.4}%
-\contentsline {section}{Conclusion}{73}{section*.96}%
-\contentsline {chapter}{Conclusion générale}{74}{chapter*.97}%
-\contentsline {paragraph}{Validation technique automatisée.}{76}{section*.100}%
-\contentsline {chapter}{Netographie}{79}{chapter*.106}%
-\contentsline {paragraph}{Sources institutionnelles et métier.}{79}{section*.107}%
-\contentsline {paragraph}{Documentation technique officielle.}{79}{section*.108}%
-\contentsline {paragraph}{Références scientifiques.}{80}{section*.109}%
+\contentsline {paragraph}{Restitution visuelle des analyses.}{62}{section*.83}%
+\contentsline {section}{\numberline {6.5}Évaluation et résultats}{63}{section.6.5}%
+\contentsline {paragraph}{Lecture des métriques.}{63}{section*.86}%
+\contentsline {section}{\numberline {6.6}Apport du module}{64}{section.6.6}%
+\contentsline {section}{Conclusion}{64}{section*.87}%
+\contentsline {chapter}{\numberline {7}Module 5 : notifications, analytique, administration et gouvernance}{65}{chapter.7}%
+\contentsline {section}{Introduction}{65}{section*.88}%
+\contentsline {section}{\numberline {7.1}Sprint 5 : objectif et périmètre}{65}{section.7.1}%
+\contentsline {subsection}{\numberline {7.1.1}Objectif du sprint}{65}{subsection.7.1.1}%
+\contentsline {subsection}{\numberline {7.1.2}Backlog du sprint}{66}{subsection.7.1.2}%
+\contentsline {section}{\numberline {7.2}Implémentation du sprint}{66}{section.7.2}%
+\contentsline {subsection}{\numberline {7.2.1}Analyse du sprint}{66}{subsection.7.2.1}%
+\contentsline {subsection}{\numberline {7.2.2}Vue fonctionnelle globale}{67}{subsection.7.2.2}%
+\contentsline {subsection}{\numberline {7.2.3}Chaîne de notification et de communication}{68}{subsection.7.2.3}%
+\contentsline {subsection}{\numberline {7.2.4}Supervision administrateur}{68}{subsection.7.2.4}%
+\contentsline {paragraph}{Lecture de gouvernance et portée de supervision.}{69}{section*.91}%
+\contentsline {subsection}{\numberline {7.2.5}Audit, logs et exports}{69}{subsection.7.2.5}%
+\contentsline {section}{\numberline {7.3}Réalisation}{69}{section.7.3}%
+\contentsline {subsection}{\numberline {7.3.1}Cloche de notification et communication in-app}{69}{subsection.7.3.1}%
+\contentsline {subsection}{\numberline {7.3.2}Tableau de bord administrateur}{70}{subsection.7.3.2}%
+\contentsline {subsection}{\numberline {7.3.3}Analytique administrateur}{71}{subsection.7.3.3}%
+\contentsline {subsection}{\numberline {7.3.4}Historique d'activité et logs d'emails}{71}{subsection.7.3.4}%
+\contentsline {subsection}{\numberline {7.3.5}Suivi détaillé de l'onboarding}{72}{subsection.7.3.5}%
+\contentsline {subsection}{\numberline {7.3.6}Exports et interopérabilité}{73}{subsection.7.3.6}%
+\contentsline {paragraph}{Lecture d'audit.}{73}{section*.97}%
+\contentsline {section}{\numberline {7.4}Apport du module}{73}{section.7.4}%
+\contentsline {section}{Conclusion}{74}{section*.98}%
+\contentsline {chapter}{Conclusion générale}{75}{chapter*.99}%
+\contentsline {paragraph}{Validation technique automatisée.}{77}{section*.102}%
+\contentsline {chapter}{Netographie}{81}{chapter*.108}%
+\contentsline {paragraph}{Sources institutionnelles et métier.}{81}{section*.109}%
+\contentsline {paragraph}{Documentation technique officielle.}{81}{section*.110}%
+\contentsline {paragraph}{Références scientifiques.}{82}{section*.111}%

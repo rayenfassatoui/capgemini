@@ -42,6 +42,7 @@ export function AgentChatSurface({
     sendMessage,
     attachFile,
     removeFile,
+    confirmAction,
   } = controller;
 
   return (
@@ -77,6 +78,7 @@ export function AgentChatSurface({
             isStreaming={isStreaming}
             isLoadingHistory={isLoadingHistory}
             onSendSuggestion={sendMessage}
+            onConfirmAction={confirmAction}
           />
           <ChatInput
             input={input}

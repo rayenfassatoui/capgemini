@@ -5,10 +5,10 @@ import { useRef, useEffect, useCallback, useState } from "react";
 import { motion } from "framer-motion";
 import { Streamdown } from "streamdown";
 import { mermaid } from "@streamdown/mermaid";
-import { IconArrowDown, IconCheck, IconCopy, IconDatabase, IconDownload, IconExternalLink, IconFile, IconInfoCircle, IconLoader2, IconQuote } from "@tabler/icons-react";
+import { IconArrowDown, IconCheck, IconCopy, IconDatabase, IconDownload, IconExternalLink, IconFile, IconInfoCircle, IconLoader2, IconQuote, IconShieldCheck, IconX } from "@tabler/icons-react";
 import { cn } from "@/lib/utils";
 import { CapgeminiIcons } from "@/components/shared/icons";
-import type { ChatMessage, ToolEvent } from "./chat-types";
+import type { AgentActionConfirmation, ChatMessage, ToolEvent } from "./chat-types";
 import type { AgentEvidenceMetadata } from "../../types";
 import { SUGGESTIONS, formatToolName } from "./chat-types";
 import { ToolInspector } from "./tool-inspector";
@@ -19,6 +19,7 @@ interface ChatMessageListProps {
   isStreaming: boolean;
   isLoadingHistory: boolean;
   onSendSuggestion: (text: string) => void;
+  onConfirmAction: (confirmation: AgentActionConfirmation, decision: "confirm" | "cancel") => void;
 }
 
 const STATUS_TEXT_THINKING = "Thinking...";
@@ -118,6 +119,106 @@ function FileDownloadButton({
         <IconDownload className="size-4 stroke-[1.5]" />
       </div>
     </button>
+  );
+}
+
+function ActionConfirmationCard({
+  confirmation,
+  disabled,
+  onConfirmAction,
+}: {
+  confirmation: AgentActionConfirmation;
+  disabled: boolean;
+  onConfirmAction: (confirmation: AgentActionConfirmation, decision: "confirm" | "cancel") => void;
+}) {
+  const [expired, setExpired] = useState(false);
+
+  useEffect(() => {
+    const expiresAtMs = new Date(confirmation.expiresAt).getTime();
+
+    const updateExpired = () => {
+      setExpired(Number.isFinite(expiresAtMs) && expiresAtMs <= Date.now());
+    };
+
+    updateExpired();
+
+    if (!Number.isFinite(expiresAtMs)) return;
+
+    const timeoutId = window.setTimeout(
+      updateExpired,
+      Math.max(0, expiresAtMs - Date.now()),
+    );
+
+    return () => window.clearTimeout(timeoutId);
+  }, [confirmation.expiresAt]);
+  const isPending = confirmation.status === "pending" && !expired;
+  const statusLabel = expired && confirmation.status === "pending"
+    ? "Expired"
+    : confirmation.status === "confirmed"
+      ? "Confirmed"
+      : confirmation.status === "cancelled"
+        ? "Cancelled"
+        : "Awaiting confirmation";
+
+  return (
+    <section className="mt-4 w-full max-w-2xl rounded-2xl border border-amber-300/50 bg-amber-50/70 p-4 text-amber-950 shadow-sm dark:border-amber-500/30 dark:bg-amber-950/20 dark:text-amber-100">
+      <div className="flex items-start gap-3">
+        <span className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-300">
+          <IconShieldCheck className="size-5" />
+        </span>
+        <div className="min-w-0 flex-1 space-y-3">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-amber-700 dark:text-amber-300">
+              Confirmation required
+            </p>
+            <h3 className="mt-1 text-sm font-bold text-amber-950 dark:text-amber-50">
+              {formatToolName(confirmation.toolName)}
+            </h3>
+          </div>
+
+          <p className="text-sm leading-6 text-amber-900/90 dark:text-amber-100/85">
+            {confirmation.summary}
+          </p>
+
+          <details className="rounded-xl border border-amber-300/50 bg-background/60 p-3">
+            <summary className="cursor-pointer text-xs font-semibold text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+              Review exact arguments
+            </summary>
+            <pre className="mt-3 max-h-48 overflow-auto whitespace-pre-wrap break-words text-xs text-muted-foreground">
+              {JSON.stringify(confirmation.args, null, 2)}
+            </pre>
+          </details>
+
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <span className="text-xs font-medium text-amber-700 dark:text-amber-300">
+              {statusLabel}
+            </span>
+            {isPending && (
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  disabled={disabled}
+                  onClick={() => onConfirmAction(confirmation, "cancel")}
+                  className="inline-flex min-h-9 items-center gap-1.5 rounded-full border border-border bg-background px-3 py-1 text-xs font-semibold text-foreground transition-colors hover:border-destructive/40 hover:text-destructive disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <IconX className="size-3.5" />
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={disabled}
+                  onClick={() => onConfirmAction(confirmation, "confirm")}
+                  className="inline-flex min-h-9 items-center gap-1.5 rounded-full bg-amber-600 px-3 py-1 text-xs font-semibold text-white transition-colors hover:bg-amber-700 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <IconCheck className="size-3.5" />
+                  Confirm
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </section>
   );
 }
 
@@ -507,12 +608,14 @@ function MessageBubble({
   isStreaming,
   showFollowUps,
   onSendSuggestion,
+  onConfirmAction,
 }: {
   msg: ChatMessage;
   isLast: boolean;
   isStreaming: boolean;
   showFollowUps: boolean;
   onSendSuggestion: (text: string) => void;
+  onConfirmAction: (confirmation: AgentActionConfirmation, decision: "confirm" | "cancel") => void;
 }) {
   const isUser = msg.role === "user";
   const hasToolEvents = (msg.toolEvents?.length ?? 0) > 0;
@@ -629,6 +732,18 @@ function MessageBubble({
                   ))}
                 </div>
               )}
+              {msg.confirmations && msg.confirmations.length > 0 && (
+                <div className="flex flex-col gap-3 pt-2">
+                  {msg.confirmations.map((confirmation) => (
+                    <ActionConfirmationCard
+                      key={confirmation.id}
+                      confirmation={confirmation}
+                      disabled={isStreaming}
+                      onConfirmAction={onConfirmAction}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
           ) : isLast &&
             isStreaming &&
@@ -656,6 +771,7 @@ export function ChatMessageList({
   isStreaming,
   isLoadingHistory,
   onSendSuggestion,
+  onConfirmAction,
 }: ChatMessageListProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const pinnedToBottomRef = useRef(true);
@@ -738,6 +854,7 @@ export function ChatMessageList({
               isStreaming={isStreaming}
               showFollowUps={index === lastAssistantIndex && !(index === messages.length - 1 && isStreaming)}
               onSendSuggestion={onSendSuggestion}
+              onConfirmAction={onConfirmAction}
             />
           ))
         )}

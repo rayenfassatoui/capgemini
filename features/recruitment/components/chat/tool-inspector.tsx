@@ -94,6 +94,7 @@ function formatClockTime(value: string | undefined): string {
 function getStatusLabel(status: ToolEventStatus): string {
   if (status === "queued") return "Queued";
   if (status === "running") return "Running";
+  if (status === "pending_confirmation") return "Needs confirmation";
   if (status === "error") return "Failed";
   return "Completed";
 }
@@ -134,6 +135,7 @@ function ToolRow({ event }: { event: ToolEvent }) {
   const [isOpen, setIsOpen] = useState(false);
   const isRunning = event.status === "running";
   const isError = event.status === "error";
+  const isPendingConfirmation = event.status === "pending_confirmation";
   const statusLabel = getStatusLabel(event.status);
   const retryAttempt = event.retry?.attempt;
   const retryMaxAttempts = event.retry?.maxAttempts;
@@ -146,6 +148,8 @@ function ToolRow({ event }: { event: ToolEvent }) {
     <IconLoader2 className="animate-spin text-blue-500 size-3.5" />
   ) : isError ? (
     <IconAlertTriangle className="text-destructive size-3.5" />
+  ) : isPendingConfirmation ? (
+    <IconAlertTriangle className="text-amber-500 size-3.5" />
   ) : (
     <IconCheck className="text-emerald-500 size-3.5" />
   );
@@ -273,7 +277,7 @@ export function ToolInspector({
     return null; // hide completely in friendly UI if nothing used
   }
 
-  const statusType = error ? "error" : safeEvents.some(e => e.status === "error") ? "error" : safeEvents.some(e => e.status === "running") || isLoading ? "running" : "success";
+  const statusType = error ? "error" : safeEvents.some(e => e.status === "error") ? "error" : safeEvents.some(e => e.status === "running") || isLoading ? "running" : safeEvents.some(e => e.status === "pending_confirmation") ? "pending" : "success";
 
   return (
     <div className={cn("w-full max-w-2xl my-2", className)}>
@@ -291,13 +295,15 @@ export function ToolInspector({
                <IconLoader2 className="animate-spin text-blue-500 size-4" />
             ) : statusType === "error" ? (
                <IconAlertTriangle className="text-destructive size-4" />
+            ) : statusType === "pending" ? (
+               <IconAlertTriangle className="text-amber-500 size-4" />
             ) : (
                <IconTerminal2 className="text-muted-foreground/60 size-4" />
             )}
-            <span className={statusType === "error" ? "text-destructive" : "text-muted-foreground"}>
+            <span className={statusType === "error" ? "text-destructive" : statusType === "pending" ? "text-amber-600 dark:text-amber-400" : "text-muted-foreground"}>
               {isLoading || statusType === "running"
                 ? "Building evidence trace..."
-                : error ? "Evidence trace failed" : `Evidence trace: ${safeEvents.length} tool${safeEvents.length === 1 ? '' : 's'}`}
+                : error ? "Evidence trace failed" : statusType === "pending" ? "Confirmation required" : `Evidence trace: ${safeEvents.length} tool${safeEvents.length === 1 ? '' : 's'}`}
             </span>
           </div>
           <IconChevronDown
