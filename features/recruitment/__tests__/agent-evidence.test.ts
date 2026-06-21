@@ -155,6 +155,28 @@ describe('agent evidence metadata', () => {
     });
   });
 
+  it('assigns stable unique ids to duplicate row-level evidence text', () => {
+    const metadata = buildAgentEvidenceMetadata([
+      {
+        toolName: 'list_jobs',
+        result: {
+          success: true,
+          data: [
+            { id: 'job-1', seniority: 'Senior', status: 'open' },
+            { id: 'job-2', seniority: 'Senior', status: 'open' },
+          ],
+        },
+      },
+    ]);
+
+    const items = metadata.evidenceBlocks[0].items;
+    expect(items.map((item) => item.text)).toEqual([
+      'Senior — status: open',
+      'Senior — status: open',
+    ]);
+    expect(items.every((item) => typeof item.id === 'string')).toBe(true);
+    expect(new Set(items.map((item) => item.id)).size).toBe(items.length);
+  });
   it('returns explicit no-source limits when no tool records exist', () => {
     expect(buildObservedEvidenceLines([])).toEqual([
       'No role-scoped source was fetched for this response.',

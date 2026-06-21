@@ -158,7 +158,12 @@ export function buildAgentEvidenceMetadata(
       toolName: record.toolName,
       args: record.args,
       role,
-    }).slice(0, MAX_EVIDENCE_ITEMS);
+    })
+      .slice(0, MAX_EVIDENCE_ITEMS)
+      .map((item, itemIndex) => ({
+        ...item,
+        id: `${source.id}-item-${itemIndex}`,
+      }));
 
     if (
       evidenceItems.length > 0 &&

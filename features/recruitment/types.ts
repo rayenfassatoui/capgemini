@@ -284,6 +284,7 @@ export interface AgentSourceReference {
 
 
 export interface AgentEvidenceItem {
+  id?: string;
   text: string;
   link?: AgentNavigationLink;
 }

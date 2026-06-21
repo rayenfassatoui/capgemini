@@ -247,9 +247,9 @@ function SourceEvidencePanel({
                   {block.title}
                 </p>
                 <ul className="space-y-1 text-xs leading-5 text-muted-foreground">
-                  {block.items.map((item) => (
+                  {block.items.map((item, itemIndex) => (
                     <li
-                      key={`${block.id}-${item.text}`}
+                      key={item.id ?? `${block.id}-item-${itemIndex}`}
                       className="flex items-start justify-between gap-3"
                     >
                       <span className="flex-1">{item.text}</span>
