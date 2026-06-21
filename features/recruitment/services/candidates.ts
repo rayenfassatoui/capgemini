@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, inArray } from 'drizzle-orm';
+import { and, asc, desc, eq, inArray, sql } from 'drizzle-orm';
 import { db } from '@/lib/db';
 import { candidateStageHistory, candidates, cvPool, interviews, jobs, users } from '@/db/schema';
 import type { CandidateStage } from '../types';
@@ -22,6 +22,10 @@ export interface CandidateStageTransitionOptions {
   source: CandidateStageTransitionSource;
   reason?: string;
   allowInvalidTransition?: boolean;
+}
+
+interface IdRow extends Record<string, unknown> {
+  id: string;
 }
 
 export const CANDIDATE_STAGE_TRANSITIONS: Record<CandidateStage, readonly CandidateStage[]> = {
@@ -60,6 +64,10 @@ function formatStage(stage: CandidateStage): string {
   return stage.replace(/_/g, ' ');
 }
 
+function getExecuteRows<T>(result: unknown): T[] {
+  return (result as { rows: T[] }).rows;
+}
+
 export async function assignCvToJob(cvId: string, jobId: string, userId: string) {
   const [cv] = await db.select().from(cvPool).where(eq(cvPool.id, cvId));
   if (!cv) throw new Error('CV not found');
@@ -76,31 +84,58 @@ export async function assignCvToJob(cvId: string, jobId: string, userId: string)
     throw new Error('CV is already assigned to this job');
   }
 
-  const candidate = await db.transaction(async (tx) => {
-    const [created] = await tx
-      .insert(candidates)
-      .values({
-        fullName: cv.extractedName ?? 'Unknown Candidate',
-        email: cv.extractedEmail ?? 'unknown@example.com',
-        phone: cv.extractedPhone ?? null,
-        cvId,
-        jobId,
-        stage: 'new',
-        assignedBy: userId,
-      })
-      .returning();
+  const createdResult = await db.execute<IdRow>(sql`
+    WITH created AS (
+      INSERT INTO "candidates" (
+        "full_name",
+        "email",
+        "phone",
+        "cv_id",
+        "job_id",
+        "stage",
+        "assigned_by"
+      )
+      VALUES (
+        ${cv.extractedName ?? 'Unknown Candidate'},
+        ${cv.extractedEmail ?? 'unknown@example.com'},
+        ${cv.extractedPhone ?? null},
+        ${cvId},
+        ${jobId},
+        'new'::candidate_stage,
+        ${userId}
+      )
+      RETURNING "id"
+    ),
+    stage_history AS (
+      INSERT INTO "candidate_stage_history" (
+        "candidate_id",
+        "previous_stage",
+        "new_stage",
+        "changed_by",
+        "reason",
+        "source"
+      )
+      SELECT
+        "id",
+        NULL::candidate_stage,
+        'new'::candidate_stage,
+        ${userId},
+        'CV assigned to job',
+        'assignment'
+      FROM created
+    )
+    SELECT "id" FROM created
+  `);
 
-    await tx.insert(candidateStageHistory).values({
-      candidateId: created.id,
-      previousStage: null,
-      newStage: 'new',
-      changedBy: userId,
-      reason: 'CV assigned to job',
-      source: 'assignment',
-    });
+  const createdId = getExecuteRows<IdRow>(createdResult)[0]?.id;
+  if (!createdId) {
+    throw new Error('Failed to assign CV to job');
+  }
 
-    return created;
-  });
+  const candidate = await getCandidate(createdId);
+  if (!candidate) {
+    throw new Error('Failed to load assigned candidate');
+  }
 
   await logActivity(
     userId,
@@ -180,28 +215,45 @@ export async function updateCandidateStage(
     );
   }
 
-  const updated = await db.transaction(async (tx) => {
-    const [updatedCandidate] = await tx
-      .update(candidates)
-      .set({ stage: newStage, updatedAt: new Date() })
-      .where(eq(candidates.id, candidateId))
-      .returning();
+  const updatedResult = await db.execute<IdRow>(sql`
+    WITH updated AS (
+      UPDATE "candidates"
+      SET
+        "stage" = ${newStage}::candidate_stage,
+        "updated_at" = now()
+      WHERE "id" = ${candidateId}
+      RETURNING "id"
+    ),
+    stage_history AS (
+      INSERT INTO "candidate_stage_history" (
+        "candidate_id",
+        "previous_stage",
+        "new_stage",
+        "changed_by",
+        "reason",
+        "source"
+      )
+      SELECT
+        "id",
+        ${previousStage}::candidate_stage,
+        ${newStage}::candidate_stage,
+        ${options.changedBy},
+        ${options.reason ?? null},
+        ${options.source}
+      FROM updated
+    )
+    SELECT "id" FROM updated
+  `);
 
-    if (!updatedCandidate) {
-      throw new Error('Candidate not found');
-    }
+  const updatedId = getExecuteRows<IdRow>(updatedResult)[0]?.id;
+  if (!updatedId) {
+    throw new Error('Candidate not found');
+  }
 
-    await tx.insert(candidateStageHistory).values({
-      candidateId,
-      previousStage,
-      newStage,
-      changedBy: options.changedBy,
-      reason: options.reason ?? null,
-      source: options.source,
-    });
-
-    return updatedCandidate;
-  });
+  const updated = await getCandidate(updatedId);
+  if (!updated) {
+    throw new Error('Candidate not found');
+  }
 
   const details = options.reason
     ? `${updated.fullName} moved from ${formatStage(previousStage)} to ${formatStage(newStage)}: ${options.reason}`

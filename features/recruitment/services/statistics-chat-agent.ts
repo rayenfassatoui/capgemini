@@ -18,7 +18,7 @@ import {
   searchResumesByName,
 } from "./chat-orchestration";
 import { getToolsForRole } from "./agent-tools";
-import { getModelForTask, getNvidiaClient } from "./ai";
+import { getNvidiaClient } from "./ai";
 import { buildAgentEvidenceMetadata } from "./agent-evidence";
 import { buildAnalyticsChartsFromToolRecords } from "./chat-analytics-charts";
 import {
@@ -32,6 +32,7 @@ import {
   buildDeterministicFallbackFromRecords,
   logGroundingGuardBlock,
 } from "./statistics-chat-formatting";
+import { requestAgentCompletionWithRetryPolicy } from "./statistics-chat-llm";
 import {
   emitMetaEvent,
   streamImmediateText,
@@ -49,10 +50,7 @@ import {
   isRecruitmentWorkRequest,
 } from "./statistics-chat-prompt";
 import {
-  LLM_REQUEST_TIMEOUT_MS,
   MAX_AGENT_STEPS,
-  MAX_OUTPUT_TOKENS,
-  type AgentCompletionResponse,
   type LLMMessage,
   type ResponseToolCall,
   type StatisticsChatSession,
@@ -60,42 +58,6 @@ import {
 } from "./statistics-chat-types";
 import { SlidingWindowRateLimiter } from "@/lib/rate-limit";
 const chatLimiter = new SlidingWindowRateLimiter(15, 60_000);
-function createTimeoutError(): Error {
-  return new Error("TIMEOUT");
-}
-
-function isTimeoutError(error: unknown): boolean {
-  return (
-    error instanceof Error &&
-    (error.message === "TIMEOUT" ||
-      error.message === "LLM_TIMEOUT" ||
-      error.message === "TOOL_TIMEOUT")
-  );
-}
-
-async function callAgentCompletion(
-  nvidiaClient: ReturnType<typeof getNvidiaClient>,
-  messages: LLMMessage[],
-  tools: ReturnType<typeof getToolsForRole>,
-): Promise<AgentCompletionResponse> {
-  const completionPromise = nvidiaClient.chat.completions.create({
-    model: getModelForTask("agent"),
-    messages: messages as Parameters<
-      typeof nvidiaClient.chat.completions.create
-    >[0]["messages"],
-    stream: false,
-    tools: tools.length > 0 ? tools : undefined,
-    tool_choice: "auto",
-    temperature: 0.15,
-    max_tokens: MAX_OUTPUT_TOKENS,
-  }) as Promise<AgentCompletionResponse>;
-
-  const timeoutPromise = new Promise<never>((_, reject) =>
-    setTimeout(() => reject(createTimeoutError()), LLM_REQUEST_TIMEOUT_MS),
-  );
-
-  return Promise.race([completionPromise, timeoutPromise]);
-}
 
 export async function handleStatisticsChatPost(
   request: Request,
@@ -396,41 +358,24 @@ export async function handleStatisticsChatPost(
         while (step < MAX_AGENT_STEPS) {
           step++;
 
-          let llmResponse: AgentCompletionResponse | null = null;
-          try {
-            llmResponse = await callAgentCompletion(
-              nvidiaClient,
-              llmMessages,
-              tools,
-            );
-          } catch (error) {
-            if (isTimeoutError(error) && !sawMutatingTool && !llmRetryUsed) {
-              llmRetryUsed = true;
-              try {
-                llmResponse = await callAgentCompletion(
-                  nvidiaClient,
-                  llmMessages,
-                  tools,
-                );
-              } catch {
-                const fallback =
-                  buildDeterministicFallbackFromRecords(toolExecutionHistory) ??
-                  "The AI service took too long to respond. Please try a simpler query.";
-                fullResponse = prepareGroundedResponse(fallback);
-                await streamImmediateText(controller, encoder, fullResponse);
-                break;
-              }
-            } else {
-              const fallback =
-                buildDeterministicFallbackFromRecords(toolExecutionHistory) ??
-                (isTimeoutError(error)
-                  ? "The AI service took too long to respond. Please try a simpler query."
-                  : "Failed to connect to AI service. Please try again.");
-              fullResponse = prepareGroundedResponse(fallback);
-              await streamImmediateText(controller, encoder, fullResponse);
-              break;
-            }
+          const completionResult = await requestAgentCompletionWithRetryPolicy({
+            nvidiaClient,
+            messages: llmMessages,
+            tools,
+            sawMutatingTool,
+            retryUsed: llmRetryUsed,
+            deterministicFallback:
+              buildDeterministicFallbackFromRecords(toolExecutionHistory),
+          });
+          llmRetryUsed = completionResult.retryUsed;
+
+          if (completionResult.fallback) {
+            fullResponse = prepareGroundedResponse(completionResult.fallback);
+            await streamImmediateText(controller, encoder, fullResponse);
+            break;
           }
+
+          const llmResponse = completionResult.response;
 
           if (!llmResponse) {
             const fallback =
