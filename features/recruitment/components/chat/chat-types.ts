@@ -1,4 +1,4 @@
-import type { AgentEvidenceMetadata } from "../../types";
+import type { AgentEvidenceMetadata, RecruitmentAnalyticsChart } from "../../types";
 
 export type ToolEventStatus = "queued" | "running" | "success" | "error";
 
@@ -45,6 +45,7 @@ export interface GroundingGuardMetadata {
 export interface ChatResponseMetadata {
   groundingGuard?: GroundingGuardMetadata;
   evidence?: AgentEvidenceMetadata;
+  charts?: RecruitmentAnalyticsChart[];
 }
 
 export interface ChatAttachment {
@@ -66,6 +67,7 @@ export interface ChatMessage {
   toolEvents?: ToolEvent[];
   attachments?: ChatAttachment[];
   fileDownloads?: FileDownload[];
+  charts?: RecruitmentAnalyticsChart[];
   metadata?: ChatResponseMetadata;
 }
 

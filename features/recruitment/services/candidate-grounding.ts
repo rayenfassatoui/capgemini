@@ -284,9 +284,32 @@ export function buildDeterministicGroundedCandidateResponse(
   }
 
   const rows = allowedCandidates.candidates.slice(0, 10);
-  const title = isCandidateSearchOrRankingIntent(userMessage)
-    ? "## Grounded candidate ranking"
-    : "## Grounded candidate results";
+  const isRanking = isCandidateSearchOrRankingIntent(userMessage) || rows.length > 1;
+  const topCandidate = rows[0];
+  const topSkills = safeList(topCandidate.skills, 5);
+  const topLanguages = safeList(topCandidate.languages, 4);
+  const topScore = normalizeScore(topCandidate.score);
+  const scoreText = formatScore(topCandidate.score);
+  const fitLabel =
+    typeof topScore !== "number"
+      ? "a profile that still needs validation"
+      : topScore >= 75
+        ? "a strong match"
+        : topScore >= 60
+          ? "a promising match"
+          : topScore >= 45
+            ? "a workable but not automatic match"
+            : "an exploratory match";
+  const recommendation =
+    typeof topScore !== "number"
+      ? "start with a structured screening because the score is missing"
+      : topScore >= 75
+        ? "shortlist them, then compare against the target job must-haves"
+        : topScore >= 60
+          ? "screen them against the job requirements before moving forward"
+          : topScore >= 45
+            ? "run a focused screening before shortlisting"
+            : "keep them as a backup unless the target role matches their skills closely";
 
   const table = [
     "| Rank | Name | Score | Key Skills | Experience | Languages |",
@@ -309,13 +332,30 @@ export function buildDeterministicGroundedCandidateResponse(
 
   const evidenceLines = rows.slice(0, 3).map((candidate, index) => {
     const evidence = candidate.evidence.slice(0, 2).join(", ");
-    return `${index + 1}. **${candidate.name}** — sourced from ${candidate.sourceTools.join(", ")}${evidence ? ` (${evidence})` : ""}.`;
+    return `${index + 1}. **${candidate.name}** — ${candidate.sourceTools.join(", ")}${evidence ? ` (${evidence})` : ""}.`;
   });
 
+  const intro = isRanking
+    ? `I found ${rows.length} grounded candidate profile${rows.length === 1 ? "" : "s"}. My first read puts **${topCandidate.name}** on top at **${scoreText}**.`
+    : `**${topCandidate.name}** looks like **${fitLabel}** at **${scoreText}** based on the available recruitment evidence.`;
+
   return [
-    title,
-    "These rows are generated only from candidate identities present in the current tool results.",
+    isRanking ? "## Shortlist read" : "## Candidate read",
+    intro,
     "",
+    "### My take",
+    `I would ${recommendation}.`,
+    "",
+    "### What stands out",
+    `- **Skills**: ${topSkills || "No skills were parsed from the available CV data."}`,
+    `- **Experience signal**: ${topCandidate.experience ?? "Not provided in the fetched data."}`,
+    `- **Languages**: ${topLanguages || "Not provided in the fetched data."}`,
+    "",
+    "### Risks / missing info",
+    `- ${typeof topScore === "number" && topScore < 60 ? `The score is **${scoreText}**, so I would not treat this as an automatic shortlist.` : "The score should still be checked against the exact job requirements."}`,
+    "- Parsed CV data can miss context, so validate the must-have skills in screening.",
+    "",
+    "### Decision table",
     table,
     "",
     "### Evidence",
@@ -804,9 +844,14 @@ function formatExperience(value: Record<string, unknown>): string | undefined {
   return undefined;
 }
 
+function normalizeScore(score: number | undefined): number | undefined {
+  if (typeof score !== "number" || !Number.isFinite(score)) return undefined;
+  return score > 0 && score <= 1 ? score * 100 : score;
+}
+
 function formatScore(score: number | undefined): string {
-  if (typeof score !== "number" || !Number.isFinite(score)) return "N/A";
-  const normalizedScore = score > 0 && score <= 1 ? score * 100 : score;
+  const normalizedScore = normalizeScore(score);
+  if (typeof normalizedScore !== "number") return "N/A";
   return `${Math.round(normalizedScore)}%`;
 }
 

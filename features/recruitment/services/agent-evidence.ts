@@ -206,7 +206,31 @@ export function buildInferenceLimitLines(
   return buildAgentEvidenceMetadata(records, options).inferenceLimits;
 }
 
+const FRIENDLY_TOOL_LABELS: Record<string, string> = {
+  semantic_search_cvs: 'CV similarity search',
+  rag_search_cvs: 'CV knowledge search',
+  hybrid_search_cvs: 'Job-fit CV search',
+  search_cv_pool: 'CV pool search',
+  list_cv_pool: 'CV pool',
+  get_cv_details: 'CV profile details',
+  get_candidates_by_stage: 'Candidate stage list',
+  get_candidates_by_job: 'Job candidate list',
+  get_candidate: 'Candidate profile',
+  compare_candidates: 'Candidate comparison',
+  direct_named_search: 'Named candidate search',
+  direct_compare_candidates: 'Candidate comparison',
+  match_cvs_to_job: 'Job match scoring',
+  match_cvs_to_job_with_filters: 'Filtered job match scoring',
+  get_dashboard_stats: 'Recruitment dashboard',
+  get_smart_insights: 'Recruitment insights',
+  get_cv_pool_stats: 'CV pool analytics',
+  get_jobs_stats: 'Job analytics',
+};
+
 export function formatToolEvidenceLabel(toolName: string): string {
+  const friendlyLabel = FRIENDLY_TOOL_LABELS[toolName];
+  if (friendlyLabel) return friendlyLabel;
+
   return toolName
     .split('_')
     .filter(Boolean)

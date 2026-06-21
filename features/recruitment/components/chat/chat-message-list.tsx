@@ -12,6 +12,7 @@ import type { ChatMessage, ToolEvent } from "./chat-types";
 import type { AgentEvidenceMetadata } from "../../types";
 import { SUGGESTIONS, formatToolName } from "./chat-types";
 import { ToolInspector } from "./tool-inspector";
+import { ChatAnalyticsChart } from "./chat-analytics-chart";
 
 interface ChatMessageListProps {
   messages: ChatMessage[];
@@ -609,6 +610,13 @@ function MessageBubble({
                   {msg.content}
                 </Streamdown>
               </div>
+              {msg.charts && msg.charts.length > 0 && (
+                <div className="flex flex-col gap-4 pt-1">
+                  {msg.charts.map((chart) => (
+                    <ChatAnalyticsChart key={chart.id} chart={chart} />
+                  ))}
+                </div>
+              )}
               {msg.fileDownloads && msg.fileDownloads.length > 0 && (
                 <div className="flex flex-col gap-3 pt-2">
                   {msg.fileDownloads.map((fd) => (

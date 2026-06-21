@@ -204,6 +204,29 @@ export interface SmartInsights {
   skillGapAnalysis: Array<{ skill: string; demand: number; supply: number }>;
   pipelineFunnel: Record<CandidateStage, number>;
 }
+export type RecruitmentAnalyticsChartKind = 'line' | 'bar' | 'comparison-bar';
+
+export interface RecruitmentAnalyticsChartSeries {
+  key: string;
+  label: string;
+  color?: string;
+}
+
+export interface RecruitmentAnalyticsChartDatum {
+  label: string;
+  [key: string]: string | number;
+}
+
+export interface RecruitmentAnalyticsChart {
+  id: string;
+  kind: RecruitmentAnalyticsChartKind;
+  title: string;
+  description?: string;
+  xKey: 'label';
+  series: RecruitmentAnalyticsChartSeries[];
+  data: RecruitmentAnalyticsChartDatum[];
+  summary?: string;
+}
 
 // ---------- Interview Auto-Pilot Types ----------
 

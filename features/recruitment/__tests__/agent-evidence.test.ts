@@ -40,7 +40,7 @@ describe('agent evidence metadata', () => {
 
     expect(metadata.sources).toHaveLength(1);
     expect(metadata.sources[0]).toMatchObject({
-      label: 'Semantic Search Cvs',
+      label: 'CV similarity search',
       kind: 'cv',
       status: 'success',
       count: 2,
@@ -49,7 +49,7 @@ describe('agent evidence metadata', () => {
     expect(metadata.evidenceBlocks).toHaveLength(1);
     expect(metadata.evidenceBlocks[0].items[0].text).toContain('Amina Trabelsi');
     expect(metadata.evidenceBlocks[0].items[0].text).toContain('score 92%');
-    expect(metadata.observedFacts[0]).toContain('Semantic Search Cvs returned (2 items)');
+    expect(metadata.observedFacts[0]).toContain('CV similarity search returned (2 items)');
     expect(metadata.sources[0].link).toMatchObject({
       href: '/ta/cv-pool',
       label: 'Open CV pool',
@@ -87,11 +87,11 @@ describe('agent evidence metadata', () => {
 
     expect(metadata.sources).toHaveLength(2);
     expect(metadata.sources[1]).toMatchObject({
-      label: 'Rag Search Cvs',
+      label: 'CV knowledge search',
       status: 'error',
     });
     expect(metadata.evidenceBlocks).toHaveLength(1);
-    expect(metadata.evidenceBlocks[0].title).toBe('Get Dashboard Stats evidence');
+    expect(metadata.evidenceBlocks[0].title).toBe('Recruitment dashboard evidence');
     expect(metadata.inferenceLimits).toContain(
       '1 failed tool result was excluded from factual claims.',
     );

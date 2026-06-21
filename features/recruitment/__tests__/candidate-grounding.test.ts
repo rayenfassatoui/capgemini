@@ -108,6 +108,9 @@ describe("candidate name grounding guard", () => {
     expect(grounded.text).toContain("Ahmed Ben Ali");
     expect(grounded.text).toContain("Sana Trabelsi");
     expect(grounded.text).toContain("| Rank | Name | Score | Key Skills | Experience | Languages |");
+    expect(grounded.text).toContain("## Shortlist read");
+    expect(grounded.text).toContain("### My take");
+    expect(grounded.text).not.toContain("Grounded candidate results");
   });
 
   it("returns a grounded no-results response for zero-result candidate searches", () => {

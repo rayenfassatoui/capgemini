@@ -35,8 +35,12 @@ import {
 import {
   buildAgentEvidenceMetadata,
   buildInferenceLimitLines,
-  buildObservedEvidenceLines,
 } from "@/features/recruitment/services/agent-evidence";
+import {
+  appendChatChartsToContent,
+  extractChatChartsFromContent,
+} from "@/features/recruitment/chat-chart-events";
+import { buildAnalyticsChartsFromToolRecords } from "@/features/recruitment/services/chat-analytics-charts";
 import type { UserRole } from "@/features/recruitment/types";
 import { SlidingWindowRateLimiter } from "@/lib/rate-limit";
 
@@ -342,18 +346,6 @@ function logGroundingGuardBlock({
   });
 }
 
-function formatGoalText(message: string): string {
-  const compact = message.replace(/\s+/g, " ").trim();
-  if (!compact) {
-    return "You asked for recruitment assistance.";
-  }
-
-  const clipped =
-    compact.length > 180 ? `${compact.slice(0, 177).trimEnd()}...` : compact;
-  const sentence = `${clipped.charAt(0).toUpperCase()}${clipped.slice(1)}`;
-
-  return /[.!?]$/.test(sentence) ? sentence : `${sentence}.`;
-}
 
 
 function buildNextStepOptions(
@@ -449,12 +441,10 @@ function ensureAgenticResponseStructure({
 
   const nextOptions = buildNextStepOptions(records, role);
   const nextStepsHeadingRe = /(^|\n)##\s*next\s*steps?/i;
-  const observedHeadingRe = /(^|\n)##\s*observed(?:\s+from\s+sources?)?/i;
-  const inferredHeadingRe = /(^|\n)##\s*(?:inferred|recommend(?:ed|ation)s?)/i;
-  const hasObservedAndInferred =
-    observedHeadingRe.test(trimmed) && inferredHeadingRe.test(trimmed);
+  const answerHeadingRe =
+    /(^|\n)##\s*(?:candidate\s+read|shortlist\s+read|bottom\s+line|my\s+read|analysis|recommend(?:ation|ed)?|inferred)/i;
 
-  if (hasObservedAndInferred) {
+  if (answerHeadingRe.test(trimmed)) {
     if (nextStepsHeadingRe.test(trimmed)) {
       return trimmed;
     }
@@ -467,22 +457,14 @@ function ensureAgenticResponseStructure({
     ].join("\n");
   }
 
+  const inferenceLimits = buildInferenceLimitLines(records).slice(0, 2);
+
   return [
-    "## Fhemtek",
-    formatGoalText(userMessage),
-    "",
-    "## Observed from Sources",
-    ...buildObservedEvidenceLines(records).map(
-      (line, index) => `${index + 1}. ${line}`,
-    ),
-    "",
-    "## Inferred / Recommended",
+    "## My read",
     trimmed,
     "",
-    "## Source Limits",
-    ...buildInferenceLimitLines(records).map(
-      (line, index) => `${index + 1}. ${line}`,
-    ),
+    "## Caveats",
+    ...inferenceLimits.map((line) => `- ${line}`),
     "",
     "## Next Steps",
     ...nextOptions.map((option, index) => `${index + 1}. ${option}`),
@@ -641,6 +623,12 @@ export async function POST(request: Request) {
         const evidence = buildAgentEvidenceMetadata(toolExecutionHistory, {
           role,
         });
+        const charts = buildAnalyticsChartsFromToolRecords(
+          toolExecutionHistory,
+          {
+            question: lastMessageText,
+          },
+        );
         controller.enqueue(
           encoder.encode(
             `@@META@@${JSON.stringify({
@@ -652,16 +640,19 @@ export async function POST(request: Request) {
                 sourceToolCount: grounded.sourceTools.length,
               },
               evidence,
+              charts,
             })}\n`,
           ),
         );
 
-        return ensureAgenticResponseStructure({
+        const responseText = ensureAgenticResponseStructure({
           text: grounded.text,
           userMessage: lastMessageText,
           role,
           records: toolExecutionHistory,
         });
+
+        return appendChatChartsToContent(responseText, charts);
       };
 
       try {
@@ -943,7 +934,7 @@ FOR JOB SUMMARIES:
 
 FOR PIPELINE/DASHBOARD:
 Use a summary paragraph with key numbers in **bold**, then a table or bullet list.
-When a visual would help, use a Mermaid diagram.
+Analytics chart cards are rendered automatically from dashboard/statistics tool results, so fetch the relevant tools and keep the written interpretation concise.
 
 FOR ERRORS:
 "I couldn't complete this because: [specific reason].
@@ -982,22 +973,38 @@ SECTION 8: RESPONSE QUALITY
 SECTION 10: AGENTIC RESPONSE WORKFLOW
 ═══════════════════════════════════════
 
-For non-trivial tasks and any response that required tools, use this exact structure:
+For non-trivial tasks and any response that required tools, write like a senior recruiter talking to a colleague: clear verdict first, concrete evidence second, caveats without legalistic wording.
 
-## Fhemtek
-One short sentence that rephrases the user goal.
+Default structure:
 
-## Observed from Sources
-Facts that came directly from current tool results. Do not place recommendations here.
+## My read
+One direct, decision-oriented answer. Avoid restating the user's question.
 
-## Inferred / Recommended
-Your interpretation, recommendation, ranking, or action plan based only on the observed facts.
+## Analysis
+2-5 specific bullets or a compact table. Use actual tool values only.
 
-## Source Limits
-What was not fetched, missing, failed, or should not be inferred.
+## Caveats
+Only the missing facts that change the decision. Do not repeat raw tool names if the evidence panel already shows them.
 
 ## Next Steps
 Exactly 3 numbered options the user can pick from.
+
+For candidate/profile questions, prefer:
+
+## Candidate read
+Direct fit verdict with score if available.
+
+### My take
+Whether to shortlist, screen, compare, or reject.
+
+### What stands out
+Skills, experience signal, languages, and role fit from fetched data.
+
+### Risks / missing info
+What a TA, HR, or hiring manager should validate.
+
+### Decision table
+Only when it helps compare candidates.
 
 For simple small talk, reply normally without forcing this format.
 
@@ -1035,7 +1042,7 @@ ${
           { role: "system", content: systemPrompt },
           ...contextualHistory.map((message) => ({
             role: message.role as "user" | "assistant",
-            content: message.content,
+            content: extractChatChartsFromContent(message.content).content,
           })),
         ];
 

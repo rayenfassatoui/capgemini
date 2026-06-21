@@ -1,6 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  CHAT_CHART_EVENT_PREFIX,
+  extractChatChartsFromContent,
+  normalizeRecruitmentAnalyticsChart,
+  parseChatChartEvent,
+} from "../../chat-chart-events";
+import type { RecruitmentAnalyticsChart } from "../../types";
 
 import type {
   ChatMessage,
@@ -10,6 +17,34 @@ import type {
   FileDownload,
   ToolEvent,
 } from "./chat-types";
+function upsertChart(
+  charts: RecruitmentAnalyticsChart[],
+  chart: RecruitmentAnalyticsChart,
+) {
+  const index = charts.findIndex((item) => item.id === chart.id);
+  if (index === -1) {
+    charts.push(chart);
+    return;
+  }
+
+  charts[index] = chart;
+}
+
+function normalizeMetadataCharts(value: unknown): RecruitmentAnalyticsChart[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  const charts: RecruitmentAnalyticsChart[] = [];
+  for (const item of value) {
+    const chart = normalizeRecruitmentAnalyticsChart(item);
+    if (chart) {
+      upsertChart(charts, chart);
+    }
+  }
+
+  return charts;
+}
 
 interface UseStatisticsChatControllerOptions {
   enabled: boolean;
@@ -62,11 +97,16 @@ export function useStatisticsChatController({
         messages: Array<{ id: string; role: string; content: string }>;
       };
       setMessages(
-        (data.messages ?? []).map((m) => ({
-          id: m.id,
-          role: m.role as "user" | "assistant",
-          content: m.content,
-        })),
+        (data.messages ?? []).map((m) => {
+          const parsed = extractChatChartsFromContent(m.content);
+
+          return {
+            id: m.id,
+            role: m.role as "user" | "assistant",
+            content: parsed.content,
+            charts: parsed.charts.length > 0 ? parsed.charts : undefined,
+          };
+        }),
       );
     } catch {
       setMessages([]);
@@ -277,6 +317,7 @@ export function useStatisticsChatController({
         let metadataAccum: ChatResponseMetadata | undefined;
         const toolEventsAccum: ToolEvent[] = [];
         const fileDownloadsAccum: FileDownload[] = [];
+        const chartsAccum: RecruitmentAnalyticsChart[] = [];
 
         const mergeToolEvent = (evt: ToolEvent) => {
           const idx = toolEventsAccum.findIndex(
@@ -435,21 +476,48 @@ export function useStatisticsChatController({
               }
             } else if (line.startsWith("@@META@@")) {
               try {
+                const parsedMetadata = JSON.parse(
+                  line.slice("@@META@@".length),
+                ) as ChatResponseMetadata;
                 metadataAccum = {
                   ...metadataAccum,
-                  ...(JSON.parse(
-                    line.slice("@@META@@".length),
-                  ) as ChatResponseMetadata),
+                  ...parsedMetadata,
                 };
+
+                for (const chart of normalizeMetadataCharts(
+                  parsedMetadata.charts,
+                )) {
+                  upsertChart(chartsAccum, chart);
+                }
+
                 setMessages((prev) =>
                   prev.map((m) =>
                     m.id === assistantMsg.id
-                      ? { ...m, metadata: metadataAccum }
+                      ? {
+                          ...m,
+                          metadata: metadataAccum,
+                          charts:
+                            chartsAccum.length > 0
+                              ? [...chartsAccum]
+                              : m.charts,
+                        }
                       : m,
                   ),
                 );
               } catch {
                 // Ignore malformed metadata events from partial chunks.
+              }
+            } else if (line.startsWith(CHAT_CHART_EVENT_PREFIX)) {
+              const chart = parseChatChartEvent(line);
+              if (chart) {
+                upsertChart(chartsAccum, chart);
+                setMessages((prev) =>
+                  prev.map((m) =>
+                    m.id === assistantMsg.id
+                      ? { ...m, charts: [...chartsAccum] }
+                      : m,
+                  ),
+                );
               }
             } else {
               textContent += line + "\n";
@@ -462,16 +530,26 @@ export function useStatisticsChatController({
           }
         }
 
-        if (
-          accumulated &&
-          !accumulated.startsWith("@@TOOL_") &&
-          !accumulated.startsWith("@@FILE@@") &&
-          !accumulated.startsWith("@@META@@")
-        ) {
-          textContent += accumulated;
+        if (accumulated) {
+          if (accumulated.startsWith(CHAT_CHART_EVENT_PREFIX)) {
+            const chart = parseChatChartEvent(accumulated);
+            if (chart) {
+              upsertChart(chartsAccum, chart);
+            }
+          } else if (
+            !accumulated.startsWith("@@TOOL_") &&
+            !accumulated.startsWith("@@FILE@@") &&
+            !accumulated.startsWith("@@META@@")
+          ) {
+            textContent += accumulated;
+          }
         }
 
-        if (textContent || fileDownloadsAccum.length > 0) {
+        if (
+          textContent ||
+          fileDownloadsAccum.length > 0 ||
+          chartsAccum.length > 0
+        ) {
           setMessages((prev) =>
             prev.map((m) =>
               m.id === assistantMsg.id
@@ -487,6 +565,8 @@ export function useStatisticsChatController({
                         ? [...fileDownloadsAccum]
                         : undefined,
                     metadata: metadataAccum,
+                    charts:
+                      chartsAccum.length > 0 ? [...chartsAccum] : undefined,
                   }
                 : m,
             ),
