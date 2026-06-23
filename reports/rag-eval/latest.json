@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-04-02T00:19:43.211Z",
+  "timestamp": "2026-04-02T00:39:48.121Z",
   "queryCount": 40,
   "coverage": {
     "totalQueries": 40,
@@ -9,7 +9,7 @@
     "chunkIdCoverage": 0.85
   },
   "baseline": {
-    "timestamp": "2026-04-02T00:06:35.843Z",
+    "timestamp": "2026-04-02T00:22:09.287Z",
     "mode": "baseline",
     "totalQueries": 40,
     "coverage": {
@@ -25,7 +25,7 @@
       "mrr10": 0.175,
       "ndcg10": 0.04198762019900289,
       "emptyResultRate": 0.825,
-      "avgLatencyMs": 388.925,
+      "avgLatencyMs": 368.725,
       "errorRate": 0
     },
     "byDifficulty": {
@@ -35,7 +35,7 @@
         "mrr10": 0.42857142857142855,
         "ndcg10": 0.11416253468111358,
         "emptyResultRate": 0.5714285714285714,
-        "avgLatencyMs": 454.85714285714283,
+        "avgLatencyMs": 401.2857142857143,
         "errorRate": 0
       },
       "medium": {
@@ -44,7 +44,7 @@
         "mrr10": 0.13636363636363635,
         "ndcg10": 0.030012513586101842,
         "emptyResultRate": 0.8636363636363636,
-        "avgLatencyMs": 374.8181818181818,
+        "avgLatencyMs": 358.40909090909093,
         "errorRate": 0
       },
       "hard": {
@@ -53,7 +53,7 @@
         "mrr10": 0.09090909090909091,
         "ndcg10": 0.02000834239073456,
         "emptyResultRate": 0.9090909090909091,
-        "avgLatencyMs": 375.1818181818182,
+        "avgLatencyMs": 368.6363636363636,
         "errorRate": 0
       }
     },
@@ -64,7 +64,7 @@
         "mrr10": 0.4,
         "ndcg10": 0.09729420277746903,
         "emptyResultRate": 0.6,
-        "avgLatencyMs": 421.8666666666667,
+        "avgLatencyMs": 386.26666666666665,
         "errorRate": 0
       },
       "experience": {
@@ -73,7 +73,7 @@
         "mrr10": 0,
         "ndcg10": 0,
         "emptyResultRate": 1,
-        "avgLatencyMs": 376.875,
+        "avgLatencyMs": 344.875,
         "errorRate": 0
       },
       "education": {
@@ -82,7 +82,7 @@
         "mrr10": 0,
         "ndcg10": 0,
         "emptyResultRate": 1,
-        "avgLatencyMs": 363.5,
+        "avgLatencyMs": 372.5,
         "errorRate": 0
       },
       "mixed": {
@@ -91,7 +91,7 @@
         "mrr10": 0.3333333333333333,
         "ndcg10": 0.07336392209936006,
         "emptyResultRate": 0.6666666666666666,
-        "avgLatencyMs": 365,
+        "avgLatencyMs": 391.6666666666667,
         "errorRate": 0
       },
       "seniority": {
@@ -100,7 +100,7 @@
         "mrr10": 0,
         "ndcg10": 0,
         "emptyResultRate": 1,
-        "avgLatencyMs": 372.6666666666667,
+        "avgLatencyMs": 360.8333333333333,
         "errorRate": 0
       },
       "language": {
@@ -109,7 +109,7 @@
         "mrr10": 0,
         "ndcg10": 0,
         "emptyResultRate": 1,
-        "avgLatencyMs": 347.3333333333333,
+        "avgLatencyMs": 363,
         "errorRate": 0
       },
       "certification": {
@@ -118,7 +118,7 @@
         "mrr10": 0,
         "ndcg10": 0,
         "emptyResultRate": 1,
-        "avgLatencyMs": 371.3333333333333,
+        "avgLatencyMs": 340.6666666666667,
         "errorRate": 0
       }
     },
@@ -135,7 +135,7 @@
         "precision10": 0,
         "mrr10": 0,
         "ndcg10": 0,
-        "latencyMs": 646,
+        "latencyMs": 637,
         "matchedCount": 0,
         "failures": [
           "empty_result",
@@ -156,7 +156,7 @@
         "precision10": 0.2,
         "mrr10": 1,
         "ndcg10": 0.3589542101716347,
-        "latencyMs": 682,
+        "latencyMs": 365,
         "matchedCount": 2,
         "failures": [
           "missed_relevance"
@@ -177,7 +177,7 @@
         "precision10": 0.1,
         "mrr10": 1,
         "ndcg10": 0.22009176629808017,
-        "latencyMs": 352,
+        "latencyMs": 367,
         "matchedCount": 1,
         "failures": [
           "missed_relevance"
@@ -198,7 +198,7 @@
         "precision10": 0,
         "mrr10": 0,
         "ndcg10": 0,
-        "latencyMs": 443,
+        "latencyMs": 407,
         "matchedCount": 0,
         "failures": [
           "empty_result",
@@ -220,7 +220,7 @@
         "precision10": 0.1,
         "mrr10": 1,
         "ndcg10": 0.22009176629808017,
-        "latencyMs": 396,
+        "latencyMs": 384,
         "matchedCount": 1,
         "failures": [
           "missed_relevance"
@@ -241,7 +241,7 @@
         "precision10": 0,
         "mrr10": 0,
         "ndcg10": 0,
-        "latencyMs": 360,
+        "latencyMs": 373,
         "matchedCount": 0,
         "failures": [
           "empty_result",
@@ -262,7 +262,7 @@
         "precision10": 0,
         "mrr10": 0,
         "ndcg10": 0,
-        "latencyMs": 376,
+        "latencyMs": 416,
         "matchedCount": 0,
         "failures": [
           "empty_result",
@@ -283,7 +283,7 @@
         "precision10": 0,
         "mrr10": 0,
         "ndcg10": 0,
-        "latencyMs": 404,
+        "latencyMs": 349,
         "matchedCount": 0,
         "failures": [
           "empty_result"
@@ -303,7 +303,7 @@
         "precision10": 0,
         "mrr10": 0,
         "ndcg10": 0,
-        "latencyMs": 404,
+        "latencyMs": 362,
         "matchedCount": 0,
         "failures": [
           "empty_result",
@@ -324,7 +324,7 @@
         "precision10": 0.1,
         "mrr10": 1,
         "ndcg10": 0.22009176629808017,
-        "latencyMs": 402,
+        "latencyMs": 337,
         "matchedCount": 1,
         "failures": [
           "missed_relevance"
@@ -344,7 +344,7 @@
         "precision10": 0,
         "mrr10": 0,
         "ndcg10": 0,
-        "latencyMs": 345,
+        "latencyMs": 341,
         "matchedCount": 0,
         "failures": [
           "empty_result",
@@ -365,7 +365,7 @@
         "precision10": 0.1,
         "mrr10": 1,
         "ndcg10": 0.22009176629808017,
-        "latencyMs": 400,
+        "latencyMs": 385,
         "matchedCount": 1,
         "failures": [
           "missed_relevance"
@@ -388,7 +388,7 @@
         "precision10": 0,
         "mrr10": 0,
         "ndcg10": 0,
-        "latencyMs": 346,
+        "latencyMs": 333,
         "matchedCount": 0,
         "failures": [
           "empty_result",
@@ -411,7 +411,7 @@
         "precision10": 0,
         "mrr10": 0,
         "ndcg10": 0,
-        "latencyMs": 374,
+        "latencyMs": 386,
         "matchedCount": 0,
         "failures": [
           "empty_result",
@@ -432,7 +432,7 @@
         "precision10": 0.1,
         "mrr10": 1,
         "ndcg10": 0.22009176629808017,
-        "latencyMs": 398,
+        "latencyMs": 352,
         "matchedCount": 1,
         "failures": [
           "missed_relevance"
@@ -451,7 +451,7 @@
         "precision10": 0,
         "mrr10": 0,
         "ndcg10": 0,
-        "latencyMs": 372,
+        "latencyMs": 366,
         "matchedCount": 0,
         "failures": [
           "empty_result",
@@ -471,7 +471,7 @@
         "precision10": 0,
         "mrr10": 0,
         "ndcg10": 0,
-        "latencyMs": 400,
+        "latencyMs": 352,
         "matchedCount": 0,
         "failures": [
           "empty_result"
@@ -492,7 +492,7 @@
         "precision10": 0,
         "mrr10": 0,
         "ndcg10": 0,
-        "latencyMs": 387,
+        "latencyMs": 338,
         "matchedCount": 0,
         "failures": [
           "empty_result"
@@ -513,7 +513,7 @@
         "precision10": 0,
         "mrr10": 0,
         "ndcg10": 0,
-        "latencyMs": 337,
+        "latencyMs": 331,
         "matchedCount": 0,
         "failures": [
           "empty_result",
@@ -534,7 +534,7 @@
         "precision10": 0,
         "mrr10": 0,
         "ndcg10": 0,
-        "latencyMs": 406,
+        "latencyMs": 338,
         "matchedCount": 0,
         "failures": [
           "empty_result",
@@ -556,7 +556,7 @@
         "precision10": 0,
         "mrr10": 0,
         "ndcg10": 0,
-        "latencyMs": 388,
+        "latencyMs": 350,
         "matchedCount": 0,
         "failures": [
           "empty_result"
@@ -578,7 +578,7 @@
         "precision10": 0,
         "mrr10": 0,
         "ndcg10": 0,
-        "latencyMs": 386,
+        "latencyMs": 341,
         "matchedCount": 0,
         "failures": [
           "empty_result"
@@ -598,7 +598,7 @@
         "precision10": 0,
         "mrr10": 0,
         "ndcg10": 0,
-        "latencyMs": 339,
+        "latencyMs": 343,
         "matchedCount": 0,
         "failures": [
           "empty_result",
@@ -619,7 +619,7 @@
         "precision10": 0,
         "mrr10": 0,
         "ndcg10": 0,
-        "latencyMs": 371,
+        "latencyMs": 364,
         "matchedCount": 0,
         "failures": [
           "empty_result",
@@ -641,7 +641,7 @@
         "precision10": 0,
         "mrr10": 0,
         "ndcg10": 0,
-        "latencyMs": 353,
+        "latencyMs": 347,
         "matchedCount": 0,
         "failures": [
           "empty_result",
@@ -663,7 +663,7 @@
         "precision10": 0,
         "mrr10": 0,
         "ndcg10": 0,
-        "latencyMs": 346,
+        "latencyMs": 347,
         "matchedCount": 0,
         "failures": [
           "empty_result",
@@ -684,7 +684,7 @@
         "precision10": 0,
         "mrr10": 0,
         "ndcg10": 0,
-        "latencyMs": 460,
+        "latencyMs": 378,
         "matchedCount": 0,
         "failures": [
           "empty_result",
@@ -706,7 +706,7 @@
         "precision10": 0,
         "mrr10": 0,
         "ndcg10": 0,
-        "latencyMs": 349,
+        "latencyMs": 340,
         "matchedCount": 0,
         "failures": [
           "empty_result",
@@ -728,7 +728,7 @@
         "precision10": 0,
         "mrr10": 0,
         "ndcg10": 0,
-        "latencyMs": 357,
+        "latencyMs": 389,
         "matchedCount": 0,
         "failures": [
           "empty_result",
@@ -751,7 +751,7 @@
         "precision10": 0,
         "mrr10": 0,
         "ndcg10": 0,
-        "latencyMs": 378,
+        "latencyMs": 368,
         "matchedCount": 0,
         "failures": [
           "empty_result",
@@ -773,7 +773,7 @@
         "precision10": 0,
         "mrr10": 0,
         "ndcg10": 0,
-        "latencyMs": 349,
+        "latencyMs": 377,
         "matchedCount": 0,
         "failures": [
           "empty_result",
@@ -794,7 +794,7 @@
         "precision10": 0,
         "mrr10": 0,
         "ndcg10": 0,
-        "latencyMs": 367,
+        "latencyMs": 368,
         "matchedCount": 0,
         "failures": [
           "empty_result",
@@ -815,7 +815,7 @@
         "precision10": 0,
         "mrr10": 0,
         "ndcg10": 0,
-        "latencyMs": 329,
+        "latencyMs": 377,
         "matchedCount": 0,
         "failures": [
           "empty_result",
@@ -836,7 +836,7 @@
         "precision10": 0,
         "mrr10": 0,
         "ndcg10": 0,
-        "latencyMs": 346,
+        "latencyMs": 344,
         "matchedCount": 0,
         "failures": [
           "empty_result",
@@ -858,7 +858,7 @@
         "precision10": 0,
         "mrr10": 0,
         "ndcg10": 0,
-        "latencyMs": 391,
+        "latencyMs": 340,
         "matchedCount": 0,
         "failures": [
           "empty_result",
@@ -879,7 +879,7 @@
         "precision10": 0,
         "mrr10": 0,
         "ndcg10": 0,
-        "latencyMs": 363,
+        "latencyMs": 329,
         "matchedCount": 0,
         "failures": [
           "empty_result",
@@ -901,7 +901,7 @@
         "precision10": 0,
         "mrr10": 0,
         "ndcg10": 0,
-        "latencyMs": 360,
+        "latencyMs": 353,
         "matchedCount": 0,
         "failures": [
           "empty_result"
@@ -921,7 +921,7 @@
         "precision10": 0,
         "mrr10": 0,
         "ndcg10": 0,
-        "latencyMs": 355,
+        "latencyMs": 363,
         "matchedCount": 0,
         "failures": [
           "empty_result",
@@ -943,7 +943,7 @@
         "precision10": 0.1,
         "mrr10": 1,
         "ndcg10": 0.22009176629808017,
-        "latencyMs": 384,
+        "latencyMs": 398,
         "matchedCount": 1,
         "failures": [
           "missed_relevance"
@@ -964,7 +964,7 @@
         "precision10": 0,
         "mrr10": 0,
         "ndcg10": 0,
-        "latencyMs": 356,
+        "latencyMs": 414,
         "matchedCount": 0,
         "failures": [
           "empty_result",
@@ -988,7 +988,7 @@
     }
   },
   "phase2": {
-    "timestamp": "2026-04-02T00:19:43.211Z",
+    "timestamp": "2026-04-02T00:39:48.121Z",
     "mode": "phase2",
     "totalQueries": 40,
     "coverage": {
@@ -999,12 +999,12 @@
       "chunkIdCoverage": 0.85
     },
     "avgMetrics": {
-      "precision5": 0.045,
-      "precision10": 0.0375,
-      "mrr10": 0.175,
-      "ndcg10": 0.053940939400351884,
-      "emptyResultRate": 0.65,
-      "avgLatencyMs": 19676.1,
+      "precision5": 0.05500000000000001,
+      "precision10": 0.05500000000000001,
+      "mrr10": 0.2,
+      "ndcg10": 0.07076580761919113,
+      "emptyResultRate": 0.575,
+      "avgLatencyMs": 26463.125,
       "errorRate": 0
     },
     "byDifficulty": {
@@ -1014,36 +1014,36 @@
         "mrr10": 0.21428571428571427,
         "ndcg10": 0.0512791728816621,
         "emptyResultRate": 0.42857142857142855,
-        "avgLatencyMs": 19069.428571428572,
+        "avgLatencyMs": 25506.285714285714,
         "errorRate": 0
       },
       "medium": {
-        "precision5": 0.05454545454545454,
-        "precision10": 0.05,
-        "mrr10": 0.22727272727272727,
-        "ndcg10": 0.0722904409105504,
-        "emptyResultRate": 0.7272727272727273,
-        "avgLatencyMs": 18647.31818181818,
+        "precision5": 0.08181818181818182,
+        "precision10": 0.09090909090909091,
+        "mrr10": 0.29545454545454547,
+        "ndcg10": 0.11234900429981867,
+        "emptyResultRate": 0.5909090909090909,
+        "avgLatencyMs": 27825,
         "errorRate": 0
       },
       "hard": {
-        "precision5": 0.018181818181818184,
-        "precision10": 0.018181818181818184,
-        "mrr10": 0.045454545454545456,
-        "ndcg10": 0.018935787800939255,
+        "precision5": 0,
+        "precision10": 0,
+        "mrr10": 0,
+        "ndcg10": 0,
         "emptyResultRate": 0.6363636363636364,
-        "avgLatencyMs": 22119.727272727272,
+        "avgLatencyMs": 24348.272727272728,
         "errorRate": 0
       }
     },
     "byCategory": {
       "skills": {
-        "precision5": 0.02666666666666667,
-        "precision10": 0.013333333333333334,
-        "mrr10": 0.1,
-        "ndcg10": 0.02393028067810898,
-        "emptyResultRate": 0.6666666666666666,
-        "avgLatencyMs": 17734.266666666666,
+        "precision5": 0.04000000000000001,
+        "precision10": 0.020000000000000004,
+        "mrr10": 0.16666666666666666,
+        "ndcg10": 0.03860306509798099,
+        "emptyResultRate": 0.6,
+        "avgLatencyMs": 21764.4,
         "errorRate": 0
       },
       "experience": {
@@ -1052,7 +1052,7 @@
         "mrr10": 0.125,
         "ndcg10": 0.02751147078726002,
         "emptyResultRate": 0.875,
-        "avgLatencyMs": 19259.5,
+        "avgLatencyMs": 26089.75,
         "errorRate": 0
       },
       "education": {
@@ -1060,8 +1060,8 @@
         "precision10": 0,
         "mrr10": 0,
         "ndcg10": 0,
-        "emptyResultRate": 1,
-        "avgLatencyMs": 24080,
+        "emptyResultRate": 0.5,
+        "avgLatencyMs": 43137,
         "errorRate": 0
       },
       "mixed": {
@@ -1070,25 +1070,25 @@
         "mrr10": 0,
         "ndcg10": 0,
         "emptyResultRate": 0.3333333333333333,
-        "avgLatencyMs": 17999.333333333332,
+        "avgLatencyMs": 23495,
         "errorRate": 0
       },
       "seniority": {
-        "precision5": 0.10000000000000002,
-        "precision10": 0.06666666666666667,
-        "mrr10": 0.4166666666666667,
-        "ndcg10": 0.10807953306774869,
+        "precision5": 0.06666666666666667,
+        "precision10": 0.08333333333333333,
+        "mrr10": 0.25,
+        "ndcg10": 0.0946672629436935,
         "emptyResultRate": 0.3333333333333333,
-        "avgLatencyMs": 20892.833333333332,
+        "avgLatencyMs": 28375,
         "errorRate": 0
       },
       "language": {
-        "precision5": 0.20000000000000004,
-        "precision10": 0.26666666666666666,
-        "mrr10": 0.6666666666666666,
-        "ndcg10": 0.3100381337126228,
-        "emptyResultRate": 0.3333333333333333,
-        "avgLatencyMs": 27614,
+        "precision5": 0.3333333333333333,
+        "precision10": 0.43333333333333335,
+        "mrr10": 1,
+        "ndcg10": 0.4878303281125631,
+        "emptyResultRate": 0,
+        "avgLatencyMs": 40032.333333333336,
         "errorRate": 0
       },
       "certification": {
@@ -1097,7 +1097,7 @@
         "mrr10": 0,
         "ndcg10": 0,
         "emptyResultRate": 1,
-        "avgLatencyMs": 18865.666666666668,
+        "avgLatencyMs": 25411.666666666668,
         "errorRate": 0
       }
     },
@@ -1114,9 +1114,10 @@
         "precision10": 0,
         "mrr10": 0,
         "ndcg10": 0,
-        "latencyMs": 8160,
+        "latencyMs": 29991,
         "matchedCount": 0,
         "failures": [
+          "latency_timeout",
           "hallucinated_grounding",
           "missed_relevance"
         ],
@@ -1135,7 +1136,7 @@
         "precision10": 0,
         "mrr10": 0,
         "ndcg10": 0,
-        "latencyMs": 15918,
+        "latencyMs": 14283,
         "matchedCount": 0,
         "failures": [
           "empty_result",
@@ -1153,15 +1154,14 @@
           "ml"
         ],
         "hasGroundTruth": true,
-        "resultCount": 0,
-        "precision5": 0,
-        "precision10": 0,
-        "mrr10": 0,
-        "ndcg10": 0,
-        "latencyMs": 13041,
-        "matchedCount": 0,
+        "resultCount": 1,
+        "precision5": 0.2,
+        "precision10": 0.1,
+        "mrr10": 1,
+        "ndcg10": 0.22009176629808017,
+        "latencyMs": 27479,
+        "matchedCount": 1,
         "failures": [
-          "empty_result",
           "latency_timeout",
           "missed_relevance"
         ],
@@ -1181,7 +1181,7 @@
         "precision10": 0,
         "mrr10": 0,
         "ndcg10": 0,
-        "latencyMs": 17561,
+        "latencyMs": 22930,
         "matchedCount": 0,
         "failures": [
           "empty_result",
@@ -1204,7 +1204,7 @@
         "precision10": 0.1,
         "mrr10": 1,
         "ndcg10": 0.22009176629808017,
-        "latencyMs": 26889,
+        "latencyMs": 15597,
         "matchedCount": 1,
         "failures": [
           "latency_timeout",
@@ -1226,7 +1226,7 @@
         "precision10": 0,
         "mrr10": 0,
         "ndcg10": 0,
-        "latencyMs": 15391,
+        "latencyMs": 12544,
         "matchedCount": 0,
         "failures": [
           "empty_result",
@@ -1248,7 +1248,7 @@
         "precision10": 0,
         "mrr10": 0,
         "ndcg10": 0,
-        "latencyMs": 18638,
+        "latencyMs": 15931,
         "matchedCount": 0,
         "failures": [
           "empty_result",
@@ -1270,7 +1270,7 @@
         "precision10": 0,
         "mrr10": 0,
         "ndcg10": 0,
-        "latencyMs": 28764,
+        "latencyMs": 20721,
         "matchedCount": 0,
         "failures": [
           "empty_result",
@@ -1291,10 +1291,11 @@
         "precision10": 0,
         "mrr10": 0,
         "ndcg10": 0,
-        "latencyMs": 8921,
+        "latencyMs": 23629,
         "matchedCount": 0,
         "failures": [
           "empty_result",
+          "latency_timeout",
           "missed_relevance"
         ],
         "isError": false
@@ -1312,7 +1313,7 @@
         "precision10": 0,
         "mrr10": 0,
         "ndcg10": 0,
-        "latencyMs": 11202,
+        "latencyMs": 35440,
         "matchedCount": 0,
         "failures": [
           "empty_result",
@@ -1334,7 +1335,7 @@
         "precision10": 0.1,
         "mrr10": 0.5,
         "ndcg10": 0.13886244387355454,
-        "latencyMs": 19434,
+        "latencyMs": 38349,
         "matchedCount": 1,
         "failures": [
           "latency_timeout",
@@ -1355,7 +1356,7 @@
         "precision10": 0,
         "mrr10": 0,
         "ndcg10": 0,
-        "latencyMs": 34479,
+        "latencyMs": 22020,
         "matchedCount": 0,
         "failures": [
           "empty_result",
@@ -1380,9 +1381,10 @@
         "precision10": 0,
         "mrr10": 0,
         "ndcg10": 0,
-        "latencyMs": 7364,
+        "latencyMs": 18757,
         "matchedCount": 0,
         "failures": [
+          "latency_timeout",
           "hallucinated_grounding",
           "missed_relevance"
         ],
@@ -1403,7 +1405,7 @@
         "precision10": 0,
         "mrr10": 0,
         "ndcg10": 0,
-        "latencyMs": 12521,
+        "latencyMs": 14730,
         "matchedCount": 0,
         "failures": [
           "latency_timeout",
@@ -1425,7 +1427,7 @@
         "precision10": 0,
         "mrr10": 0,
         "ndcg10": 0,
-        "latencyMs": 27731,
+        "latencyMs": 14065,
         "matchedCount": 0,
         "failures": [
           "empty_result",
@@ -1446,7 +1448,7 @@
         "precision10": 0,
         "mrr10": 0,
         "ndcg10": 0,
-        "latencyMs": 13787,
+        "latencyMs": 25863,
         "matchedCount": 0,
         "failures": [
           "empty_result",
@@ -1467,7 +1469,7 @@
         "precision10": 0,
         "mrr10": 0,
         "ndcg10": 0,
-        "latencyMs": 10854,
+        "latencyMs": 10799,
         "matchedCount": 0,
         "failures": [
           "empty_result",
@@ -1489,7 +1491,7 @@
         "precision10": 0,
         "mrr10": 0,
         "ndcg10": 0,
-        "latencyMs": 15073,
+        "latencyMs": 19062,
         "matchedCount": 0,
         "failures": [
           "empty_result",
@@ -1511,7 +1513,7 @@
         "precision10": 0,
         "mrr10": 0,
         "ndcg10": 0,
-        "latencyMs": 24693,
+        "latencyMs": 26727,
         "matchedCount": 0,
         "failures": [
           "empty_result",
@@ -1533,7 +1535,7 @@
         "precision10": 0,
         "mrr10": 0,
         "ndcg10": 0,
-        "latencyMs": 23267,
+        "latencyMs": 12551,
         "matchedCount": 0,
         "failures": [
           "empty_result",
@@ -1556,7 +1558,7 @@
         "precision10": 0,
         "mrr10": 0,
         "ndcg10": 0,
-        "latencyMs": 26554,
+        "latencyMs": 24465,
         "matchedCount": 0,
         "failures": [
           "empty_result",
@@ -1579,7 +1581,7 @@
         "precision10": 0,
         "mrr10": 0,
         "ndcg10": 0,
-        "latencyMs": 24605,
+        "latencyMs": 44145,
         "matchedCount": 0,
         "failures": [
           "empty_result",
@@ -1600,7 +1602,7 @@
         "precision10": 0.1,
         "mrr10": 1,
         "ndcg10": 0.22009176629808017,
-        "latencyMs": 15243,
+        "latencyMs": 45106,
         "matchedCount": 1,
         "failures": [
           "latency_timeout",
@@ -1616,16 +1618,16 @@
           "senior"
         ],
         "hasGroundTruth": true,
-        "resultCount": 0,
+        "resultCount": 1,
         "precision5": 0,
         "precision10": 0,
         "mrr10": 0,
         "ndcg10": 0,
-        "latencyMs": 21561,
+        "latencyMs": 28011,
         "matchedCount": 0,
         "failures": [
-          "empty_result",
           "latency_timeout",
+          "hallucinated_grounding",
           "missed_relevance"
         ],
         "isError": false
@@ -1644,7 +1646,7 @@
         "precision10": 0.1,
         "mrr10": 1,
         "ndcg10": 0.22009176629808017,
-        "latencyMs": 21692,
+        "latencyMs": 53142,
         "matchedCount": 1,
         "failures": [
           "latency_timeout",
@@ -1661,14 +1663,15 @@
           "architect"
         ],
         "hasGroundTruth": true,
-        "resultCount": 15,
-        "precision5": 0.2,
-        "precision10": 0.2,
-        "mrr10": 0.5,
-        "ndcg10": 0.2082936658103318,
-        "latencyMs": 45539,
-        "matchedCount": 3,
+        "resultCount": 0,
+        "precision5": 0,
+        "precision10": 0,
+        "mrr10": 0,
+        "ndcg10": 0,
+        "latencyMs": 20214,
+        "matchedCount": 0,
         "failures": [
+          "empty_result",
           "latency_timeout",
           "missed_relevance"
         ],
@@ -1682,13 +1685,13 @@
           "senior"
         ],
         "hasGroundTruth": true,
-        "resultCount": 1,
+        "resultCount": 15,
         "precision5": 0.2,
-        "precision10": 0.1,
-        "mrr10": 1,
-        "ndcg10": 0.22009176629808017,
-        "latencyMs": 13849,
-        "matchedCount": 1,
+        "precision10": 0.4,
+        "mrr10": 0.5,
+        "ndcg10": 0.3479118113640809,
+        "latencyMs": 32594,
+        "matchedCount": 4,
         "failures": [
           "latency_timeout",
           "missed_relevance"
@@ -1709,7 +1712,7 @@
         "precision10": 0,
         "mrr10": 0,
         "ndcg10": 0,
-        "latencyMs": 14602,
+        "latencyMs": 26797,
         "matchedCount": 0,
         "failures": [
           "empty_result",
@@ -1732,7 +1735,7 @@
         "precision10": 0,
         "mrr10": 0,
         "ndcg10": 0,
-        "latencyMs": 8114,
+        "latencyMs": 9492,
         "matchedCount": 0,
         "failures": [
           "hallucinated_grounding",
@@ -1750,16 +1753,16 @@
           "cs"
         ],
         "hasGroundTruth": true,
-        "resultCount": 0,
+        "resultCount": 1,
         "precision5": 0,
         "precision10": 0,
         "mrr10": 0,
         "ndcg10": 0,
-        "latencyMs": 23872,
+        "latencyMs": 11804,
         "matchedCount": 0,
         "failures": [
-          "empty_result",
           "latency_timeout",
+          "hallucinated_grounding",
           "missed_relevance"
         ],
         "isError": false
@@ -1778,7 +1781,7 @@
         "precision10": 0,
         "mrr10": 0,
         "ndcg10": 0,
-        "latencyMs": 24288,
+        "latencyMs": 74470,
         "matchedCount": 0,
         "failures": [
           "empty_result",
@@ -1800,7 +1803,7 @@
         "precision10": 0.7,
         "mrr10": 1,
         "ndcg10": 0.7100226348397882,
-        "latencyMs": 35932,
+        "latencyMs": 59050,
         "matchedCount": 8,
         "failures": [
           "latency_timeout",
@@ -1816,15 +1819,14 @@
           "deutsch"
         ],
         "hasGroundTruth": true,
-        "resultCount": 0,
-        "precision5": 0,
-        "precision10": 0,
-        "mrr10": 0,
-        "ndcg10": 0,
-        "latencyMs": 16149,
-        "matchedCount": 0,
+        "resultCount": 15,
+        "precision5": 0.4,
+        "precision10": 0.5,
+        "mrr10": 1,
+        "ndcg10": 0.533376583199821,
+        "latencyMs": 19507,
+        "matchedCount": 7,
         "failures": [
-          "empty_result",
           "latency_timeout",
           "missed_relevance"
         ],
@@ -1843,7 +1845,7 @@
         "precision10": 0.1,
         "mrr10": 1,
         "ndcg10": 0.22009176629808017,
-        "latencyMs": 30761,
+        "latencyMs": 41540,
         "matchedCount": 1,
         "failures": [
           "latency_timeout",
@@ -1865,7 +1867,7 @@
         "precision10": 0,
         "mrr10": 0,
         "ndcg10": 0,
-        "latencyMs": 17467,
+        "latencyMs": 44982,
         "matchedCount": 0,
         "failures": [
           "empty_result",
@@ -1887,7 +1889,7 @@
         "precision10": 0,
         "mrr10": 0,
         "ndcg10": 0,
-        "latencyMs": 17339,
+        "latencyMs": 17157,
         "matchedCount": 0,
         "failures": [
           "empty_result",
@@ -1910,7 +1912,7 @@
         "precision10": 0,
         "mrr10": 0,
         "ndcg10": 0,
-        "latencyMs": 21791,
+        "latencyMs": 14096,
         "matchedCount": 0,
         "failures": [
           "empty_result",
@@ -1931,7 +1933,7 @@
         "precision10": 0,
         "mrr10": 0,
         "ndcg10": 0,
-        "latencyMs": 15392,
+        "latencyMs": 37592,
         "matchedCount": 0,
         "failures": [
           "latency_timeout",
@@ -1954,7 +1956,7 @@
         "precision10": 0,
         "mrr10": 0,
         "ndcg10": 0,
-        "latencyMs": 28118,
+        "latencyMs": 23990,
         "matchedCount": 0,
         "failures": [
           "latency_timeout",
@@ -1977,11 +1979,10 @@
         "precision10": 0,
         "mrr10": 0,
         "ndcg10": 0,
-        "latencyMs": 10488,
+        "latencyMs": 8903,
         "matchedCount": 0,
         "failures": [
           "empty_result",
-          "latency_timeout",
           "missed_relevance"
         ],
         "isError": false
@@ -1991,10 +1992,10 @@
       "missedRelevance": 34,
       "wrongRanking": 0,
       "scopeViolation": 0,
-      "hallucinatedGrounding": 6,
-      "emptyResult": 26,
-      "latencyTimeout": 36,
-      "total": 102
+      "hallucinatedGrounding": 8,
+      "emptyResult": 23,
+      "latencyTimeout": 38,
+      "total": 103
     },
     "systemInfo": {
       "totalCvs": 12,
@@ -2002,18 +2003,18 @@
     }
   },
   "deltas": {
-    "precision5": 0.0050000000000000044,
-    "precision5Pct": 12.500000000000014,
-    "precision10": 0.0175,
-    "precision10Pct": 87.50000000000003,
-    "mrr10": 0,
-    "mrr10Pct": 0,
-    "ndcg10": 0.011953319201348997,
-    "ndcg10Pct": 28.468675158762302,
+    "precision5": 0.015000000000000013,
+    "precision5Pct": 37.500000000000036,
+    "precision10": 0.03500000000000001,
+    "precision10Pct": 175.00000000000009,
+    "mrr10": 0.025000000000000022,
+    "mrr10Pct": 14.285714285714299,
+    "ndcg10": 0.028778187420188242,
+    "ndcg10Pct": 68.53969642430856,
     "errorRate": 0,
     "errorRatePct": 0,
-    "latencyMs": 19287.175,
-    "latencyPct": 4959.09879796876
+    "latencyMs": 26094.4,
+    "latencyPct": 7076.927249305038
   },
-  "summary": "Precision@5: improved by 12.5%; MRR@10: unchanged by 0.0%; Latency: slower by 4959.1%"
+  "summary": "Precision@5: improved by 37.5%; MRR@10: improved by 14.3%; Latency: slower by 7076.9%"
 }
