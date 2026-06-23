@@ -193,7 +193,7 @@ Le choix \textit{feature-driven} est pertinent parce que le produit s'organise n
 Le projet n'appelle pas naturellement une architecture microservices. Les modules partagent fortement les mêmes entités, la même authentification, le même stockage et les mêmes règles de gouvernance. Un monolithe moderne permet donc de garder une base de vérité unifiée pour les rôles, les candidats, les entretiens, le chat et les traces d'activité. Il réduit également la complexité de déploiement, de cohérence transactionnelle et de sécurité, tout en restant compatible avec des capacités avancées comme le SSE, les actions serveur et l'orchestration de services IA externes.
 
 \subsection{Architecture du sous-système IA}
-Le sous-système IA articule plusieurs briques : génération de descriptions de poste, extraction de CV, matching, génération de guides d'entretien, débriefing, assistant conversationnel et pipeline RAG. L'agent statistique est exposé via l'API du chat analytique, qui assemble le contexte, filtre les outils selon le rôle et diffuse la réponse en SSE.
+Le sous-système IA articule plusieurs briques : génération de descriptions de poste, extraction de CV, matching, génération de guides d'entretien, débriefing, assistant conversationnel et pipeline RAG. L'agent statistique est exposé via l'API du chat analytique, qui assemble le contexte, filtre les outils selon le rôle, diffuse la réponse en SSE et restitue les preuves sous forme de sources, graphiques, cartes typées et trace d'exécution par phases.
 
 \begin{figure}[H]
   \centering
@@ -217,8 +217,10 @@ Cette couche est encadrée par plusieurs mécanismes de sécurité et de fiabili
   \item validation Zod, qui borne les entrées des outils et évite qu'un appel mal formé ne soit exécuté implicitement ;
   \item confirmation explicite, qui transforme les outils agentiques modifiant les données en actions en attente avant exécution ;
   \item \textit{grounding}, qui interdit à la réponse finale de citer des candidats non présents dans les résultats réellement accessibles ;
+  \item cartes typées et trace par phases, qui transforment les sorties d'outils en métriques lisibles, liens profonds, actions de suivi et timeline d'exécution auditable ;
   \item isolation de cache et de périmètre, qui évite qu'une recherche ou un contexte d'un utilisateur ne contamine celui d'un autre ;
-  \item garde-fous d'exécution, comme les limites d'étapes agentiques, de tokens, de timeout et d'échecs consécutifs.
+  \item garde-fous d'exécution, comme les limites d'étapes agentiques, de tokens, de timeout et d'échecs consécutifs ;
+  \item suite d'évaluation agentique, qui vérifie de manière déterministe les politiques de grounding, de confirmation, de cartes de réponse, de traces d'outils et de masquage des données sensibles.
 \end{itemize}
 
 Ces garde-fous sont essentiels, car la crédibilité du projet repose précisément sur une IA utile, gouvernée et mesurable, et non sur une automatisation opaque.

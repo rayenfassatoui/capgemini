@@ -40,6 +40,7 @@ Il répond à une contrainte réaliste des outils d'entreprise : une bonne autom
     40 & Onboarding détaillé & En tant qu'administrateur, je peux suivre l'avancement d'intégration des candidats embauchés. & Réalisé \\
     41 & Centre de gouvernance & En tant qu'administrateur, je peux filtrer et exporter les transitions candidat, les confirmations IA et les logs d'activité depuis une même vue. & Réalisé \\
     42 & Durcissement release & En tant qu'équipe projet, je peux vérifier que les migrations critiques et les comportements d'audit sont présents avant livraison. & Réalisé \\
+    43 & Qualité agentique & En tant qu'équipe projet, nous pouvons valider les cartes de réponse, les traces d'outils, les confirmations et le masquage des données sensibles. & Réalisé \\
     \bottomrule
   \end{tabularx}
 \end{table}
@@ -64,7 +65,8 @@ Ce sprint s'appuie principalement sur les éléments fonctionnels suivants :
   \item la vue du journal d'activité ;
   \item la vue des logs d'emails ;
   \item la vue de suivi détaillé de l'intégration ;
-  \item le centre de gouvernance administrateur.
+  \item le centre de gouvernance administrateur ;
+  \item les tests de qualité agentique couvrant confirmations, preuves, cartes et traces.
 \end{itemize}
 
 Ce sprint crée donc une couche de gouvernance transversale qui s'appuie sur tout ce qui a été produit auparavant : candidats, entretiens, décisions, emails, IA et onboarding.
@@ -204,6 +206,8 @@ Le script \sourcecode{db/verify-release-hardening.ts} complète la gouvernance p
 
 Ce scénario crée un utilisateur de vérification, un poste, un CV et un candidat, valide que l'affectation et une transition manuelle produisent bien l'historique attendu, puis confirme une action IA qui fait progresser le candidat. Le script vérifie ensuite que l'action passe au statut \sourcecode{executed}, que la transition agentique est enregistrée, puis supprime les lignes temporaires. Il ne s'agit donc pas d'un simple contrôle de schéma, mais d'une preuve de bout en bout sur les mécanismes de gouvernance les plus sensibles.
 
+Cette logique est complétée par les tests automatisés de l'agent et de son interface. Ils vérifient que les actions sensibles restent en attente de confirmation, que les cartes candidat/pipeline/gouvernance proviennent de résultats d'outils, que les traces d'exécution sont classées par phases et que les champs sensibles sont masqués avant affichage ou stockage technique. Cette couche de vérification relie donc directement l'expérience utilisateur du chat aux exigences de gouvernance décrites dans ce chapitre.
+
 \paragraph{Lecture d'audit.}
 La gouvernance du module repose sur une séparation claire des traces. Les notifications servent à informer les utilisateurs au moment utile. Le journal d'activité permet de reconstituer les actions réalisées dans l'application. Les logs d'emails documentent les communications sortantes. Les exports rendent ces informations exploitables hors de l'interface. Cette séparation évite de mélanger alerte, preuve, communication et restitution, ce qui renforce la lisibilité du système en cas de contrôle ou de revue métier.
 
@@ -216,7 +220,8 @@ Ce module apporte la maturité de gouvernance du projet :
   \item il améliore l'interopérabilité par les exports ;
   \item il prolonge la continuité métier jusqu'à l'onboarding ;
   \item il améliore la gouvernance des actions IA sensibles par une confirmation explicite et auditée ;
-  \item il fournit un centre de gouvernance consolidé pour les transitions, confirmations et logs.
+  \item il fournit un centre de gouvernance consolidé pour les transitions, confirmations et logs ;
+  \item il renforce la qualité agentique par des tests couvrant confirmations, cartes typées, traces par phases et masquage des données sensibles.
 \end{itemize}
 
 Dans l'économie générale du rapport, ce module montre que l'intelligence et l'automatisation déployées dans les chapitres précédents sont encadrées par une couche de supervision explicite. C'est cette combinaison entre IA, métier et gouvernance qui donne à \projectname{} sa crédibilité comme produit d'entreprise.

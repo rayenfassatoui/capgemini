@@ -22,13 +22,13 @@ La validation retenue pour ce rapport combine deux niveaux complémentaires : d'
     Pipeline candidat & CV affecté puis transmis entre TA, Manager et RH. & Candidat créé, transitions historisées et responsabilités tracées. & Couvert par le workflow candidat, les affectations et l'historique d'étapes. \\
     Entretiens et décisions & Entretien planifié puis formalisé par un rapport. & Entretien créé, étape mise à jour et onboarding ouvert si embauche. & Couvert par la planification, le reporting et la checklist d'onboarding. \\
     Administration et gouvernance & Consultation des vues admin et du centre de gouvernance. & Supervision consolidée, traces d'audit, confirmations IA et exports. & Couvert par les vues admin, les logs, les exports et le centre de gouvernance. \\
-    Chat analytique & Question posée depuis le chat ou \sourcecode{/agent}. & Outils RBAC, streaming SSE, preuves, confirmations et graphiques. & Couvert par l'orchestration, le grounding, les confirmations et les cartes graphiques. \\
+    Chat analytique & Question posée depuis le chat ou \sourcecode{/agent}. & Outils RBAC, streaming SSE, preuves, confirmations, graphiques, cartes typées et trace par phases. & Couvert par l'orchestration, le grounding, les confirmations, les cartes de réponse, les graphiques et la timeline d'outils. \\
     \bottomrule
   \end{tabularx}
 \end{table}
 
 \paragraph{Validation technique automatisée.}
-Sur le plan technique, la preuve automatisée principale a été exécutée via la commande \sourcecode{bun run test}. Cette exécution passe avec succès et valide 70 tests répartis sur 15 fichiers de test Vitest.
+Sur le plan technique, la preuve automatisée principale a été exécutée via la commande \sourcecode{bun run test}. Cette exécution passe avec succès et valide 90 tests répartis sur 21 fichiers de test Vitest.
 
 Les vérifications automatisées couvrent notamment :
 \begin{itemize}
@@ -40,6 +40,8 @@ Les vérifications automatisées couvrent notamment :
   \item la génération des métadonnées d'évidence, des liens profonds et des résumés de gouvernance administrateur ;
   \item la qualification des panneaux d'\textit{evidence readiness} côté candidat et côté vivier documentaire ;
   \item la génération, la sérialisation et l'extraction des graphiques du chat analytique, afin que les réponses visuelles restent fondées sur des sorties d'outils validées ;
+  \item la génération, la sérialisation et l'extraction des cartes de réponse typées du chat, afin que les réponses candidat, pipeline et gouvernance soient rendues à partir de sorties d'outils validées ;
+  \item le regroupement de la trace d'outils par phases, avec classification en récupération, analyse, confirmation, exécution et vérification ;
   \item le centre de gouvernance administrateur, incluant l'affichage des lignes d'audit et l'ouverture de détails sanitizés.
 \end{itemize}
 
@@ -54,6 +56,7 @@ Les mécanismes de grounding jouent ici un rôle déterminant. Sans eux, le gain
 Pour le recruteur, l'impact réel de ces résultats est double. D'un côté, la plateforme réduit l'effort de recherche, de comparaison et de préparation grâce à une récupération plus pertinente et à un accès conversationnel outillé. De l'autre, elle conserve une logique de contrôle compatible avec un usage professionnel : les réponses sont contextualisées, les outils sont filtrés par rôle et les sorties sensibles sont vérifiées. Le résultat n'est donc pas seulement une IA plus performante, mais une IA plus exploitable dans un processus de recrutement gouverné.
 L'ajout de visualisations directement dans les réponses agentiques renforce ce résultat côté usage. Les questions analytiques ne produisent plus uniquement une synthèse textuelle : lorsque les données s'y prêtent, elles affichent une courbe ou des barres qui rendent les tendances, les goulets d'étranglement et les écarts de compétences plus immédiatement compréhensibles.
 La confirmation explicite des actions modifiant les données complète cette logique. Elle évite qu'une réponse agentique transforme directement l'état du système sans validation humaine, tout en conservant une trace exploitable par le centre de gouvernance.
+Les cartes de réponse typées et la trace par phases prolongent la même logique d'explicabilité. Elles réduisent l'effort de lecture : les métriques, liens, limites et actions de suivi apparaissent sous forme structurée, tandis que le travail interne de l'agent est présenté comme une timeline métier plutôt que comme une liste brute d'appels techniques.
 
 \section*{Vue d'ensemble des acquis}
 La vue d'ensemble du projet met en évidence une progression cohérente entre les objectifs initiaux, le Product Backlog et les sprints de réalisation. Le produit démarre par un accès sécurisé, construit ensuite ses objets métier principaux, organise le workflow candidat, ajoute une couche IA gouvernée puis termine par des capacités de supervision. Cette continuité donne au rapport une lecture claire : chaque module apporte une valeur immédiate tout en préparant les modules suivants.
@@ -63,7 +66,7 @@ Le résultat obtenu est une plateforme unifiée où les données RH ne sont plus
 \section*{Limites du projet}
 Malgré les résultats obtenus, plusieurs limites doivent être soulignées. La première concerne la latence du pipeline RAG avancé : l'amélioration de la pertinence s'accompagne d'un coût de calcul important lorsque la requête déclenche l'ensemble de la chaîne de retrieval enrichie. La deuxième limite tient à la dépendance envers des services externes de génération et d'embeddings, qui peuvent introduire des contraintes de disponibilité, de coût et de variabilité de performance.
 
-Une autre limite concerne la qualité des données d'entrée. La valeur produite par le matching, le screening, le RAG et l'agent conversationnel dépend directement de la qualité des CV importés, de la cohérence des offres d'emploi et de la richesse des informations renseignées dans le pipeline candidat. Enfin, la validation automatisée observable couvre désormais le grounding, l'isolation de périmètre, les confirmations agentiques, les transitions candidat, les panneaux d'évidence, le centre de gouvernance et l'évaluation RAG ; elle gagnerait encore à être complétée par davantage de scénarios end-to-end métier exécutés dans un environnement proche production.
+Une autre limite concerne la qualité des données d'entrée. La valeur produite par le matching, le screening, le RAG et l'agent conversationnel dépend directement de la qualité des CV importés, de la cohérence des offres d'emploi et de la richesse des informations renseignées dans le pipeline candidat. Enfin, la validation automatisée observable couvre désormais le grounding, l'isolation de périmètre, les confirmations agentiques, les transitions candidat, les panneaux d'évidence, les cartes de réponse typées, la trace d'outils par phases, le centre de gouvernance et l'évaluation RAG ; elle gagnerait encore à être complétée par davantage de scénarios end-to-end métier exécutés dans un environnement proche production.
 
 \section*{Perspectives}
 Plusieurs prolongements peuvent être envisagés. La première perspective consiste à optimiser le pipeline RAG afin de réduire la latence tout en conservant les gains de pertinence, par exemple en affinant la stratégie de \textit{topK}, la politique de cache, les seuils de réécriture ou le coût du reranking.
@@ -74,6 +77,7 @@ Au regard des réalisations présentées dans ce mémoire, les apports personnel
 
 Le deuxième apport concerne l'intégration d'une couche d'intelligence artificielle non cosmétique, directement reliée aux données du système : extraction de CV, matching, pipeline RAG hybride, génération de guides, screening et chat analytique outillé. Le troisième apport porte sur la formalisation du workflow de recrutement lui-même, avec une progression explicite des candidats, une répartition claire des responsabilités entre TA, Manager et RH, un historique immuable des transitions, ainsi qu'une continuité jusqu'à l'onboarding et à la gouvernance. Enfin, ce travail a permis de relier l'implémentation technique à une logique de contrôle, grâce à la validation des entrées, au filtrage RBAC, au grounding des réponses, à la confirmation des actions IA sensibles et à la traçabilité des actions critiques.
 
+La dernière amélioration d'interface renforce cet apport en transformant le chat agentique en surface de décision plus lisible : les cartes typées structurent les résultats, la timeline par phases rend les appels d'outils auditables et la suite de tests agentiques stabilise ces comportements.
 
 
 Cette progression confirme que le travail réalisé couvre les dimensions principales attendues d'une plateforme de recrutement augmentée : sécurité d'accès, centralisation des données, workflow opérationnel, assistance IA, validation quantitative et gouvernance. L'ensemble forme un produit cohérent, documenté et aligné avec les besoins des rôles TA, Manager, HR et Admin.
