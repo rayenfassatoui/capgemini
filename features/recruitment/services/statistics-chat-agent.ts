@@ -5,6 +5,10 @@ import {
   appendChatChartsToContent,
   extractChatChartsFromContent,
 } from "../chat-chart-events";
+import {
+  appendChatResponseCardsToContent,
+  extractChatResponseCardsFromContent,
+} from "../chat-card-events";
 import type { UserRole } from "../types";
 import {
   getChatHistory,
@@ -21,6 +25,7 @@ import { getToolsForRole } from "./agent-tools";
 import { getNvidiaClient } from "./ai";
 import { buildAgentEvidenceMetadata } from "./agent-evidence";
 import { buildAnalyticsChartsFromToolRecords } from "./chat-analytics-charts";
+import { buildResponseCardsFromToolRecords } from "./chat-response-cards";
 import {
   executeConfirmedActionIfRequested,
 } from "./statistics-chat-confirmation";
@@ -179,6 +184,10 @@ export async function handleStatisticsChatPost(
             question: lastMessageText,
           },
         );
+        const cards = buildResponseCardsFromToolRecords(toolExecutionHistory, {
+          question: lastMessageText,
+          role,
+        });
         emitMetaEvent(controller, encoder, {
           groundingGuard: {
             blocked: grounded.blocked,
@@ -189,6 +198,7 @@ export async function handleStatisticsChatPost(
           },
           evidence,
           charts,
+          cards,
         });
 
         const responseText = ensureAgenticResponseStructure({
@@ -198,7 +208,10 @@ export async function handleStatisticsChatPost(
           records: toolExecutionHistory,
         });
 
-        return appendChatChartsToContent(responseText, charts);
+        return appendChatResponseCardsToContent(
+          appendChatChartsToContent(responseText, charts),
+          cards,
+        );
       };
 
       const executeConfirmedAction = async () => {
@@ -343,10 +356,13 @@ export async function handleStatisticsChatPost(
 
         const llmMessages: LLMMessage[] = [
           { role: "system", content: systemPrompt },
-          ...contextualHistory.map((message) => ({
-            role: message.role as "user" | "assistant",
-            content: extractChatChartsFromContent(message.content).content,
-          })),
+          ...contextualHistory.map((message) => {
+            const withoutCards = extractChatResponseCardsFromContent(message.content);
+            return {
+              role: message.role as "user" | "assistant",
+              content: extractChatChartsFromContent(withoutCards.content).content,
+            };
+          }),
         ];
 
         const toolExecutionCache = new Map<string, ToolExecutionRecord>();

@@ -39,6 +39,7 @@ Le sprint répond aussi à une exigence de crédibilité : l'IA ne doit pas êtr
     28 & Guides d'entretien IA & En tant qu'évaluateur, je peux générer des questions et guides d'entretien contextuels. & Réalisé \\
     29 & Autopilot d'entretien & En tant qu'évaluateur, je peux consulter un guide enrichi structuré par axes d'évaluation. & Réalisé \\
     30 & Agent conversationnel & En tant qu'utilisateur autorisé, je peux interroger la plateforme via un agent multi-outils, obtenir une réponse exploitable et visualiser les indicateurs utiles sous forme de graphiques. & Réalisé \\
+    30-bis & Confirmation des actions IA & En tant qu'utilisateur, je dois confirmer explicitement toute action agentique qui modifie les données de recrutement. & Réalisé \\
     31 & Smart insights & En tant que TA ou Admin, je peux consulter des statistiques enrichies et des insights IA. & Réalisé \\
     32 & Évaluation RAG & En tant qu'équipe projet, nous pouvons mesurer la qualité et les compromis du pipeline RAG. & Réalisé \\
     \bottomrule
@@ -59,6 +60,7 @@ Ce sprint s'appuie principalement sur les éléments fonctionnels suivants :
   \item le service de guides d'entretien et les composants Auto-Pilot ;
   \item le mécanisme de contrôle des noms cités par l'agent ;
   \item la couche d'orchestration conversationnelle en SSE ;
+  \item le mécanisme de confirmation des actions agentiques modifiant les données ;
   \item le registre des outils métier de l'agent ;
   \item la page statistique du recruteur et son chat analytique ;
   \item le rapport d'évaluation quantitative du pipeline RAG.
@@ -97,11 +99,12 @@ L'agent conversationnel ne se limite plus à une simple fenêtre de chat sur la 
 Sur le plan technique, cet agent s'appuie sur un registre de plus de cinquante outils répartis en catégories : CV Pool, Jobs, Candidates, Matching, Interviews, AI Features, Communication, Dashboard et Admin. Le registre centralise les définitions, la validation Zod, l'exécution et le filtrage RBAC par rôle.
 Le projet ne laisse cependant pas l'agent répondre librement sur des personnes qu'il n'a pas effectivement résolues. Le mécanisme de grounding reconstruit l'ensemble de candidats autorisés à partir des résultats d'outils et valide les noms présents dans la réponse finale. Cette logique complète les garde-fous définis dans la couche d'orchestration : nombre maximal d'étapes, volume de sortie, timeout, seuil d'échec d'outils, séparation entre faits observés et recommandations, et restitution finale orientée décision plutôt que journal technique.
 Ces garde-fous répondent à une exigence forte du domaine RH : une réponse fluide mais non justifiée peut être plus dangereuse qu'une absence de réponse. Le système préfère donc encadrer l'agent, afficher sa \textit{evidence trace} et pointer ses limites plutôt que maximiser artificiellement sa liberté de génération.
+Pour les outils qui modifient les données, le projet ajoute un garde-fou supplémentaire : l'action n'est pas exécutée immédiatement. Le service \sourcecode{pending-agent-actions.ts} crée une entrée \sourcecode{pending\_agent\_actions} avec les arguments sanitizés, un résumé métier, un statut \sourcecode{pending} et une expiration. L'interface affiche alors une carte de confirmation avec les arguments exacts ; l'utilisateur peut confirmer ou annuler. Après confirmation, l'outil est exécuté, puis l'action passe à \sourcecode{executed} ou \sourcecode{failed}. Ainsi, l'agent peut proposer une mutation, mais la responsabilité finale reste explicitement humaine.
 
 \section{Vue dynamique}
 
 \subsection{Orchestration agentique}
-Le flux global du chat est le suivant : authentification, construction du contexte, filtrage RBAC des outils, boucle agentique, exécution d'outil, sanitization, grounding puis diffusion SSE de la réponse. Cette architecture donne à l'agent une vraie capacité d'action tout en gardant la main sur le périmètre autorisé et sur la validation des entrées.
+Le flux global du chat est le suivant : authentification, construction du contexte, filtrage RBAC des outils, boucle agentique, demande de confirmation si l'outil modifie les données, exécution d'outil, sanitization, grounding puis diffusion SSE de la réponse. Cette architecture donne à l'agent une vraie capacité d'action tout en gardant la main sur le périmètre autorisé, sur la validation des entrées et sur les mutations sensibles.
 
 Elle matérialise la forme la plus visible du projet côté utilisateur final : dialoguer avec le système en langage naturel tout en restant relié à des outils, à des permissions et à des résultats vérifiables.
 
@@ -196,6 +199,7 @@ Son fonctionnement repose sur plusieurs briques coordonnées :
   \item la récupération de l'historique conversationnel, en retirant les marqueurs techniques avant de les réinjecter dans le contexte du modèle ;
   \item la sélection dynamique des outils accessibles selon le rôle ;
   \item l'appel à des services métier réels plutôt qu'à une génération libre ;
+  \item la mise en attente des outils modifiant les données jusqu'à confirmation explicite ;
   \item la diffusion progressive de la réponse en SSE ;
   \item l'enregistrement persistant des conversations et messages en base ;
   \item l'émission de métadonnées de preuve : sources, blocs d'évidence, garde-fous de grounding, liens profonds vers les écrans métier et graphiques analytiques sérialisés.
@@ -261,6 +265,7 @@ Ce module apporte la dimension la plus distinctive du projet :
   \item il expose ces capacités à travers un agent multi-outils gouverné ;
   \item il transforme les réponses analytiques en graphiques lisibles lorsque la visualisation apporte plus de valeur qu'un texte seul ;
   \item il ajoute des garde-fous explicites contre les dérives de l'IA ;
+  \item il empêche les actions IA modifiant les données d'être exécutées sans confirmation humaine ;
   \item il fournit déjà des mesures quantitatives pour évaluer les gains et les compromis.
 \end{itemize}
 

@@ -83,11 +83,11 @@
   };
 
   \node[umlclass] (governance) at (7.1,-6.1) {
-    \centering\textbf{GovernanceEvent}\par
+    \centering\textbf{GovernanceAudit}\par
     \noindent\rule{\linewidth}{0.35pt}\par
     \texttt{id}: uuid\\
-    \texttt{type}: enum\\
-    \texttt{payload}: json
+    \texttt{kind}: enum\\
+    \texttt{status}: enum
   };
 
   \node[umlclass] (report) at (10.65,-6.1) {

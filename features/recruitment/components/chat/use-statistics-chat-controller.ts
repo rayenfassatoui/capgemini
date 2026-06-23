@@ -7,7 +7,13 @@ import {
   normalizeRecruitmentAnalyticsChart,
   parseChatChartEvent,
 } from "../../chat-chart-events";
-import type { RecruitmentAnalyticsChart } from "../../types";
+import {
+  CHAT_RESPONSE_CARD_EVENT_PREFIX,
+  extractChatResponseCardsFromContent,
+  normalizeRecruitmentResponseCard,
+  parseChatResponseCardEvent,
+} from "../../chat-card-events";
+import type { RecruitmentAnalyticsChart, RecruitmentResponseCard } from "../../types";
 
 import type {
   AgentActionConfirmation,
@@ -30,6 +36,19 @@ function upsertChart(
 
   charts[index] = chart;
 }
+function upsertCard(
+  cards: RecruitmentResponseCard[],
+  card: RecruitmentResponseCard,
+) {
+  const index = cards.findIndex((item) => item.id === card.id);
+  if (index === -1) {
+    cards.push(card);
+    return;
+  }
+
+  cards[index] = card;
+}
+
 
 function normalizeMetadataCharts(value: unknown): RecruitmentAnalyticsChart[] {
   if (!Array.isArray(value)) {
@@ -45,6 +64,21 @@ function normalizeMetadataCharts(value: unknown): RecruitmentAnalyticsChart[] {
   }
 
   return charts;
+}
+function normalizeMetadataCards(value: unknown): RecruitmentResponseCard[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  const cards: RecruitmentResponseCard[] = [];
+  for (const item of value) {
+    const card = normalizeRecruitmentResponseCard(item);
+    if (card) {
+      upsertCard(cards, card);
+    }
+  }
+
+  return cards;
 }
 
 interface UseStatisticsChatControllerOptions {
@@ -100,13 +134,15 @@ export function useStatisticsChatController({
       };
       setMessages(
         (data.messages ?? []).map((m) => {
-          const parsed = extractChatChartsFromContent(m.content);
+          const parsedCards = extractChatResponseCardsFromContent(m.content);
+          const parsedCharts = extractChatChartsFromContent(parsedCards.content);
 
           return {
             id: m.id,
             role: m.role as "user" | "assistant",
-            content: parsed.content,
-            charts: parsed.charts.length > 0 ? parsed.charts : undefined,
+            content: parsedCharts.content,
+            charts: parsedCharts.charts.length > 0 ? parsedCharts.charts : undefined,
+            cards: parsedCards.cards.length > 0 ? parsedCards.cards : undefined,
           };
         }),
       );
@@ -321,6 +357,7 @@ export function useStatisticsChatController({
         const toolEventsAccum: ToolEvent[] = [];
         const fileDownloadsAccum: FileDownload[] = [];
         const chartsAccum: RecruitmentAnalyticsChart[] = [];
+        const cardsAccum: RecruitmentResponseCard[] = [];
         const confirmationsAccum: AgentActionConfirmation[] = [];
 
         const mergeToolEvent = (evt: ToolEvent) => {
@@ -522,6 +559,12 @@ export function useStatisticsChatController({
                 )) {
                   upsertChart(chartsAccum, chart);
                 }
+                for (const card of normalizeMetadataCards(
+                  parsedMetadata.cards,
+                )) {
+                  upsertCard(cardsAccum, card);
+                }
+
 
                 setMessages((prev) =>
                   prev.map((m) =>
@@ -533,6 +576,10 @@ export function useStatisticsChatController({
                             chartsAccum.length > 0
                               ? [...chartsAccum]
                               : m.charts,
+                          cards:
+                            cardsAccum.length > 0
+                              ? [...cardsAccum]
+                              : m.cards,
                         }
                       : m,
                   ),
@@ -548,6 +595,18 @@ export function useStatisticsChatController({
                   prev.map((m) =>
                     m.id === assistantMsg.id
                       ? { ...m, charts: [...chartsAccum] }
+                      : m,
+                  ),
+                );
+              }
+            } else if (line.startsWith(CHAT_RESPONSE_CARD_EVENT_PREFIX)) {
+              const card = parseChatResponseCardEvent(line);
+              if (card) {
+                upsertCard(cardsAccum, card);
+                setMessages((prev) =>
+                  prev.map((m) =>
+                    m.id === assistantMsg.id
+                      ? { ...m, cards: [...cardsAccum] }
                       : m,
                   ),
                 );
@@ -569,11 +628,17 @@ export function useStatisticsChatController({
             if (chart) {
               upsertChart(chartsAccum, chart);
             }
+          } else if (accumulated.startsWith(CHAT_RESPONSE_CARD_EVENT_PREFIX)) {
+            const card = parseChatResponseCardEvent(accumulated);
+            if (card) {
+              upsertCard(cardsAccum, card);
+            }
           } else if (
             !accumulated.startsWith("@@TOOL_") &&
             !accumulated.startsWith("@@FILE@@") &&
             !accumulated.startsWith("@@META@@") &&
-            !accumulated.startsWith("@@CONFIRMATION@@")
+            !accumulated.startsWith("@@CONFIRMATION@@") &&
+            !accumulated.startsWith(CHAT_RESPONSE_CARD_EVENT_PREFIX)
           ) {
             textContent += accumulated;
           }
@@ -583,6 +648,7 @@ export function useStatisticsChatController({
           textContent ||
           fileDownloadsAccum.length > 0 ||
           chartsAccum.length > 0 ||
+          cardsAccum.length > 0 ||
           confirmationsAccum.length > 0
         ) {
           setMessages((prev) =>
@@ -606,6 +672,8 @@ export function useStatisticsChatController({
                         : undefined,
                     charts:
                       chartsAccum.length > 0 ? [...chartsAccum] : undefined,
+                    cards:
+                      cardsAccum.length > 0 ? [...cardsAccum] : undefined,
                   }
                 : m,
             ),

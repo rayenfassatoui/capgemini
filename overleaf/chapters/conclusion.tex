@@ -1,7 +1,7 @@
 \chapter*{Conclusion générale}
 \addcontentsline{toc}{chapter}{Conclusion générale}
 
-Le projet \projectname{} a permis de concevoir une plateforme de recrutement d'entreprise cohérente, couvrant l'ensemble du cycle métier : centralisation des CV, structuration des offres, progression des candidats, organisation des entretiens, notifications, analytique et gouvernance. Contrairement à une application limitée au suivi administratif, la solution rassemble dans un même environnement les opérations, les données et les mécanismes de décision qui structurent réellement le travail des équipes TA, Manager, HR et Admin.
+Le projet \projectname{} a permis de concevoir une plateforme de recrutement d'entreprise cohérente, couvrant l'ensemble du cycle métier : centralisation des CV, structuration des offres, progression des candidats avec historique auditable, organisation des entretiens, notifications, analytique, gouvernance des actions IA et administration. Contrairement à une application limitée au suivi administratif, la solution rassemble dans un même environnement les opérations, les données et les mécanismes de décision qui structurent réellement le travail des équipes TA, Manager, HR et Admin.
 
 Sur le plan technique, le projet montre la pertinence d'une architecture \textit{feature-driven} pour un produit full-stack moderne. La séparation entre routes, actions serveur, services métier, composants d'interface et schéma de données favorise la lisibilité, la maintenabilité et l'évolution incrémentale. Cette organisation a également facilité l'intégration de briques avancées comme les embeddings, les chunks RAG, les guides d'entretien IA et l'agent conversationnel multi-outils, sans dénaturer le cœur métier de l'application.
 
@@ -17,27 +17,30 @@ La validation retenue pour ce rapport combine deux niveaux complémentaires : d'
     \toprule
     Domaine & Scénario de validation & Résultat attendu & Résultat retenu \\
     \midrule
-    Accès et identité & Un utilisateur autorisé se connecte avec email/mot de passe puis tente d'accéder à son espace métier. & Redirection cohérente par rôle et blocage des espaces protégés sans session valide. & Couvert par le module d'authentification, la redirection par rôle et la protection centrale des espaces dashboard. \\
-    Vivier de CV & Un recruteur importe un CV PDF ou DOCX dans le vivier. & Le document entre dans la file d'upload, le texte est extrait, le profil devient consultable et l'enrichissement avancé continue en arrière-plan. & Couvert par le pipeline d'upload, l'extraction structurée, la vérification de doublons et l'indexation progressive décrits dans le sprint 2. \\
-    Pipeline candidat & Un CV est affecté à une offre, puis transmis entre TA, Manager et RH. & Création d'un candidat, transitions d'état explicites et traçabilité des responsabilités. & Couvert par le workflow candidat, les affectations successives et la structuration par étapes du sprint 3. \\
-    Entretiens et décisions & Un entretien est planifié, réalisé puis formalisé par un rapport. & Création de l'entretien, mise à jour de l'étape, enregistrement du rapport et ouverture de l'onboarding en cas d'embauche. & Couvert par les services de planification, de reporting et par la génération automatique de checklist d'onboarding. \\
-    Administration et gouvernance & Un administrateur consulte les vues système, analytics, activité, emails et onboarding. & Accès à une supervision consolidée, à des traces d'audit et à des exports exploitables. & Couvert par les vues administrateur, les logs, les notifications, les exports et les panneaux d'évidence source-backed du sprint 5. \\
-    Chat analytique & Un utilisateur interroge le système depuis le chat flottant ou \sourcecode{/agent}. & Outils filtrés par rôle, streaming SSE, verdict lisible, preuves et graphiques si la demande est analytique. & Couvert par l'orchestration agentique, le grounding, les métadonnées d'évidence, les liens profonds et les cartes graphiques. \\
+    Accès et identité & Connexion puis accès à l'espace métier. & Redirection par rôle et blocage sans session valide. & Couvert par l'authentification, la redirection par rôle et le shell dashboard. \\
+    Vivier de CV & Import d'un CV PDF ou DOCX. & Extraction du texte, profil consultable et enrichissement lancé. & Couvert par l'upload, l'extraction, les doublons et l'indexation progressive. \\
+    Pipeline candidat & CV affecté puis transmis entre TA, Manager et RH. & Candidat créé, transitions historisées et responsabilités tracées. & Couvert par le workflow candidat, les affectations et l'historique d'étapes. \\
+    Entretiens et décisions & Entretien planifié puis formalisé par un rapport. & Entretien créé, étape mise à jour et onboarding ouvert si embauche. & Couvert par la planification, le reporting et la checklist d'onboarding. \\
+    Administration et gouvernance & Consultation des vues admin et du centre de gouvernance. & Supervision consolidée, traces d'audit, confirmations IA et exports. & Couvert par les vues admin, les logs, les exports et le centre de gouvernance. \\
+    Chat analytique & Question posée depuis le chat ou \sourcecode{/agent}. & Outils RBAC, streaming SSE, preuves, confirmations et graphiques. & Couvert par l'orchestration, le grounding, les confirmations et les cartes graphiques. \\
     \bottomrule
   \end{tabularx}
 \end{table}
 
 \paragraph{Validation technique automatisée.}
-Sur le plan technique, la preuve automatisée principale a été exécutée via la commande \sourcecode{bun run test}. Cette exécution passe avec succès et valide 37 tests répartis sur 7 fichiers de test Vitest.
+Sur le plan technique, la preuve automatisée principale a été exécutée via la commande \sourcecode{bun run test}. Cette exécution passe avec succès et valide 70 tests répartis sur 15 fichiers de test Vitest.
 
 Les vérifications automatisées couvrent notamment :
 \begin{itemize}
   \item le grounding des noms candidats, avec rejet des noms absents des résultats d'outils, acceptation des noms autorisés et remplacement déterministe des classements hallucinés ;
   \item l'isolation de périmètre, avec filtrage des résultats pour les utilisateurs non administrateurs, prévention des fuites inter-utilisateurs et séparation des clés de cache selon l'utilisateur et le rôle ;
   \item le comportement du chat en cas d'absence de résultats exploitables, avec réponse de repli grounded au lieu d'une fabrication libre ;
+  \item la confirmation des actions IA modifiant les données, depuis la création d'une action en attente jusqu'à son exécution, son annulation ou son expiration ;
+  \item les transitions du pipeline candidat, avec validation des transitions autorisées, rejet des transitions incohérentes et formatage de la timeline ;
   \item la génération des métadonnées d'évidence, des liens profonds et des résumés de gouvernance administrateur ;
   \item la qualification des panneaux d'\textit{evidence readiness} côté candidat et côté vivier documentaire ;
-  \item la génération, la sérialisation et l'extraction des graphiques du chat analytique, afin que les réponses visuelles restent fondées sur des sorties d'outils validées.
+  \item la génération, la sérialisation et l'extraction des graphiques du chat analytique, afin que les réponses visuelles restent fondées sur des sorties d'outils validées ;
+  \item le centre de gouvernance administrateur, incluant l'affichage des lignes d'audit et l'ouverture de détails sanitizés.
 \end{itemize}
 
 Enfin, la couche de retrieval fait l'objet d'une validation quantitative spécifique déjà documentée dans le projet. Le rapport d'évaluation RAG de phase 2 couvre 40 requêtes avec 85\% de couverture \textit{ground truth} et montre une amélioration mesurable de Precision@5, Precision@10, MRR@10 et NDCG@10. Cette mesure complète utilement la validation fonctionnelle, car elle montre non seulement que le produit fonctionne, mais aussi que sa couche de recherche augmentée est évaluée de manière chiffrée.
@@ -50,6 +53,7 @@ Les mécanismes de grounding jouent ici un rôle déterminant. Sans eux, le gain
 
 Pour le recruteur, l'impact réel de ces résultats est double. D'un côté, la plateforme réduit l'effort de recherche, de comparaison et de préparation grâce à une récupération plus pertinente et à un accès conversationnel outillé. De l'autre, elle conserve une logique de contrôle compatible avec un usage professionnel : les réponses sont contextualisées, les outils sont filtrés par rôle et les sorties sensibles sont vérifiées. Le résultat n'est donc pas seulement une IA plus performante, mais une IA plus exploitable dans un processus de recrutement gouverné.
 L'ajout de visualisations directement dans les réponses agentiques renforce ce résultat côté usage. Les questions analytiques ne produisent plus uniquement une synthèse textuelle : lorsque les données s'y prêtent, elles affichent une courbe ou des barres qui rendent les tendances, les goulets d'étranglement et les écarts de compétences plus immédiatement compréhensibles.
+La confirmation explicite des actions modifiant les données complète cette logique. Elle évite qu'une réponse agentique transforme directement l'état du système sans validation humaine, tout en conservant une trace exploitable par le centre de gouvernance.
 
 \section*{Vue d'ensemble des acquis}
 La vue d'ensemble du projet met en évidence une progression cohérente entre les objectifs initiaux, le Product Backlog et les sprints de réalisation. Le produit démarre par un accès sécurisé, construit ensuite ses objets métier principaux, organise le workflow candidat, ajoute une couche IA gouvernée puis termine par des capacités de supervision. Cette continuité donne au rapport une lecture claire : chaque module apporte une valeur immédiate tout en préparant les modules suivants.
@@ -59,7 +63,7 @@ Le résultat obtenu est une plateforme unifiée où les données RH ne sont plus
 \section*{Limites du projet}
 Malgré les résultats obtenus, plusieurs limites doivent être soulignées. La première concerne la latence du pipeline RAG avancé : l'amélioration de la pertinence s'accompagne d'un coût de calcul important lorsque la requête déclenche l'ensemble de la chaîne de retrieval enrichie. La deuxième limite tient à la dépendance envers des services externes de génération et d'embeddings, qui peuvent introduire des contraintes de disponibilité, de coût et de variabilité de performance.
 
-Une autre limite concerne la qualité des données d'entrée. La valeur produite par le matching, le screening, le RAG et l'agent conversationnel dépend directement de la qualité des CV importés, de la cohérence des offres d'emploi et de la richesse des informations renseignées dans le pipeline candidat. Enfin, la validation automatisée observable couvre surtout le grounding, l'isolation de périmètre et l'évaluation RAG ; elle gagnerait à être complétée par davantage de scénarios end-to-end métier.
+Une autre limite concerne la qualité des données d'entrée. La valeur produite par le matching, le screening, le RAG et l'agent conversationnel dépend directement de la qualité des CV importés, de la cohérence des offres d'emploi et de la richesse des informations renseignées dans le pipeline candidat. Enfin, la validation automatisée observable couvre désormais le grounding, l'isolation de périmètre, les confirmations agentiques, les transitions candidat, les panneaux d'évidence, le centre de gouvernance et l'évaluation RAG ; elle gagnerait encore à être complétée par davantage de scénarios end-to-end métier exécutés dans un environnement proche production.
 
 \section*{Perspectives}
 Plusieurs prolongements peuvent être envisagés. La première perspective consiste à optimiser le pipeline RAG afin de réduire la latence tout en conservant les gains de pertinence, par exemple en affinant la stratégie de \textit{topK}, la politique de cache, les seuils de réécriture ou le coût du reranking.
@@ -68,7 +72,7 @@ La deuxième perspective porte sur l'évaluation. Il serait pertinent d'élargir
 \section*{Apports personnels}
 Au regard des réalisations présentées dans ce mémoire, les apports personnels du travail mené peuvent être synthétisés autour de plusieurs axes complémentaires. Le premier apport réside dans la structuration d'une architecture cohérente, capable d'articuler authentification, services métier, persistance, interfaces multi-rôles et composants IA dans un même produit full-stack.
 
-Le deuxième apport concerne l'intégration d'une couche d'intelligence artificielle non cosmétique, directement reliée aux données du système : extraction de CV, matching, pipeline RAG hybride, génération de guides, screening et chat analytique outillé. Le troisième apport porte sur la formalisation du workflow de recrutement lui-même, avec une progression explicite des candidats, une répartition claire des responsabilités entre TA, Manager et RH, ainsi qu'une continuité jusqu'à l'onboarding et à la gouvernance. Enfin, ce travail a permis de relier l'implémentation technique à une logique de contrôle, grâce à la validation des entrées, au filtrage RBAC, au grounding des réponses et à la traçabilité des actions sensibles.
+Le deuxième apport concerne l'intégration d'une couche d'intelligence artificielle non cosmétique, directement reliée aux données du système : extraction de CV, matching, pipeline RAG hybride, génération de guides, screening et chat analytique outillé. Le troisième apport porte sur la formalisation du workflow de recrutement lui-même, avec une progression explicite des candidats, une répartition claire des responsabilités entre TA, Manager et RH, un historique immuable des transitions, ainsi qu'une continuité jusqu'à l'onboarding et à la gouvernance. Enfin, ce travail a permis de relier l'implémentation technique à une logique de contrôle, grâce à la validation des entrées, au filtrage RBAC, au grounding des réponses, à la confirmation des actions IA sensibles et à la traçabilité des actions critiques.
 
 
 

@@ -5,12 +5,18 @@ import { useRef, useEffect, useCallback, useState } from "react";
 import { motion } from "framer-motion";
 import { Streamdown } from "streamdown";
 import { mermaid } from "@streamdown/mermaid";
-import { IconArrowDown, IconCheck, IconCopy, IconDatabase, IconDownload, IconExternalLink, IconFile, IconInfoCircle, IconLoader2, IconQuote, IconShieldCheck, IconX } from "@tabler/icons-react";
+import { IconAlertTriangle, IconArrowDown, IconChartBar, IconCheck, IconCopy, IconDatabase, IconDownload, IconExternalLink, IconFile, IconInfoCircle, IconLoader2, IconQuote, IconShieldCheck, IconUserCheck, IconX } from "@tabler/icons-react";
 import { cn } from "@/lib/utils";
 import { CapgeminiIcons } from "@/components/shared/icons";
 import type { AgentActionConfirmation, ChatMessage, ToolEvent } from "./chat-types";
-import type { AgentEvidenceMetadata } from "../../types";
+import type { AgentEvidenceMetadata, RecruitmentResponseCard, RecruitmentResponseCardTone } from "../../types";
 import { SUGGESTIONS, formatToolName } from "./chat-types";
+import {
+  buildConfirmationPreview,
+  getConfirmationExpiryState,
+  getFollowUpSuggestions,
+  summarizeEvidenceConfidence,
+} from "./chat-message-helpers";
 import { ToolInspector } from "./tool-inspector";
 import { ChatAnalyticsChart } from "./chat-analytics-chart";
 
@@ -23,37 +29,6 @@ interface ChatMessageListProps {
 }
 
 const STATUS_TEXT_THINKING = "Thinking...";
-const CV_FOLLOW_UPS = [
-  "Compare this candidate against the open jobs",
-  "List risks and missing evidence",
-  "Generate interview questions",
-] as const;
-
-const JOB_FOLLOW_UPS = [
-  "Create a shortlist plan",
-  "Improve the job requirement",
-  "Show matching risks",
-] as const;
-
-const INTERVIEW_FOLLOW_UPS = [
-  "Generate a scorecard",
-  "List red flags to probe",
-  "Draft candidate follow-up email",
-] as const;
-
-const GENERAL_FOLLOW_UPS = [
-  "Turn this into next actions",
-  "Show evidence and risks",
-  "Summarize for a hiring manager",
-] as const;
-
-function getFollowUpSuggestions(content: string): readonly string[] {
-  const normalized = content.toLowerCase();
-  if (normalized.includes("interview")) return INTERVIEW_FOLLOW_UPS;
-  if (normalized.includes("job") || normalized.includes("requirement")) return JOB_FOLLOW_UPS;
-  if (normalized.includes("candidate") || normalized.includes("cv")) return CV_FOLLOW_UPS;
-  return GENERAL_FOLLOW_UPS;
-}
 
 function AttachmentChip({
   filename,
@@ -131,34 +106,38 @@ function ActionConfirmationCard({
   disabled: boolean;
   onConfirmAction: (confirmation: AgentActionConfirmation, decision: "confirm" | "cancel") => void;
 }) {
-  const [expired, setExpired] = useState(false);
+  const preview = buildConfirmationPreview(confirmation);
+  const [expiryNow, setExpiryNow] = useState(() => Date.now());
+  const expiryState = getConfirmationExpiryState(
+    confirmation.expiresAt,
+    expiryNow,
+  );
 
   useEffect(() => {
-    const expiresAtMs = new Date(confirmation.expiresAt).getTime();
+    if (confirmation.status !== "pending") return;
 
-    const updateExpired = () => {
-      setExpired(Number.isFinite(expiresAtMs) && expiresAtMs <= Date.now());
-    };
+    const intervalId = window.setInterval(() => {
+      setExpiryNow(Date.now());
+    }, 1000);
 
-    updateExpired();
+    return () => window.clearInterval(intervalId);
+  }, [confirmation.status]);
 
-    if (!Number.isFinite(expiresAtMs)) return;
-
-    const timeoutId = window.setTimeout(
-      updateExpired,
-      Math.max(0, expiresAtMs - Date.now()),
-    );
-
-    return () => window.clearTimeout(timeoutId);
-  }, [confirmation.expiresAt]);
-  const isPending = confirmation.status === "pending" && !expired;
-  const statusLabel = expired && confirmation.status === "pending"
+  const isPending = confirmation.status === "pending" && !expiryState.expired;
+  const statusLabel = expiryState.expired && confirmation.status === "pending"
     ? "Expired"
     : confirmation.status === "confirmed"
       ? "Confirmed"
       : confirmation.status === "cancelled"
         ? "Cancelled"
         : "Awaiting confirmation";
+
+  const riskToneClass =
+    preview.riskLevel === "high"
+      ? "border-rose-300/60 bg-rose-100/80 text-rose-900 dark:border-rose-500/30 dark:bg-rose-950/30 dark:text-rose-100"
+      : preview.riskLevel === "medium"
+        ? "border-amber-300/60 bg-amber-100/80 text-amber-900 dark:border-amber-500/30 dark:bg-amber-950/30 dark:text-amber-100"
+        : "border-emerald-300/60 bg-emerald-100/80 text-emerald-900 dark:border-emerald-500/30 dark:bg-emerald-950/30 dark:text-emerald-100";
 
   return (
     <section className="mt-4 w-full max-w-2xl rounded-2xl border border-amber-300/50 bg-amber-50/70 p-4 text-amber-950 shadow-sm dark:border-amber-500/30 dark:bg-amber-950/20 dark:text-amber-100">
@@ -167,11 +146,24 @@ function ActionConfirmationCard({
           <IconShieldCheck className="size-5" />
         </span>
         <div className="min-w-0 flex-1 space-y-3">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-amber-700 dark:text-amber-300">
-              Confirmation required
-            </p>
-            <h3 className="mt-1 text-sm font-bold text-amber-950 dark:text-amber-50">
+          <div className="space-y-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-amber-700 dark:text-amber-300">
+                Confirmation required
+              </p>
+              <span
+                className={cn(
+                  "inline-flex rounded-full border px-2 py-0.5 text-[11px] font-semibold",
+                  riskToneClass,
+                )}
+              >
+                {preview.riskLabel}
+              </span>
+              <span className="inline-flex rounded-full border border-amber-300/50 bg-background/70 px-2 py-0.5 text-[11px] font-medium text-amber-800 dark:text-amber-100">
+                {confirmation.status === "pending" ? expiryState.label : statusLabel}
+              </span>
+            </div>
+            <h3 className="text-sm font-bold text-amber-950 dark:text-amber-50">
               {formatToolName(confirmation.toolName)}
             </h3>
           </div>
@@ -179,6 +171,34 @@ function ActionConfirmationCard({
           <p className="text-sm leading-6 text-amber-900/90 dark:text-amber-100/85">
             {confirmation.summary}
           </p>
+
+          {preview.entities.length > 0 && (
+            <div className="flex flex-wrap gap-2" aria-label="Affected entities">
+              {preview.entities.map((entity) => (
+                <span
+                  key={`${entity.label}-${entity.value}`}
+                  className="inline-flex items-center gap-1 rounded-full border border-amber-300/50 bg-background/70 px-2.5 py-1 text-[11px] font-medium text-foreground"
+                >
+                  <span className="text-muted-foreground">{entity.label}</span>
+                  <span>{entity.value}</span>
+                </span>
+              ))}
+            </div>
+          )}
+
+          <div className="rounded-xl border border-amber-300/50 bg-background/60 p-3">
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-amber-800 dark:text-amber-200">
+              Expected impact
+            </p>
+            <ul className="mt-2 space-y-1.5 text-sm leading-6 text-foreground/85">
+              {preview.impact.map((item) => (
+                <li key={item} className="flex gap-2">
+                  <span className="mt-2 size-1.5 shrink-0 rounded-full bg-amber-500" />
+                  <span>{item}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
 
           <details className="rounded-xl border border-amber-300/50 bg-background/60 p-3">
             <summary className="cursor-pointer text-xs font-semibold text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
@@ -242,17 +262,20 @@ function SourceEvidencePanel({
 }) {
   if (!evidence || evidence.sources.length === 0) return null;
 
-  const successfulSources = evidence.sources.filter(
-    (source) => source.status === "success",
-  ).length;
-  const failedSources = evidence.sources.length - successfulSources;
+  const confidence = summarizeEvidenceConfidence(evidence);
+  const confidenceToneClass =
+    confidence?.level === "high"
+      ? "border-emerald-300/60 bg-emerald-100/80 text-emerald-900 dark:border-emerald-500/30 dark:bg-emerald-950/30 dark:text-emerald-100"
+      : confidence?.level === "medium"
+        ? "border-amber-300/60 bg-amber-100/80 text-amber-900 dark:border-amber-500/30 dark:bg-amber-950/30 dark:text-amber-100"
+        : "border-rose-300/60 bg-rose-100/80 text-rose-900 dark:border-rose-500/30 dark:bg-rose-950/30 dark:text-rose-100";
 
   return (
     <section
       className="mb-4 w-full max-w-2xl rounded-2xl border border-border/70 bg-card/55 p-3 shadow-sm"
       aria-label="Source-backed evidence"
     >
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+      <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
         <div className="flex items-center gap-2">
           <span className="flex size-8 items-center justify-center rounded-full bg-primary/10 text-primary">
             <IconDatabase className="size-4" />
@@ -262,10 +285,37 @@ function SourceEvidencePanel({
               Source-backed
             </p>
             <p className="text-sm font-medium text-foreground">
-              {successfulSources} verified source{successfulSources === 1 ? "" : "s"}
-              {failedSources > 0 ? `, ${failedSources} failed` : ""}
+              {confidence?.verifiedSources ?? 0} verified source{confidence?.verifiedSources === 1 ? "" : "s"}
+              {confidence && confidence.failedSources > 0 ? `, ${confidence.failedSources} failed` : ""}
             </p>
+            {confidence?.summary ? (
+              <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                {confidence.summary}
+              </p>
+            ) : null}
           </div>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <span
+            className={cn(
+              "inline-flex rounded-full border px-2.5 py-1 text-[11px] font-semibold",
+              confidenceToneClass,
+            )}
+          >
+            {confidence?.level === "high"
+              ? "High confidence"
+              : confidence?.level === "medium"
+                ? "Medium confidence"
+                : "Low confidence"}
+          </span>
+          <span className="inline-flex rounded-full border border-border/60 bg-background/70 px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
+            {confidence?.observedFactCount ?? 0} observed
+          </span>
+          {confidence && confidence.inferenceLimitCount > 0 ? (
+            <span className="inline-flex rounded-full border border-border/60 bg-background/70 px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
+              {confidence.inferenceLimitCount} limit{confidence.inferenceLimitCount === 1 ? "" : "s"}
+            </span>
+          ) : null}
         </div>
       </div>
 
@@ -311,6 +361,22 @@ function SourceEvidencePanel({
           );
         })}
       </div>
+      {confidence && confidence.issues.length > 0 && (
+        <div className="mt-3 rounded-xl border border-amber-300/40 bg-amber-50/60 p-3 dark:border-amber-500/20 dark:bg-amber-950/20">
+          <div className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.16em] text-amber-900 dark:text-amber-100">
+            <IconInfoCircle className="size-3.5" />
+            Main caveats
+          </div>
+          <ul className="space-y-1.5 text-xs leading-5 text-amber-950/85 dark:text-amber-100/85">
+            {confidence.issues.map((issue) => (
+              <li key={issue} className="flex gap-2">
+                <span className="mt-2 size-1.5 shrink-0 rounded-full bg-amber-500" />
+                <span>{issue}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       <div className="mt-3 grid gap-3 sm:grid-cols-2">
         <div className="rounded-xl border border-border/60 bg-background/60 p-3">
@@ -330,7 +396,9 @@ function SourceEvidencePanel({
             Inferred with limits
           </div>
           <ul className="space-y-1.5 text-xs leading-5 text-muted-foreground">
-            {evidence.inferenceLimits.slice(0, 3).map((limit) => (
+            {(evidence.inferenceLimits.length > 0
+              ? evidence.inferenceLimits.slice(0, 3)
+              : ["No additional inference limit was recorded for this answer."]).map((limit) => (
               <li key={limit}>{limit}</li>
             ))}
           </ul>
@@ -372,6 +440,195 @@ function SourceEvidencePanel({
           </div>
         </details>
       )}
+    </section>
+  );
+}
+function getResponseCardKindLabel(kind: RecruitmentResponseCard["kind"]): string {
+  if (kind === "candidate") return "Candidate card";
+  if (kind === "pipeline") return "Pipeline card";
+  return "Governance card";
+}
+
+function getResponseCardToneClass(tone: RecruitmentResponseCardTone | undefined): string {
+  if (tone === "success") {
+    return "border-emerald-300/60 bg-emerald-50/80 text-emerald-950 dark:border-emerald-500/30 dark:bg-emerald-950/20 dark:text-emerald-100";
+  }
+  if (tone === "warning") {
+    return "border-amber-300/60 bg-amber-50/80 text-amber-950 dark:border-amber-500/30 dark:bg-amber-950/20 dark:text-amber-100";
+  }
+  if (tone === "danger") {
+    return "border-rose-300/60 bg-rose-50/80 text-rose-950 dark:border-rose-500/30 dark:bg-rose-950/20 dark:text-rose-100";
+  }
+  return "border-border/70 bg-card/70 text-foreground";
+}
+
+function getResponseCardMetricToneClass(tone: RecruitmentResponseCardTone | undefined): string {
+  if (tone === "success") return "text-emerald-700 dark:text-emerald-300";
+  if (tone === "warning") return "text-amber-700 dark:text-amber-300";
+  if (tone === "danger") return "text-rose-700 dark:text-rose-300";
+  return "text-foreground";
+}
+
+function ResponseCardIcon({ kind }: { kind: RecruitmentResponseCard["kind"] }) {
+  if (kind === "candidate") {
+    return <IconUserCheck className="size-4" />;
+  }
+
+  if (kind === "pipeline") {
+    return <IconChartBar className="size-4" />;
+  }
+
+  return <IconAlertTriangle className="size-4" />;
+}
+
+function ResponseCardAction({
+  action,
+  onSendSuggestion,
+}: {
+  action: NonNullable<RecruitmentResponseCard["actions"]>[number];
+  onSendSuggestion: (text: string) => void;
+}) {
+  const className =
+    "inline-flex min-h-8 items-center gap-1.5 rounded-full border border-border/70 bg-background/80 px-3 py-1 text-xs font-semibold text-foreground transition-colors hover:border-primary/40 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
+
+  if (action.href) {
+    return (
+      <Link href={action.href} className={className}>
+        {action.label}
+        <IconExternalLink className="size-3" />
+      </Link>
+    );
+  }
+
+  if (action.prompt) {
+    const prompt = action.prompt;
+    return (
+      <button
+        type="button"
+        onClick={() => onSendSuggestion(prompt)}
+        className={className}
+      >
+        {action.label}
+      </button>
+    );
+  }
+
+  return null;
+}
+
+function ResponseCard({
+  card,
+  onSendSuggestion,
+}: {
+  card: RecruitmentResponseCard;
+  onSendSuggestion: (text: string) => void;
+}) {
+  const toneClass = getResponseCardToneClass(card.tone);
+
+  return (
+    <article
+      className={cn(
+        "rounded-2xl border p-4 shadow-sm backdrop-blur",
+        toneClass,
+      )}
+      aria-label={getResponseCardKindLabel(card.kind)}
+    >
+      <div className="mb-3 flex items-start justify-between gap-3">
+        <div className="flex min-w-0 items-start gap-3">
+          <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-full bg-background/70 text-current">
+            <ResponseCardIcon kind={card.kind} />
+          </span>
+          <div className="min-w-0">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-current/65">
+              {getResponseCardKindLabel(card.kind)}
+            </p>
+            <h3 className="mt-1 text-sm font-bold leading-5 text-current">
+              {card.title}
+            </h3>
+            {card.description ? (
+              <p className="mt-1 text-xs leading-5 text-current/75">
+                {card.description}
+              </p>
+            ) : null}
+          </div>
+        </div>
+        {card.sourceTool ? (
+          <span className="hidden rounded-full border border-current/15 bg-background/60 px-2 py-0.5 text-[10px] font-semibold text-current/65 sm:inline-flex">
+            {formatToolName(card.sourceTool)}
+          </span>
+        ) : null}
+      </div>
+
+      <dl className="grid gap-2 sm:grid-cols-2">
+        {card.metrics.map((metric) => (
+          <div
+            key={`${card.id}-${metric.label}`}
+            className="rounded-xl border border-current/10 bg-background/65 p-3"
+          >
+            <dt className="text-[11px] font-semibold uppercase tracking-[0.14em] text-current/55">
+              {metric.label}
+            </dt>
+            <dd
+              className={cn(
+                "mt-1 text-base font-bold leading-6",
+                getResponseCardMetricToneClass(metric.tone),
+              )}
+            >
+              {metric.value}
+            </dd>
+            {metric.detail ? (
+              <p className="mt-1 text-xs leading-5 text-current/65">
+                {metric.detail}
+              </p>
+            ) : null}
+          </div>
+        ))}
+      </dl>
+
+      {card.bullets && card.bullets.length > 0 ? (
+        <ul className="mt-3 space-y-1.5 text-xs leading-5 text-current/75">
+          {card.bullets.map((bullet) => (
+            <li key={bullet} className="flex gap-2">
+              <span className="mt-2 size-1.5 shrink-0 rounded-full bg-current/45" />
+              <span>{bullet}</span>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+
+      {card.actions && card.actions.length > 0 ? (
+        <div className="mt-3 flex flex-wrap gap-2">
+          {card.actions.map((action) => (
+            <ResponseCardAction
+              key={`${card.id}-${action.label}`}
+              action={action}
+              onSendSuggestion={onSendSuggestion}
+            />
+          ))}
+        </div>
+      ) : null}
+    </article>
+  );
+}
+
+function ResponseCardsPanel({
+  cards,
+  onSendSuggestion,
+}: {
+  cards?: RecruitmentResponseCard[];
+  onSendSuggestion: (text: string) => void;
+}) {
+  if (!cards || cards.length === 0) return null;
+
+  return (
+    <section className="flex flex-col gap-3 pt-1" aria-label="Structured response cards">
+      {cards.map((card) => (
+        <ResponseCard
+          key={card.id}
+          card={card}
+          onSendSuggestion={onSendSuggestion}
+        />
+      ))}
     </section>
   );
 }
@@ -546,26 +803,33 @@ function AssistantWorkingIndicator({
 }
 
 function AssistantMessageActions({
-  content,
+  message,
   showFollowUps,
   onSendSuggestion,
 }: {
-  content: string;
+  message: ChatMessage;
   showFollowUps: boolean;
   onSendSuggestion: (text: string) => void;
 }) {
   const [copied, setCopied] = useState(false);
-  const followUps = getFollowUpSuggestions(content);
+  const followUps = getFollowUpSuggestions({
+    content: message.content,
+    metadata: message.metadata,
+    charts: message.charts,
+    cards: message.cards ?? message.metadata?.cards,
+    confirmations: message.confirmations,
+    toolEvents: message.toolEvents,
+  });
 
   const handleCopy = useCallback(() => {
     navigator.clipboard
-      .writeText(content)
+      .writeText(message.content)
       .then(() => {
         setCopied(true);
         window.setTimeout(() => setCopied(false), 1600);
       })
       .catch(() => {});
-  }, [content]);
+  }, [message.content]);
 
   return (
     <div className="mt-3 flex flex-col gap-3">
@@ -713,6 +977,10 @@ function MessageBubble({
                   {msg.content}
                 </Streamdown>
               </div>
+              <ResponseCardsPanel
+                cards={msg.cards}
+                onSendSuggestion={onSendSuggestion}
+              />
               {msg.charts && msg.charts.length > 0 && (
                 <div className="flex flex-col gap-4 pt-1">
                   {msg.charts.map((chart) => (
@@ -753,7 +1021,7 @@ function MessageBubble({
         </div>
         {!isUser && msg.content && !(isLast && isStreaming) && (
           <AssistantMessageActions
-            content={msg.content}
+            message={msg}
             showFollowUps={showFollowUps}
             onSendSuggestion={onSendSuggestion}
           />

@@ -32,9 +32,11 @@ Les exigences fonctionnelles les plus structurantes sont les suivantes :
   \item rechercher les profils par mots-clés ou par similarité sémantique ;
   \item créer des postes avec critères \textit{must-have}, \textit{nice-to-have}, séniorité et unité métier ;
   \item affecter les CV à des postes et suivre les candidats dans un pipeline d'états ;
+  \item conserver un historique auditable des transitions du pipeline candidat ;
   \item planifier des entretiens, envoyer des invitations et saisir des rapports ;
   \item générer des évaluations IA, des guides d'entretien et des emails ;
   \item exposer un assistant conversationnel capable d'appeler des outils métier ;
+  \item soumettre les actions IA modifiant les données à une confirmation explicite ;
   \item fournir des tableaux de bord, des exports et des vues de gouvernance.
 \end{itemize}
 
@@ -52,8 +54,8 @@ Les exigences non fonctionnelles retenues pour la solution sont résumées ci-de
     Validation & Validation \sourcecode{Zod} sur les entrées utilisateur et les arguments d'outils. \\
     Performance & Sélection explicite des colonnes, limites de requêtes, embeddings asynchrones, streaming SSE côté chat. \\
     Évolutivité & Architecture \textit{feature-driven}, services métier séparés, modules IA découplés, stockage \sourcecode{pgvector}. \\
-    Traçabilité & Logs d'activité, email logs, notifications, conversations et messages stockés en base. \\
-    Fiabilité IA & Guardrails sur le nombre d'étapes agentiques, les tokens, le timeout et les échecs d'outils. \\
+    Traçabilité & Logs d'activité, email logs, notifications, conversations, messages, historique d'étapes candidat et confirmations d'actions IA stockés en base. \\
+    Fiabilité IA & Guardrails sur le nombre d'étapes agentiques, les tokens, le timeout, les échecs d'outils et la confirmation des actions modifiant les données. \\
     \bottomrule
   \end{tabularx}
 \end{table}
@@ -94,9 +96,9 @@ La priorité a été donnée aux éléments qui débloquent les autres modules. 
     PB1 & Accès et identité & Sécuriser l'entrée dans la plateforme et orienter chaque utilisateur vers son espace. & Landing page, connexion, redirection par rôle, protection des routes, shell de dashboard. \\
     PB2 & Vivier de CV & Centraliser les profils et transformer des documents hétérogènes en données consultables. & Upload PDF/DOCX, extraction de texte, métadonnées, recherche, export, détection de doublons. \\
     PB3 & Offres d'emploi & Structurer les besoins de recrutement pour préparer le matching et les décisions. & Création de poste, critères \textit{must-have}, critères \textit{nice-to-have}, séniorité, fermeture contrôlée. \\
-    PB4 & Pipeline candidat & Faire progresser un profil affecté dans un workflow multi-rôles traçable. & Affectation, états candidat, responsabilités TA/Manager/HR, planification, rapports d'entretien. \\
-    PB5 & Intelligence IA & Assister les recruteurs par des analyses contextualisées et contrôlées. & Screening, matching hybride, guides d'entretien, autopilot, RAG, chat analytique outillé. \\
-    PB6 & Gouvernance & Donner de la visibilité sur l'activité, les communications et l'onboarding. & Notifications, logs d'activité, logs emails, analytics, exports, suivi d'intégration. \\
+    PB4 & Pipeline candidat & Faire progresser un profil affecté dans un workflow multi-rôles traçable. & Affectation, états candidat, responsabilités TA/Manager/HR, planification, rapports d'entretien, historique immuable des transitions. \\
+    PB5 & Intelligence IA & Assister les recruteurs par des analyses contextualisées et contrôlées. & Screening, matching hybride, guides d'entretien, autopilot, RAG, chat analytique outillé, confirmation des actions modifiant les données. \\
+    PB6 & Gouvernance & Donner de la visibilité sur l'activité, les communications et l'onboarding. & Notifications, logs d'activité, logs emails, analytics, exports, centre de gouvernance, suivi d'intégration. \\
     \bottomrule
   \end{tabularx}
 \end{table}
@@ -115,9 +117,9 @@ Le backlog est découpé en cinq sprints de réalisation. Chaque sprint possède
     \midrule
     Sprint 1 & Accès et identité & Mettre en place le point d'entrée sécurisé du produit : page publique, authentification, redirection par rôle et cadre de navigation commun. \\
     Sprint 2 & CV et offres & Construire la base documentaire et métier du recrutement : importer les CV, structurer les offres et préparer les traitements de recherche et de matching. \\
-    Sprint 3 & Pipeline et entretiens & Transformer une affectation CV-offre en suivi candidat complet, avec transitions d'état, responsabilités, planification et rapports. \\
-    Sprint 4 & Intelligence IA & Ajouter une assistance IA réellement branchée sur les données internes : screening, recherche hybride, guides, autopilot et chat analytique. \\
-    Sprint 5 & Gouvernance & Superviser le produit en exploitation : notifications, emails, activité, analytics, exports et onboarding. \\
+    Sprint 3 & Pipeline et entretiens & Transformer une affectation CV-offre en suivi candidat complet, avec transitions d'état, historique auditable, responsabilités, planification et rapports. \\
+    Sprint 4 & Intelligence IA & Ajouter une assistance IA réellement branchée sur les données internes : screening, recherche hybride, guides, autopilot, chat analytique et confirmation des actions modifiant les données. \\
+    Sprint 5 & Gouvernance & Superviser le produit en exploitation : notifications, emails, activité, analytics, exports, centre de gouvernance et onboarding. \\
     \bottomrule
   \end{tabularx}
 \end{table}
@@ -171,10 +173,10 @@ La cohérence de l'architecture se comprend mieux lorsqu'on relie directement le
     \midrule
     Sécuriser l'accès et séparer les responsabilités & Accès et identité & Authentification par rôles, espaces protégés et shell de dashboard mutualisé. \\
     Transformer des CV hétérogènes en profils exploitables & Vivier de CV & Pipeline d'ingestion, extraction structurée, embeddings et chunking progressif. \\
-    Relier les profils aux besoins de recrutement & Offres, candidats et pipeline & Offres structurées, transitions d'état explicites et assignations multi-rôles. \\
+    Relier les profils aux besoins de recrutement & Offres, candidats et pipeline & Offres structurées, transitions d'état explicites, historique d'étapes et assignations multi-rôles. \\
     Retrouver des profils au-delà des mots-clés & Intelligence IA & Stockage vectoriel avec \sourcecode{pgvector}, recherche full-text et retrieval hybride. \\
-    Interroger le système en langage naturel & Chat analytique & Agent conversationnel outillé, registre d'outils filtré par rôle et streaming SSE. \\
-    Auditer et piloter l'activité & Gouvernance & Notifications, logs, analytics, exports et suivi détaillé de l'onboarding. \\
+    Interroger le système en langage naturel & Chat analytique & Agent conversationnel outillé, registre d'outils filtré par rôle, confirmation des mutations et streaming SSE. \\
+    Auditer et piloter l'activité & Gouvernance & Notifications, logs, centre de gouvernance, analytics, exports et suivi détaillé de l'onboarding. \\
     \bottomrule
   \end{tabularx}
 \end{table}
@@ -213,6 +215,7 @@ Cette couche est encadrée par plusieurs mécanismes de sécurité et de fiabili
 \begin{itemize}
   \item RBAC, qui restreint l'accès aux outils, aux vues et aux données selon le rôle utilisateur ;
   \item validation Zod, qui borne les entrées des outils et évite qu'un appel mal formé ne soit exécuté implicitement ;
+  \item confirmation explicite, qui transforme les outils agentiques modifiant les données en actions en attente avant exécution ;
   \item \textit{grounding}, qui interdit à la réponse finale de citer des candidats non présents dans les résultats réellement accessibles ;
   \item isolation de cache et de périmètre, qui évite qu'une recherche ou un contexte d'un utilisateur ne contamine celui d'un autre ;
   \item garde-fous d'exécution, comme les limites d'étapes agentiques, de tokens, de timeout et d'échecs consécutifs.
@@ -275,11 +278,14 @@ La persistance s'appuie sur \sourcecode{Neon PostgreSQL} et \sourcecode{Drizzle 
   \item les données métier du recrutement : utilisateurs, offres, CV, candidats, entretiens et rapports ;
   \item les données conversationnelles du chat IA ;
   \item les journaux d'activité, notifications et logs d'emails ;
+  \item l'historique des transitions candidat via \sourcecode{candidate\_stage\_history} ;
+  \item les confirmations d'actions IA via \sourcecode{pending\_agent\_actions} ;
   \item les tâches d'onboarding ;
   \item les embeddings vectoriels via \sourcecode{pgvector}.
 \end{itemize}
 
 L'usage de \sourcecode{pgvector} évite l'introduction d'une base vectorielle externe. Les embeddings globaux des CV sont stockés dans le vivier, tandis que les embeddings orientés RAG sont stockés dans les chunks. Ces chunks sont aussi indexés en recherche plein texte, ce qui rend possible une recherche hybride combinant récupération vectorielle et récupération lexicale.
+Les tables \sourcecode{candidate\_stage\_history} et \sourcecode{pending\_agent\_actions} renforcent la gouvernance du modèle. La première conserve les mouvements du pipeline avec l'étape précédente, la nouvelle étape, l'acteur, la raison, la source et l'horodatage. La seconde matérialise les actions IA sensibles avant exécution, avec leur statut, leur expiration et leur résultat d'exécution. Ces deux tables transforment les opérations critiques en preuves consultables et exportables.
 
 \section*{Conclusion}
 \addcontentsline{toc}{section}{Conclusion}

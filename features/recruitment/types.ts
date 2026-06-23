@@ -240,6 +240,37 @@ export interface RecruitmentAnalyticsChart {
   data: RecruitmentAnalyticsChartDatum[];
   summary?: string;
 }
+// ---------- Agent Response Cards ----------
+
+export type RecruitmentResponseCardKind = 'candidate' | 'pipeline' | 'governance';
+
+export type RecruitmentResponseCardTone = 'success' | 'warning' | 'danger' | 'neutral';
+
+export interface RecruitmentResponseCardMetric {
+  label: string;
+  value: string;
+  detail?: string;
+  tone?: RecruitmentResponseCardTone;
+}
+
+export interface RecruitmentResponseCardAction {
+  label: string;
+  href?: string;
+  prompt?: string;
+  tone?: RecruitmentResponseCardTone;
+}
+
+export interface RecruitmentResponseCard {
+  id: string;
+  kind: RecruitmentResponseCardKind;
+  title: string;
+  description?: string;
+  tone?: RecruitmentResponseCardTone;
+  sourceTool?: string;
+  metrics: RecruitmentResponseCardMetric[];
+  bullets?: string[];
+  actions?: RecruitmentResponseCardAction[];
+}
 
 // ---------- Interview Auto-Pilot Types ----------
 

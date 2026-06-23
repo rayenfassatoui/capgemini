@@ -38,11 +38,13 @@ Il répond à une contrainte réaliste des outils d'entreprise : une bonne autom
     38 & Analytics RH & En tant qu'administrateur, je peux analyser les performances du recrutement et la santé du pipeline. & Réalisé \\
     39 & Exports & En tant qu'administrateur, je peux exporter les données clés en Excel ou ZIP. & Réalisé \\
     40 & Onboarding détaillé & En tant qu'administrateur, je peux suivre l'avancement d'intégration des candidats embauchés. & Réalisé \\
+    41 & Centre de gouvernance & En tant qu'administrateur, je peux filtrer et exporter les transitions candidat, les confirmations IA et les logs d'activité depuis une même vue. & Réalisé \\
+    42 & Durcissement release & En tant qu'équipe projet, je peux vérifier que les migrations critiques et les comportements d'audit sont présents avant livraison. & Réalisé \\
     \bottomrule
   \end{tabularx}
 \end{table}
 
-Ce backlog confirme que la gouvernance n'est pas un ajout marginal. Elle couvre la communication, l'audit, l'analytique, l'export et la continuité post-recrutement.
+Ce backlog confirme que la gouvernance n'est pas un ajout marginal. Elle couvre la communication, l'audit, l'analytique, l'export, les confirmations IA, le centre de gouvernance et la continuité post-recrutement.
 
 \section{Implémentation du sprint}
 
@@ -55,12 +57,14 @@ Ce sprint s'appuie principalement sur les éléments fonctionnels suivants :
   \item le service de traçabilité métier ;
   \item le service d'export des données ;
   \item le service de checklists d'intégration ;
+  \item le service de rapport d'audit gouvernance ;
   \item l'interface de notification ;
   \item la vue système administrateur ;
   \item la vue analytique administrateur ;
   \item la vue du journal d'activité ;
   \item la vue des logs d'emails ;
-  \item la vue de suivi détaillé de l'intégration.
+  \item la vue de suivi détaillé de l'intégration ;
+  \item le centre de gouvernance administrateur.
 \end{itemize}
 
 Ce sprint crée donc une couche de gouvernance transversale qui s'appuie sur tout ce qui a été produit auparavant : candidats, entretiens, décisions, emails, IA et onboarding.
@@ -68,12 +72,13 @@ Ce sprint crée donc une couche de gouvernance transversale qui s'appuie sur tou
 Cette transversalité montre que la supervision n'est pas plaquée après coup. Elle réutilise les mêmes données opérationnelles pour produire une lecture de pilotage et une capacité d'audit.
 
 \subsection{Vue fonctionnelle globale}
-Les usages couverts se regroupent en quatre blocs :
+Les usages couverts se regroupent en cinq blocs :
 \begin{enumerate}
   \item \textbf{Communication et alertes} : créer des notifications, les récupérer, compter les éléments non lus, marquer une notification comme lue, tout marquer comme lu et envoyer ou tracer les emails.
   \item \textbf{Supervision administrateur} : consulter un aperçu global du système, analyser les métriques du recrutement et suivre l'activité transversale de la plateforme.
   \item \textbf{Restitution et audit} : conserver un journal enrichi des actions, un historique des emails et exporter les données clés au format Excel ou ZIP.
   \item \textbf{Continuité post-recrutement} : suivre les checklists d'onboarding, visualiser l'état d'intégration des candidats \sourcecode{hired} et prolonger le pilotage au-delà de la décision d'embauche.
+  \item \textbf{Gouvernance des actions sensibles} : rapprocher les transitions candidat, les confirmations d'actions IA et les logs d'activité dans une vue filtrable et exportable.
 \end{enumerate}
 
 Cette structuration illustre la maturité atteinte par le produit : autour des entités métier centrales s'ajoutent désormais des objets de preuve, de communication et de suivi.
@@ -98,6 +103,7 @@ La couche \sourcecode{admin.ts} agrège plusieurs vues de haut niveau : \sourcec
 Cette agrégation montre que la plateforme ne sépare pas l'opérationnel du décisionnel. Les données utilisées pour exécuter le recrutement sont aussi réutilisées pour le piloter.
 La version actuelle ajoute à ces surfaces des panneaux d'évidence administrateur et des entrées agentiques gouvernées. Chaque vue peut maintenant résumer les faits observés, signaler les données opérationnelles manquantes et proposer des actions \textit{Agent} dédiées à la synthèse d'activité, à l'interprétation analytique, aux anomalies d'onboarding ou aux risques de communication.
 Cette réutilisation des mêmes données constitue un point fort du projet : elle évite de dupliquer la vérité métier dans un outil de reporting distinct et renforce la cohérence entre exécution, supervision et assistance à la décision.
+Le nouveau centre de gouvernance renforce cette lecture. Il ne se limite pas au journal d'activité classique : il agrège les transitions du pipeline, les actions IA en attente ou exécutées et les logs applicatifs, afin de fournir une surface de contrôle unique pour les événements sensibles.
 \paragraph{Lecture de gouvernance et portée de supervision.}
 
 Elle permet surtout de distinguer clairement deux niveaux de lecture. Le niveau opérationnel sert à faire avancer les dossiers candidats, à planifier des entretiens et à envoyer des communications. Le niveau de gouvernance sert, lui, à vérifier que ces actions ont bien été réalisées, à en mesurer les effets, à en conserver la preuve et à fournir aux responsables une vision consolidée du système.
@@ -108,6 +114,13 @@ Le service \sourcecode{activity-log.ts} enregistre les événements importants v
 
 Cette partie prouve que la plateforme est pensée pour la restitution, la preuve et l'audit, pas seulement pour l'exécution interactive. Les exports jouent un rôle d'interopérabilité : la donnée reste exploitable hors de l'interface, pour le reporting, le contrôle et la conformité.
 Dans un cadre d'entreprise, cette capacité d'export dépasse la simple commodité. Elle permet de transformer l'information applicative en matière de reporting, de contrôle, de conformité et de partage. Les exports constituent donc un pont entre la plateforme de recrutement et les besoins plus larges d'audit, de pilotage RH ou de restitution managériale.
+
+\subsection{Centre de gouvernance et audit consolidé}
+Le service \sourcecode{governance.ts} construit un rapport d'audit consolidé à partir de trois sources : \sourcecode{candidate\_stage\_history}, \sourcecode{pending\_agent\_actions} et \sourcecode{activity\_logs}. Chaque ligne est normalisée avec un type, un statut, une action, un acteur, un candidat éventuel, un horodatage et un détail métier.
+
+Cette consolidation répond à un besoin de contrôle que les vues séparées ne couvrent pas entièrement. Un administrateur peut filtrer les événements par période, acteur, candidat, action ou statut, puis exporter les lignes en CSV. Les arguments d'outils sont sanitizés avant restitution afin d'éviter d'exposer des données sensibles comme les tokens, les pièces jointes brutes ou les contenus volumineux.
+
+Le centre de gouvernance joue donc le rôle d'un plan de contrôle source-backed. Il met au même niveau les changements d'étape, les actions agentiques sensibles et les logs applicatifs, ce qui facilite l'analyse d'incident, la revue d'une décision et la préparation d'un audit.
 
 
 \section{Réalisation}
@@ -146,6 +159,17 @@ Elle donne ainsi à l'administration la possibilité de lire les flux de recrute
   \caption{Vue analytique administrateur.}
 \end{figure}
 
+\subsection{Centre de gouvernance}
+La page \sourcecode{/admin/governance} charge \sourcecode{getGovernanceAuditReportAction()} puis affiche \sourcecode{AdminGovernanceClient}. Elle présente des compteurs dédiés aux lignes d'audit, aux changements d'étape, aux actions IA, aux logs d'activité, aux actions IA en attente et aux actions IA échouées.
+
+L'interface permet de filtrer par date, acteur, candidat, action ou statut. Chaque ligne ouvre un panneau de détail contenant une preuve sanitizée, avec les arguments d'outil nettoyés lorsque l'événement provient de l'agent. L'administrateur peut aussi exporter le résultat courant en CSV via \sourcecode{exportGovernanceAuditCsvAction()}.
+
+\begin{figure}[H]
+  \centering
+  \screenshotplaceholder{Governance Center}
+  \caption{Centre de gouvernance administrateur.}
+\end{figure}
+
 \subsection{Historique d'activité et logs d'emails}
 La page du journal d'activité exploite \sourcecode{getActivityLogEnrichedAction(100)} et le composant \sourcecode{AdminActivityClient}. L'objectif est d'exposer une lecture enrichie du journal d'activité afin de reconstituer les séquences d'action importantes. Un panneau d'évidence et des actions \textit{Agent} permettent en parallèle de synthétiser les lignes chargées, de signaler les actions destructrices et de rappeler les limites de couverture de l'audit courant.
 Cette fonctionnalité est centrale pour l'audit interne, l'analyse d'incident, la compréhension des décisions et la justification d'un enchaînement métier. Dans une plateforme de recrutement augmentée par l'IA, cette traçabilité a encore plus de valeur, car elle permet d'observer ce qui a été automatisé, ce qui a été décidé et dans quel ordre.
@@ -175,6 +199,11 @@ Les actions d'export disponibles dans \sourcecode{actions.ts} et \sourcecode{exp
 
 Cette capacité d'export renforce la maturité du système : un produit d'entreprise crédible doit aussi pouvoir alimenter d'autres usages organisationnels hors de son interface principale.
 
+\subsection{Vérification de durcissement release}
+Le script \sourcecode{db/verify-release-hardening.ts} complète la gouvernance par une vérification technique ciblée. Il contrôle la présence des tables et index critiques liés à l'historique des étapes et aux confirmations IA, peut appliquer les migrations manquantes lorsque le schéma est absent, puis exécute un scénario comportemental temporaire.
+
+Ce scénario crée un utilisateur de vérification, un poste, un CV et un candidat, valide que l'affectation et une transition manuelle produisent bien l'historique attendu, puis confirme une action IA qui fait progresser le candidat. Le script vérifie ensuite que l'action passe au statut \sourcecode{executed}, que la transition agentique est enregistrée, puis supprime les lignes temporaires. Il ne s'agit donc pas d'un simple contrôle de schéma, mais d'une preuve de bout en bout sur les mécanismes de gouvernance les plus sensibles.
+
 \paragraph{Lecture d'audit.}
 La gouvernance du module repose sur une séparation claire des traces. Les notifications servent à informer les utilisateurs au moment utile. Le journal d'activité permet de reconstituer les actions réalisées dans l'application. Les logs d'emails documentent les communications sortantes. Les exports rendent ces informations exploitables hors de l'interface. Cette séparation évite de mélanger alerte, preuve, communication et restitution, ce qui renforce la lisibilité du système en cas de contrôle ou de revue métier.
 
@@ -185,7 +214,9 @@ Ce module apporte la maturité de gouvernance du projet :
   \item il améliore la traçabilité via les logs d'activité et d'emails ;
   \item il améliore le pilotage grâce aux dashboards et aux analytics administrateurs ;
   \item il améliore l'interopérabilité par les exports ;
-  \item il prolonge la continuité métier jusqu'à l'onboarding.
+  \item il prolonge la continuité métier jusqu'à l'onboarding ;
+  \item il améliore la gouvernance des actions IA sensibles par une confirmation explicite et auditée ;
+  \item il fournit un centre de gouvernance consolidé pour les transitions, confirmations et logs.
 \end{itemize}
 
 Dans l'économie générale du rapport, ce module montre que l'intelligence et l'automatisation déployées dans les chapitres précédents sont encadrées par une couche de supervision explicite. C'est cette combinaison entre IA, métier et gouvernance qui donne à \projectname{} sa crédibilité comme produit d'entreprise.
@@ -194,4 +225,4 @@ On peut donc considérer ce dernier module comme la couche de confiance et de pi
 
 \section*{Conclusion}
 \addcontentsline{toc}{section}{Conclusion}
-Ce cinquième module transforme la plateforme en système pilotable, gouvernable et auditable. Notifications, logs, dashboards administrateurs, analytics, exports et suivi d'onboarding complètent désormais les modules métier et IA déjà mis en place. Le produit ne se limite plus à exécuter un recrutement intelligent ; il permet aussi de le superviser, de l'expliquer et de le prolonger au-delà de la décision finale.
+Ce cinquième module transforme la plateforme en système pilotable, gouvernable et auditable. Notifications, logs, dashboards administrateurs, analytics, centre de gouvernance, confirmations IA, exports et suivi d'onboarding complètent désormais les modules métier et IA déjà mis en place. Le produit ne se limite plus à exécuter un recrutement intelligent ; il permet aussi de le superviser, de l'expliquer et de le prolonger au-delà de la décision finale.

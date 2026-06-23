@@ -40,6 +40,7 @@ Le sprint répond aussi à un enjeu de gouvernance humaine : plusieurs rôles in
     21 & Calendrier & En tant que TA, je peux consulter un calendrier consolidé des entretiens. & Réalisé \\
     22 & Décision RH & En tant que RH, je peux accepter, rejeter ou marquer un candidat comme hired. & Réalisé \\
     23 & Onboarding & En tant que système, je peux initialiser une checklist d'onboarding pour un candidat embauché. & Réalisé \\
+    23-bis & Historique d'étapes & En tant qu'évaluateur ou administrateur, je peux consulter l'historique auditable des transitions d'un candidat. & Réalisé \\
     \bottomrule
   \end{tabularx}
 \end{table}
@@ -54,6 +55,7 @@ Le sprint s'appuie principalement sur les éléments fonctionnels suivants :
   \item le service de gestion du pipeline candidat ;
   \item le service de planification, d'agenda et de calendrier des entretiens ;
   \item le service de rapports d'entretien et de décisions ;
+  \item le service d'historique des transitions candidat ;
   \item le service de checklist d'onboarding après embauche ;
   \item le parcours manager, avec sa liste de candidats et sa vue de détail ;
   \item le parcours RH, avec sa liste de candidats et sa vue de détail ;
@@ -84,6 +86,7 @@ Le pipeline est formalisé dans le schéma de données via une suite d'états ex
 À cette trajectoire s'ajoutent les branches de rejet \sourcecode{ta\_rejected}, \sourcecode{manager\_rejected} et \sourcecode{hr\_rejected}. Cette modélisation est importante, car elle montre que le processus de recrutement n'est pas implicite : chaque étape porte un sens métier, une responsabilité et des données associées.
 
 Elle permet également d'éviter l'ambiguïté organisationnelle : lorsqu'un candidat se trouve dans un état donné, la plateforme sait quels acteurs sont concernés, quelles actions sont permises et quelles informations doivent être affichées.
+Chaque mouvement est maintenant doublé d'une trace dans \sourcecode{candidate\_stage\_history}. Cette table conserve l'étape précédente, la nouvelle étape, l'acteur, la raison, la source du changement et la date. Elle complète donc le statut courant du candidat par une mémoire chronologique, indispensable pour comprendre comment une décision a été atteinte.
 \paragraph{Tableau de transitions du pipeline candidat.}
 La logique d'état peut être synthétisée par le tableau suivant :
 
@@ -160,6 +163,13 @@ Lorsque le candidat atteint l'état \sourcecode{hired}, le système crée automa
 
 L'entretien n'est plus une simple discussion suivie d'un avis informel. Il devient une production de données métier structurées, reliées à une étape précise et réexploitables plus tard dans l'analyse globale du recrutement.
 
+
+\subsection{Historique auditable des transitions}
+Le service \sourcecode{updateCandidateStage()} ne met pas seulement à jour le champ \sourcecode{stage}. Il écrit aussi une ligne immuable dans \sourcecode{candidate\_stage\_history}. Lors de l'affectation initiale, \sourcecode{assignCvToJob()} enregistre une création de pipeline avec la source \sourcecode{assignment}. Les évolutions suivantes peuvent provenir d'une action manuelle, d'un traitement groupé, d'une affectation manager, d'une affectation RH, d'un rapport d'entretien ou d'une action agentique confirmée.
+
+Cette conception évite une limite classique des pipelines de recrutement : connaître uniquement l'état courant sans savoir qui l'a modifié ni pourquoi. Les fiches Manager et RH affichent cette mémoire via \sourcecode{CandidateStageHistoryTimeline}. Les détails d'acteur restent visibles selon le rôle, ce qui permet de concilier transparence métier et restriction d'accès aux informations internes.
+
+L'historique sert aussi de pont vers la gouvernance administrateur. Les mêmes lignes qui expliquent le parcours d'un candidat alimentent ensuite le centre de gouvernance, les filtres d'audit et les exports CSV. Une transition n'est donc pas seulement une mutation applicative ; elle devient une preuve opérationnelle réutilisable.
 \paragraph{Règles métier structurantes.}
 Plusieurs règles implicites du workflow méritent d'être formulées explicitement. Un manager n'intervient qu'après qualification initiale par TA. Le transfert vers le RH n'a de sens que si l'évaluation managériale a abouti à un avis positif. Le statut \sourcecode{hired} ne doit être atteint qu'au terme de la validation RH. Enfin, l'onboarding ne démarre qu'après cette décision finale, afin d'éviter toute ouverture prématurée d'un suivi d'intégration.
 
@@ -174,6 +184,7 @@ Le scénario métier central part d'un CV affecté à une offre. Le TA qualifie 
 La vue manager charge uniquement les candidats affectés au manager courant dans les états \sourcecode{manager\_interview}, \sourcecode{manager\_accepted} et \sourcecode{manager\_rejected}. La page détail récupère ensuite le candidat, les rapports TA, le guide d'entretien manager, l'entretien manager courant, la liste des RH et le guide autopilot si disponible.
 Le composant \sourcecode{ManagerCandidateDetailClient} organise l'évaluation en étapes successives : génération des questions d'entretien, édition et sauvegarde des questions, planification de l'entretien, envoi de l'email, marquage de l'entretien comme complété, saisie du rapport puis décision finale de rejet ou de transfert vers un RH identifié.
 La fiche manager intègre en plus un panneau d'\textit{evidence readiness} qui expose le score de screening disponible, le dernier état d'entretien, la décision antérieure, les éléments manquants et les risques avant tout raisonnement IA. Les actions \textit{Ask Agent}, \textit{Explain score}, \textit{Summarize feedback} et \textit{Decision risks} réutilisent ensuite ce contexte de preuve pour produire des prompts plus sûrs et plus situés.
+La fiche affiche également la timeline \sourcecode{Stage history}, qui permet au manager de replacer son évaluation dans la chronologie complète du dossier sans perdre la séparation des responsabilités.
 Cette logique reflète bien le rôle du manager dans le produit : il ne se contente pas de visualiser un profil, il produit une décision structurée sur la base d'un dossier enrichi et explicitement qualifié.
 
 \begin{figure}[H]
@@ -186,6 +197,7 @@ Cette logique reflète bien le rôle du manager dans le produit : il ne se conte
 La vue RH charge les candidats assignés au RH courant dans les états \sourcecode{hr\_interview}, \sourcecode{hr\_accepted}, \sourcecode{hr\_rejected} et \sourcecode{hired}. La page détail agrège le candidat, les rapports précédents TA et Manager, le guide RH, l'entretien RH courant et l'autopilot RH.
 Le composant \sourcecode{HRCandidateDetailClient} ouvre alors plusieurs actions : consultation des rapports antérieurs, planification optionnelle d'une réunion RH, marquage de la réunion comme complétée, décision \sourcecode{hr\_accepted} ou \sourcecode{hr\_rejected}, génération IA d'un email de décision, envoi de cet email et passage au statut \sourcecode{hired}.
 Comme côté manager, un panneau d'\textit{evidence readiness} résume les faits observés, les trous documentaires et les signaux de risque avant la décision finale. Les actions agentiques RH réinjectent ce contexte pour produire des rapports de décision et des analyses de risque séparant mieux les constats des recommandations.
+La fiche RH reprend la même logique d'historique afin de vérifier le chemin déjà parcouru par le candidat avant la décision finale. Cette lecture réduit le risque de décision isolée, car l'étape RH s'appuie sur les traces TA et Manager déjà enregistrées.
 Cette étape montre bien que le RH joue à la fois un rôle décisionnel et un rôle de communication formelle avec le candidat, avec un niveau de justification plus explicite qu'une simple lecture de notes brutes.
 
 \begin{figure}[H]
@@ -234,6 +246,7 @@ Ce module apporte une contribution structurante au projet :
   \item il explicite les responsabilités de chaque rôle ;
   \item il donne un cadre formel aux entretiens et aux décisions ;
   \item il rend les étapes de recrutement traçables et justifiables ;
+  \item il transforme chaque transition en preuve chronologique consultable ;
   \item il prépare la transition vers l'onboarding ;
   \item il enrichit fortement la base métier qui sera exploitée par les modules IA.
 \end{itemize}
@@ -244,4 +257,4 @@ Cette transformation n'est pas seulement technique. Elle améliore aussi la qual
 
 \section*{Conclusion}
 \addcontentsline{toc}{section}{Conclusion}
-Ce troisième module a donné au produit sa structure procédurale complète : progression du candidat, assignation des rôles, planification des entretiens, rapports, décisions et démarrage de l'onboarding. Il fournit la continuité métier indispensable à une plateforme de recrutement intelligente. Le chapitre suivant s'appuiera sur ce socle pour détailler la couche d'intelligence artificielle, notamment le matching, la recherche sémantique, le RAG et l'assistance agentique.
+Ce troisième module a donné au produit sa structure procédurale complète : progression du candidat, historique des transitions, assignation des rôles, planification des entretiens, rapports, décisions et démarrage de l'onboarding. Il fournit la continuité métier indispensable à une plateforme de recrutement intelligente. Le chapitre suivant s'appuiera sur ce socle pour détailler la couche d'intelligence artificielle, notamment le matching, la recherche sémantique, le RAG et l'assistance agentique.

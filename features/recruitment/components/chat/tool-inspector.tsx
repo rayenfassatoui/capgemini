@@ -19,6 +19,11 @@ import type {
   ToolTraceJson,
 } from "./chat-types";
 import { formatToolName } from "./chat-types";
+import {
+  getToolEventDurationMs,
+  groupToolEventsByPhase,
+  type ToolTracePhaseGroup,
+} from "./tool-inspector-helpers";
 
 // Types
 interface ToolInspectorProps {
@@ -58,25 +63,15 @@ function stringifyJson(value: ToolTraceJson | undefined): string {
   return JSON.stringify(redactJson(value), null, 2);
 }
 
-function getDurationMs(event: ToolEvent): number | undefined {
-  if (typeof event.durationMs === "number") return Math.max(0, event.durationMs);
-  if (!event.startedAt) return undefined;
-
-  const started = new Date(event.startedAt).getTime();
-  if (Number.isNaN(started)) return undefined;
-
-  const ended = event.endedAt ? new Date(event.endedAt).getTime() : Date.now();
-  if (Number.isNaN(ended)) return undefined;
-
-  return Math.max(0, ended - started);
-}
-
-function formatDuration(event: ToolEvent): string {
-  const durationMs = getDurationMs(event);
+function formatDurationMs(durationMs: number | undefined): string {
   if (durationMs === undefined) return "—";
   if (durationMs < 1_000) return `${durationMs}ms`;
   const seconds = durationMs / 1_000;
   return `${seconds.toFixed(seconds < 10 ? 1 : 0)}s`;
+}
+
+function formatDuration(event: ToolEvent): string {
+  return formatDurationMs(getToolEventDurationMs(event));
 }
 
 function formatClockTime(value: string | undefined): string {
@@ -130,12 +125,35 @@ function JsonPre({ label, value }: { label: string; value: ToolTraceJson | undef
     </div>
   );
 }
+function StatusIcon({
+  status,
+  className,
+}: {
+  status: ToolEventStatus;
+  className?: string;
+}) {
+  if (status === "running") {
+    return <IconLoader2 className={cn("animate-spin text-blue-500", className)} />;
+  }
+
+  if (status === "error") {
+    return <IconAlertTriangle className={cn("text-destructive", className)} />;
+  }
+
+  if (status === "pending_confirmation") {
+    return <IconAlertTriangle className={cn("text-amber-500", className)} />;
+  }
+
+  if (status === "queued") {
+    return <IconTerminal2 className={cn("text-muted-foreground", className)} />;
+  }
+
+  return <IconCheck className={cn("text-emerald-500", className)} />;
+}
 
 function ToolRow({ event }: { event: ToolEvent }) {
   const [isOpen, setIsOpen] = useState(false);
-  const isRunning = event.status === "running";
   const isError = event.status === "error";
-  const isPendingConfirmation = event.status === "pending_confirmation";
   const statusLabel = getStatusLabel(event.status);
   const retryAttempt = event.retry?.attempt;
   const retryMaxAttempts = event.retry?.maxAttempts;
@@ -144,15 +162,7 @@ function ToolRow({ event }: { event: ToolEvent }) {
       ? `${retryAttempt}/${retryMaxAttempts}`
       : undefined;
 
-  const icon = isRunning ? (
-    <IconLoader2 className="animate-spin text-blue-500 size-3.5" />
-  ) : isError ? (
-    <IconAlertTriangle className="text-destructive size-3.5" />
-  ) : isPendingConfirmation ? (
-    <IconAlertTriangle className="text-amber-500 size-3.5" />
-  ) : (
-    <IconCheck className="text-emerald-500 size-3.5" />
-  );
+  const icon = <StatusIcon status={event.status} className="size-3.5" />;
 
   return (
     <div className="flex flex-col group/row">
@@ -248,6 +258,45 @@ function ToolRow({ event }: { event: ToolEvent }) {
     </div>
   );
 }
+function ToolPhaseSection({ phase }: { phase: ToolTracePhaseGroup }) {
+  return (
+    <section
+      className="relative rounded-lg border border-border/50 bg-background/55 p-2"
+      aria-label={`${phase.label} phase`}
+    >
+      <div className="flex items-start gap-2.5 px-1 pb-2">
+        <span className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full border border-border/70 bg-card">
+          <StatusIcon status={phase.status} className="size-3.5" />
+        </span>
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <h4 className="text-xs font-semibold text-foreground">
+              {phase.label}
+            </h4>
+            <span className="rounded-full border border-border/60 bg-muted/40 px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+              {phase.events.length} tool{phase.events.length === 1 ? "" : "s"}
+            </span>
+            <span className="rounded-full border border-border/60 bg-muted/40 px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+              {getStatusLabel(phase.status)}
+            </span>
+            <span className="rounded-full border border-border/60 bg-muted/40 px-2 py-0.5 text-[10px] font-mono text-muted-foreground">
+              {formatDurationMs(phase.durationMs)}
+            </span>
+          </div>
+          <p className="mt-1 text-[11px] leading-4 text-muted-foreground">
+            {phase.description}
+          </p>
+        </div>
+      </div>
+
+      <div className="space-y-1 border-l border-border/50 pl-3 ml-[14px]">
+        {phase.events.map((event) => (
+          <ToolRow key={event.id} event={event} />
+        ))}
+      </div>
+    </section>
+  );
+}
 
 export function ToolInspector({
   events,
@@ -259,6 +308,7 @@ export function ToolInspector({
   const [, refreshDurations] = useState(0);
 
   const safeEvents = useMemo(() => events ?? [], [events]);
+  const phaseGroups = groupToolEventsByPhase(safeEvents);
   const hasEvents = safeEvents.length > 0;
 
   // Auto-refresh durations while running
@@ -270,14 +320,31 @@ export function ToolInspector({
     }
   }, [safeEvents, isLoading]);
 
-  // Auto-expand if currently running or error, but stick to user preference if toggled manually.
-  // Actually, keeping it strictly toggleable is less jumpy, we'll just show the status in the collapsed header.
+  const headerStatus: ToolEventStatus = error
+    ? "error"
+    : safeEvents.some((event) => event.status === "error")
+      ? "error"
+      : safeEvents.some((event) => event.status === "running") || isLoading
+        ? "running"
+        : safeEvents.some((event) => event.status === "pending_confirmation")
+          ? "pending_confirmation"
+          : "success";
+  const isTraceRunning = isLoading || headerStatus === "running";
+  const headerTextClass =
+    headerStatus === "error"
+      ? "text-destructive"
+      : headerStatus === "pending_confirmation"
+        ? "text-amber-600 dark:text-amber-400"
+        : "text-muted-foreground";
+  const traceCountText =
+    phaseGroups.length > 0
+      ? `${phaseGroups.length} phase${phaseGroups.length === 1 ? "" : "s"} / ${safeEvents.length} tool${safeEvents.length === 1 ? "" : "s"}`
+      : `Evidence trace: ${safeEvents.length} tool${safeEvents.length === 1 ? "" : "s"}`;
 
   if (!hasEvents && !isLoading && !error) {
     return null; // hide completely in friendly UI if nothing used
   }
 
-  const statusType = error ? "error" : safeEvents.some(e => e.status === "error") ? "error" : safeEvents.some(e => e.status === "running") || isLoading ? "running" : safeEvents.some(e => e.status === "pending_confirmation") ? "pending" : "success";
 
   return (
     <div className={cn("w-full max-w-2xl my-2", className)}>
@@ -291,19 +358,11 @@ export function ToolInspector({
           )}
         >
           <div className="flex items-center gap-2.5">
-            {statusType === "running" ? (
-               <IconLoader2 className="animate-spin text-blue-500 size-4" />
-            ) : statusType === "error" ? (
-               <IconAlertTriangle className="text-destructive size-4" />
-            ) : statusType === "pending" ? (
-               <IconAlertTriangle className="text-amber-500 size-4" />
-            ) : (
-               <IconTerminal2 className="text-muted-foreground/60 size-4" />
-            )}
-            <span className={statusType === "error" ? "text-destructive" : statusType === "pending" ? "text-amber-600 dark:text-amber-400" : "text-muted-foreground"}>
-              {isLoading || statusType === "running"
+            <StatusIcon status={headerStatus} className="size-4" />
+            <span className={headerTextClass}>
+              {isTraceRunning
                 ? "Building evidence trace..."
-                : error ? "Evidence trace failed" : statusType === "pending" ? "Confirmation required" : `Evidence trace: ${safeEvents.length} tool${safeEvents.length === 1 ? '' : 's'}`}
+                : error ? "Evidence trace failed" : headerStatus === "pending_confirmation" ? "Confirmation required" : traceCountText}
             </span>
           </div>
           <IconChevronDown
@@ -330,9 +389,9 @@ export function ToolInspector({
               )}
               
               {hasEvents && (
-                <div className="flex flex-col p-1.5">
-                  {safeEvents.map((event) => (
-                    <ToolRow key={event.id} event={event} />
+                <div className="flex flex-col gap-2 p-2">
+                  {phaseGroups.map((phase) => (
+                    <ToolPhaseSection key={phase.id} phase={phase} />
                   ))}
                 </div>
               )}
