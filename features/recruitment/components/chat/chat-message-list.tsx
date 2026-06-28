@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRef, useEffect, useCallback, useState } from "react";
 import { motion } from "framer-motion";
 import { Streamdown } from "streamdown";
-import { mermaid } from "@streamdown/mermaid";
+import { createMermaidPlugin, type MermaidConfig } from "@streamdown/mermaid";
 import { IconAlertTriangle, IconArrowDown, IconChartBar, IconCheck, IconCopy, IconDatabase, IconDownload, IconExternalLink, IconFile, IconInfoCircle, IconLoader2, IconQuote, IconShieldCheck, IconUserCheck, IconX } from "@tabler/icons-react";
 import { cn } from "@/lib/utils";
 import { CapgeminiIcons } from "@/components/shared/icons";
@@ -30,6 +30,59 @@ interface ChatMessageListProps {
 }
 
 const STATUS_TEXT_THINKING = "Thinking...";
+
+const RECRUITMENT_MERMAID_CONFIG = {
+  startOnLoad: false,
+  theme: "base",
+  securityLevel: "strict",
+  fontFamily: "Geist, ui-sans-serif, system-ui, sans-serif",
+  htmlLabels: true,
+  suppressErrorRendering: false,
+  flowchart: {
+    curve: "monotoneX",
+    diagramPadding: 20,
+    nodeSpacing: 54,
+    rankSpacing: 78,
+    useMaxWidth: true,
+  },
+  themeVariables: {
+    background: "#ffffff",
+    darkMode: false,
+    fontFamily: "Geist, ui-sans-serif, system-ui, sans-serif",
+    fontSize: "15px",
+    primaryColor: "#eef2ff",
+    primaryTextColor: "#111827",
+    primaryBorderColor: "#4f46e5",
+    secondaryColor: "#ecfeff",
+    secondaryTextColor: "#164e63",
+    secondaryBorderColor: "#0891b2",
+    tertiaryColor: "#fff7ed",
+    tertiaryTextColor: "#7c2d12",
+    tertiaryBorderColor: "#f97316",
+    lineColor: "#94a3b8",
+    textColor: "#111827",
+    mainBkg: "#eef2ff",
+    nodeBorder: "#4f46e5",
+    nodeTextColor: "#111827",
+    clusterBkg: "#f8fafc",
+    clusterBorder: "#cbd5e1",
+    titleColor: "#334155",
+    edgeLabelBackground: "#ffffff",
+  },
+} satisfies MermaidConfig;
+
+const recruitmentMermaid = createMermaidPlugin({
+  config: RECRUITMENT_MERMAID_CONFIG,
+});
+
+const STREAMDOWN_CONTROLS = {
+  mermaid: {
+    copy: true,
+    download: true,
+    fullscreen: true,
+    panZoom: false,
+  },
+} as const;
 
 function AttachmentChip({
   filename,
@@ -951,7 +1004,9 @@ function MessageBubble({
                 [&_ol]:pl-5 [&_ol]:mb-5 [&_ol]:space-y-1.5"
               >
                 <Streamdown
-                  plugins={{ mermaid }}
+                  plugins={{ mermaid: recruitmentMermaid }}
+                  mermaid={{ config: RECRUITMENT_MERMAID_CONFIG }}
+                  controls={STREAMDOWN_CONTROLS}
                   isAnimating={isLast && isStreaming}
                 >
                   {msg.content}

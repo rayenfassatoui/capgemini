@@ -17,7 +17,9 @@ vi.mock("streamdown", () => ({
   Streamdown: ({ children }: { children: ReactNode }) => <div>{children}</div>,
 }));
 
-vi.mock("@streamdown/mermaid", () => ({ mermaid: {} }));
+vi.mock("@streamdown/mermaid", () => ({
+  createMermaidPlugin: () => ({}),
+}));
 
 describe("ChatMessageList", () => {
   beforeEach(() => {

@@ -185,6 +185,56 @@
   }
 }
 
+@layer components {
+  [data-streamdown="mermaid-block"] {
+    @apply relative overflow-hidden rounded-3xl border border-primary/15 bg-card/95 p-4 shadow-[0_18px_60px_color-mix(in_oklch,var(--primary),transparent_88%)] ring-1 ring-primary/10;
+    background-image:
+      radial-gradient(circle at 12% 0%, color-mix(in oklch, var(--primary), transparent 86%) 0, transparent 32%),
+      radial-gradient(circle at 92% 12%, color-mix(in oklch, var(--chart-4), transparent 88%) 0, transparent 28%),
+      linear-gradient(180deg, color-mix(in oklch, var(--card), white 8%) 0%, var(--card) 100%);
+    border-radius: calc(var(--radius) + 1rem) !important;
+    padding: 1rem !important;
+  }
+
+  [data-streamdown="mermaid-block"]::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background-image:
+      linear-gradient(color-mix(in oklch, var(--foreground), transparent 96%) 1px, transparent 1px),
+      linear-gradient(90deg, color-mix(in oklch, var(--foreground), transparent 96%) 1px, transparent 1px);
+    background-size: 32px 32px;
+    mask-image: linear-gradient(180deg, black 0%, transparent 70%);
+    opacity: 0.38;
+  }
+
+  [data-streamdown="mermaid-block"] > * {
+    position: relative;
+  }
+
+  [data-streamdown="mermaid-block"] [data-streamdown="mermaid"] {
+    @apply overflow-x-auto bg-background/80 p-3 ring-1 ring-border/70;
+    min-height: 18rem;
+    border-radius: calc(var(--radius) + 0.75rem) !important;
+  }
+
+  [data-streamdown="mermaid-block"] [data-streamdown="mermaid"] svg[aria-roledescription] {
+    width: min(100%, 760px) !important;
+    max-width: 100% !important;
+    height: auto !important;
+    filter: drop-shadow(0 18px 28px color-mix(in oklch, var(--foreground), transparent 88%));
+    border-radius: calc(var(--radius) + 0.5rem);
+  }
+
+  [data-streamdown="mermaid-block"] button[title="Download diagram"],
+  [data-streamdown="mermaid-block"] button[title="View fullscreen"],
+  [data-streamdown="mermaid-block"] [data-streamdown="code-block-copy-button"] {
+    @apply rounded-full border border-border/70 bg-background/85 px-2.5 py-2 text-muted-foreground shadow-sm backdrop-blur transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/30 hover:text-primary hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring;
+    border-radius: 9999px !important;
+  }
+}
+
 /* Print styles */
 @media print {
   @page {

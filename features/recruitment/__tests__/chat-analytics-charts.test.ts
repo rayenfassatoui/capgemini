@@ -181,8 +181,12 @@ After`);
     );
 
     expect(diagram).toContain('```mermaid');
-    expect(diagram).toContain('flowchart LR');
-    expect(diagram).toContain('New<br/>0 candidates');
+    expect(diagram).toContain('flowchart TD');
+    expect(diagram).toContain('subgraph sourcing_group["Sourcing"]');
+    expect(diagram).toContain('subgraph ta_group["Talent acquisition"]');
+    expect(diagram).toContain('stage_new["New<br/>0 candidates"]');
+    expect(diagram).toContain('class stage_new empty;');
+    expect(diagram).toContain('No active bottleneck was visible');
   });
 
   it('builds chart cards from admin recruitment analytics tool output', () => {
@@ -214,7 +218,12 @@ After`);
     );
 
     expect(diagram).toContain('```mermaid');
-    expect(diagram).toContain('flowchart LR');
-    expect(diagram).toContain('New<br/>4 candidates');
+    expect(diagram).toContain('flowchart TD');
+    expect(diagram).toContain('subgraph manager_group["Manager review"]');
+    expect(diagram).toContain('stage_new["New<br/>4 candidates"]');
+    expect(diagram).toContain('stage_ta_interview --> stage_ta_accepted');
+    expect(diagram).toContain('stage_ta_interview -.-> stage_ta_rejected');
+    expect(diagram).toContain('classDef hot');
+    expect(diagram).toContain('class stage_new hot;');
   });
 });
