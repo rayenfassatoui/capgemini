@@ -167,4 +167,50 @@ describe("ChatMessageList", () => {
 
     expect(onSendSuggestion).toHaveBeenCalledWith("Run proactive audit");
   });
+
+  it("renders duplicate evidence facts without React key warnings", () => {
+    const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const duplicateFact = "Candidate stage list returned (1 item) — 1 accessible record.";
+    const messages: ChatMessage[] = [
+      {
+        id: "assistant-duplicate-evidence",
+        role: "assistant",
+        content: "I found one accessible candidate stage record.",
+        metadata: {
+          evidence: {
+            sources: [
+              {
+                id: "candidate-stage-source",
+                label: "Candidate stage list",
+                kind: "candidate",
+                tool: "get_candidates_by_stage",
+                status: "success",
+                count: 1,
+              },
+            ],
+            evidenceBlocks: [],
+            observedFacts: [duplicateFact, duplicateFact],
+            inferenceLimits: [duplicateFact, duplicateFact],
+          },
+        },
+      },
+    ];
+
+    render(
+      <ChatMessageList
+        messages={messages}
+        isStreaming={false}
+        isLoadingHistory={false}
+        onSendSuggestion={vi.fn()}
+        onConfirmAction={vi.fn()}
+      />,
+    );
+
+    expect(screen.getAllByText(duplicateFact).length).toBeGreaterThan(1);
+    expect(
+      consoleErrorSpy.mock.calls.some((call) =>
+        call.some((value) => String(value).includes("Encountered two children with the same key")),
+      ),
+    ).toBe(false);
+  });
 });

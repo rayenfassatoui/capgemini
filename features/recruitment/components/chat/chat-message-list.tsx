@@ -371,8 +371,8 @@ function SourceEvidencePanel({
             Main caveats
           </div>
           <ul className="space-y-1.5 text-xs leading-5 text-amber-950/85 dark:text-amber-100/85">
-            {confidence.issues.map((issue) => (
-              <li key={issue} className="flex gap-2">
+            {confidence.issues.map((issue, issueIndex) => (
+              <li key={`${issue}-${issueIndex}`} className="flex gap-2">
                 <span className="mt-2 size-1.5 shrink-0 rounded-full bg-amber-500" />
                 <span>{issue}</span>
               </li>
@@ -388,8 +388,8 @@ function SourceEvidencePanel({
             Observed
           </div>
           <ul className="space-y-1.5 text-xs leading-5 text-muted-foreground">
-            {evidence.observedFacts.slice(0, 3).map((fact) => (
-              <li key={fact}>{fact}</li>
+            {evidence.observedFacts.slice(0, 3).map((fact, factIndex) => (
+              <li key={`${fact}-${factIndex}`}>{fact}</li>
             ))}
           </ul>
         </div>
@@ -401,8 +401,8 @@ function SourceEvidencePanel({
           <ul className="space-y-1.5 text-xs leading-5 text-muted-foreground">
             {(evidence.inferenceLimits.length > 0
               ? evidence.inferenceLimits.slice(0, 3)
-              : ["No additional inference limit was recorded for this answer."]).map((limit) => (
-              <li key={limit}>{limit}</li>
+              : ["No additional inference limit was recorded for this answer."]).map((limit, limitIndex) => (
+              <li key={`${limit}-${limitIndex}`}>{limit}</li>
             ))}
           </ul>
         </div>

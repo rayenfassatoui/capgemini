@@ -84,8 +84,8 @@ function ProactiveCard({
           </div>
 
           <ul className="flex flex-col gap-1.5 text-xs leading-5 text-muted-foreground">
-            {card.evidence.slice(0, 2).map((line) => (
-              <li key={line} className="flex gap-2">
+            {card.evidence.slice(0, 2).map((line, lineIndex) => (
+              <li key={`${line}-${lineIndex}`} className="flex gap-2">
                 <span aria-hidden="true" className="mt-2 size-1 rounded-full bg-primary" />
                 <span>{line}</span>
               </li>
