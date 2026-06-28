@@ -92,12 +92,12 @@ export interface Conversation {
 export type ChatView = "chat" | "history";
 
 export const SUGGESTIONS = [
-  "Summarize top candidate for the latest job",
-  "Analyze our talent pool insights",
-  "Optimize requirements for an open job",
-  "Show me the candidate pipeline",
-  "Match CVs to the latest job",
-  "Generate follow-up interview questions",
+  "Run a proactive recruitment audit and tell me what to do next",
+  "Find lobb el ghalta in the pipeline and show charts",
+  "Compare CV supply versus job demand and identify skill gaps",
+  "Show the pipeline as a Mermaid diagram with bottlenecks",
+  "Prioritize today's interviews, screenings, and notifications",
+  "Recommend the next 3 hiring actions from live data",
 ];
 
 export function formatToolName(name: string): string {

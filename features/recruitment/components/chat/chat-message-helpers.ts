@@ -255,6 +255,10 @@ export function buildConfirmationPreview(
   const status = readString(args, "status");
   const title = readString(args, "title") ?? readString(args, "taskTitle");
   const email = readString(args, "email") ?? readString(args, "toEmail");
+  const seniority = readString(args, "seniority");
+  const mustHaveCount = Array.isArray(args.mustHave)
+    ? args.mustHave.filter((value): value is string => typeof value === "string").length
+    : 0;
   const candidateIds = Array.isArray(args.candidateIds)
     ? args.candidateIds.filter((value): value is string => typeof value === "string")
     : [];
@@ -267,6 +271,8 @@ export function buildConfirmationPreview(
   if (cvId) entities.push({ label: "CV", value: compactValue(cvId) });
   if (interviewId) entities.push({ label: "Interview", value: compactValue(interviewId) });
   if (email) entities.push({ label: "Recipient", value: email });
+  if (seniority) entities.push({ label: "Seniority", value: seniority });
+  if (mustHaveCount > 0) entities.push({ label: "Must-have", value: String(mustHaveCount) });
 
   uniquePush(
     impact,
@@ -290,6 +296,14 @@ export function buildConfirmationPreview(
   );
   if (/assign_cv_to_job/i.test(toolName)) {
     uniquePush(impact, "This links a CV to a job and creates a pipeline candidate record.");
+  }
+  if (/create_job/i.test(toolName)) {
+    uniquePush(
+      impact,
+      mustHaveCount > 0
+        ? `A job requirement will be created with ${mustHaveCount} must-have item${mustHaveCount === 1 ? "" : "s"}.`
+        : "A job requirement will be created from the generated description.",
+    );
   }
   if (/schedule_interview/i.test(toolName)) {
     uniquePush(impact, "Interview planning data will be persisted and can trigger notifications.");

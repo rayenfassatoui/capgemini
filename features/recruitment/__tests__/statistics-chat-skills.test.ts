@@ -37,6 +37,40 @@ describe('statistics chat runtime skills', () => {
     ).toBe(true);
   });
 
+  it('selects proactive operations tools for broad next-step requests', () => {
+    const skills = selectAgentRuntimeSkills({
+      message: 'chbowa next step tawa',
+      role: 'manager',
+      hasAttachments: false,
+    });
+    const skillIds = skills.map((skill) => skill.id);
+    const toolNames = selectToolNamesForSkills(skills);
+
+    expect(skillIds).toContain('proactive-operations');
+    expect(toolNames).toContain('get_dashboard_stats');
+    expect(toolNames).toContain('get_today_interviews');
+    expect(toolNames).toContain('get_notifications');
+    expect(
+      shouldRetryForMissingToolUse({
+        message: 'chbowa next step tawa',
+        skills,
+        availableToolNames: toolNames,
+        toolExecutionCount: 0,
+      }),
+    ).toBe(true);
+    expect(
+      selectMissingToolRecoveryToolNames({
+        skills,
+        availableToolNames: toolNames,
+      }),
+    ).toEqual([
+      'get_dashboard_stats',
+      'get_smart_insights',
+      'get_today_interviews',
+      'get_notifications',
+    ]);
+  });
+
   it('does not activate admin-only governance tools for a TA request', () => {
     const skills = selectAgentRuntimeSkills({
       message: 'Find top React CVs and rank the best profiles',

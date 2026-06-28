@@ -1,9 +1,10 @@
 import type { AnchorHTMLAttributes, ReactNode } from "react";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ChatMessageList } from "../components/chat/chat-message-list";
 import type { ChatMessage } from "../components/chat/chat-types";
+import type { AgentProactiveBriefing } from "../types";
 
 vi.mock("next/link", () => ({
   default: ({ children, href, ...props }: AnchorHTMLAttributes<HTMLAnchorElement>) => (
@@ -123,5 +124,47 @@ describe("ChatMessageList", () => {
         name: /explain the impact of this action before i confirm/i,
       }),
     ).toBeInTheDocument();
+  });
+
+  it("renders proactive briefing cards for an empty workspace", () => {
+    const onSendSuggestion = vi.fn();
+    const briefing: AgentProactiveBriefing = {
+      headline: "Screening backlog needs action",
+      summary: "Live role-scoped data found a blocker.",
+      cards: [
+        {
+          id: "pending-screenings",
+          title: "Screening backlog needs action",
+          metric: "4 pending screenings",
+          description: "New candidates are waiting at the first decision gate.",
+          tone: "warning",
+          priorityLabel: "High priority",
+          evidence: ["Dashboard pendingScreenings = 4."],
+          prompt: "Fetch dashboard stats and candidates in the new stage.",
+        },
+      ],
+      suggestedPrompts: [
+        "Run proactive audit",
+        "Show me the pipeline as a Mermaid diagram",
+      ],
+    };
+
+    render(
+      <ChatMessageList
+        messages={[]}
+        isStreaming={false}
+        isLoadingHistory={false}
+        proactiveBriefing={briefing}
+        onSendSuggestion={onSendSuggestion}
+        onConfirmAction={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText("Proactive mode")).toBeInTheDocument();
+    expect(screen.getByText("4 pending screenings")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: /start audit/i }));
+
+    expect(onSendSuggestion).toHaveBeenCalledWith("Run proactive audit");
   });
 });

@@ -5,11 +5,12 @@ import { useEffect, useRef } from "react";
 
 import { AgentChatSurface } from "@/features/recruitment/components/chat/agent-chat-surface";
 import { useStatisticsChatController } from "@/features/recruitment/components/chat/use-statistics-chat-controller";
-import type { UserRole } from "@/features/recruitment/types";
+import type { AgentProactiveBriefing, UserRole } from "@/features/recruitment/types";
 
 interface AgentWorkspaceClientProps {
   role: UserRole;
   userName: string;
+  proactiveBriefing: AgentProactiveBriefing;
 }
 
 const ROLE_LABELS: Record<UserRole, string> = {
@@ -22,6 +23,7 @@ const ROLE_LABELS: Record<UserRole, string> = {
 export function AgentWorkspaceClient({
   role,
   userName,
+  proactiveBriefing,
 }: AgentWorkspaceClientProps) {
   const chat = useStatisticsChatController({ enabled: true });
   const searchParams = useSearchParams();
@@ -56,6 +58,7 @@ export function AgentWorkspaceClient({
           controller={chat}
           variant="workspace"
           contextLabel={`${roleLabel} workspace`}
+          proactiveBriefing={proactiveBriefing}
           className="h-full"
         />
       </div>

@@ -3,6 +3,7 @@ import type { UserRole } from "../types";
 export type AgentRuntimeSkillId =
   | "evidence-discipline"
   | "recruitment-triage"
+  | "proactive-operations"
   | "analytics-visualization"
   | "cv-search"
   | "job-matching"
@@ -62,6 +63,32 @@ const EVIDENCE_DISCIPLINE_SKILL: AgentRuntimeSkill = {
 };
 
 const DOMAIN_SKILLS: readonly AgentRuntimeSkill[] = [
+  {
+    id: "proactive-operations",
+    title: "Proactive operations audit",
+    description:
+      "Start from live operational signals, identify the biggest blocker, and propose the next best actions before the user has to enumerate them.",
+    triggers: [
+      /\b(proactive|proactively|next\s+steps?|what\s+should\s+i\s+do|where\s+to\s+start|priority|priorities|urgent|blocker|bottleneck|risk|risks?|lobb|ghalta|ghalet|mochkol|problem|actions?|today|daily)\b/i,
+      /\b(chbowa|chnowa|chneya|aamel|naamel|tawa|taw)\b.*\b(next|action|priority|audit|analyse|analyze)\b/i,
+    ],
+    toolNames: [
+      "get_dashboard_stats",
+      "get_smart_insights",
+      "get_today_interviews",
+      "get_notifications",
+      "get_jobs_stats",
+      "get_cv_pool_stats",
+      "get_recruitment_analytics",
+    ],
+    instructions: [
+      "Fetch the smallest role-allowed live signal set before advising what to do next.",
+      "Lead with the single biggest blocker, then explain why using observed counts or records.",
+      "When analytics records exist, produce chart-friendly wording and ask for no extra confirmation unless a mutating action is needed.",
+      "End with exactly 3 prioritized actions the user can execute today.",
+    ],
+    requiresFreshTools: true,
+  },
   {
     id: "analytics-visualization",
     title: "Analytics and diagram generation",
@@ -343,6 +370,12 @@ const TRIAGE_SKILL: AgentRuntimeSkill = {
 const MISSING_TOOL_RECOVERY_PLAN: Partial<
   Record<AgentRuntimeSkillId, readonly string[]>
 > = {
+  "proactive-operations": [
+    "get_dashboard_stats",
+    "get_smart_insights",
+    "get_today_interviews",
+    "get_notifications",
+  ],
   "analytics-visualization": [
     "get_dashboard_stats",
     "get_smart_insights",
@@ -497,7 +530,11 @@ export function shouldRetryForMissingToolUse({
       skill.toolNames.some((toolName) => availableToolNames.includes(toolName)),
   );
 
-  return hasToolRequiredSkill && RECRUITMENT_TRIAGE_RE.test(message);
+  return (
+    hasToolRequiredSkill &&
+    (RECRUITMENT_TRIAGE_RE.test(message) ||
+      skills.some((skill) => skill.id === "proactive-operations"))
+  );
 }
 
 export function buildMissingToolRetryMessage(

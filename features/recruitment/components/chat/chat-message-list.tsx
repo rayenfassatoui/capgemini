@@ -9,7 +9,7 @@ import { IconAlertTriangle, IconArrowDown, IconChartBar, IconCheck, IconCopy, Ic
 import { cn } from "@/lib/utils";
 import { CapgeminiIcons } from "@/components/shared/icons";
 import type { AgentActionConfirmation, ChatMessage, ToolEvent } from "./chat-types";
-import type { AgentEvidenceMetadata, RecruitmentResponseCard, RecruitmentResponseCardTone } from "../../types";
+import type { AgentEvidenceMetadata, AgentProactiveBriefing, RecruitmentResponseCard, RecruitmentResponseCardTone } from "../../types";
 import { SUGGESTIONS, formatToolName } from "./chat-types";
 import {
   buildConfirmationPreview,
@@ -19,12 +19,14 @@ import {
 } from "./chat-message-helpers";
 import { ToolInspector } from "./tool-inspector";
 import { ChatAnalyticsChart } from "./chat-analytics-chart";
+import { ProactiveBriefingPanel } from "./proactive-briefing-panel";
 
 interface ChatMessageListProps {
   messages: ChatMessage[];
   isStreaming: boolean;
   isLoadingHistory: boolean;
   variant?: "panel" | "workspace";
+  proactiveBriefing?: AgentProactiveBriefing;
   onSendSuggestion: (text: string) => void;
   onConfirmAction: (confirmation: AgentActionConfirmation, decision: "confirm" | "cancel") => void;
 }
@@ -636,9 +638,19 @@ function ResponseCardsPanel({
 
 function EmptyState({
   onSendSuggestion,
+  proactiveBriefing,
 }: {
   onSendSuggestion: (text: string) => void;
+  proactiveBriefing?: AgentProactiveBriefing;
 }) {
+  if (proactiveBriefing) {
+    return (
+      <ProactiveBriefingPanel
+        briefing={proactiveBriefing}
+        onSendSuggestion={onSendSuggestion}
+      />
+    );
+  }
   return (
     <div className="flex min-h-[60vh] flex-col items-center justify-center gap-8 px-5 py-14">
       <motion.div
@@ -1014,6 +1026,7 @@ export function ChatMessageList({
   isStreaming,
   isLoadingHistory,
   variant = "panel",
+  proactiveBriefing,
   onSendSuggestion,
   onConfirmAction,
 }: ChatMessageListProps) {
@@ -1091,7 +1104,10 @@ export function ChatMessageList({
     >
       <div className={cn("mx-auto flex flex-col gap-6", variant === "workspace" ? "max-w-4xl" : "max-w-3xl")}>
         {messages.length === 0 ? (
-          <EmptyState onSendSuggestion={onSendSuggestion} />
+          <EmptyState
+            onSendSuggestion={onSendSuggestion}
+            proactiveBriefing={proactiveBriefing}
+          />
         ) : (
           messages.map((msg, index) => (
             <MessageBubble

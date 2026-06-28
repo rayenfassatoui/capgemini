@@ -139,6 +139,33 @@ describe("chat message helpers", () => {
     expect(preview.impact).toContain("Stage will change to Ta Interview.");
   });
 
+  it("shows generated job details in create_job confirmation previews", () => {
+    const confirmation: AgentActionConfirmation = {
+      id: "job-action-1",
+      toolName: "create_job",
+      summary: "Create a Senior UI/UX Designer job.",
+      args: {
+        title: "Senior UI/UX Designer",
+        seniority: "Senior",
+        mustHave: ["Discovery", "Figma", "Accessibility"],
+      },
+      expiresAt: "2099-01-01T00:00:00.000Z",
+      status: "pending",
+    };
+
+    const preview = buildConfirmationPreview(confirmation);
+
+    expect(preview.entities).toEqual(
+      expect.arrayContaining([
+        { label: "Seniority", value: "Senior" },
+        { label: "Must-have", value: "3" },
+      ]),
+    );
+    expect(preview.impact).toContain(
+      "A job requirement will be created with 3 must-have items.",
+    );
+  });
+
   it("formats the remaining confirmation time and expiration state", () => {
     const upcoming = getConfirmationExpiryState(
       "2026-06-22T12:01:10.000Z",

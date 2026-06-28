@@ -4,6 +4,7 @@ import { ChatHeader } from "./chat-header";
 import { ChatHistory } from "./chat-history";
 import { ChatInput } from "./chat-input";
 import { ChatMessageList } from "./chat-message-list";
+import type { AgentProactiveBriefing } from "@/features/recruitment/types";
 import type { StatisticsChatController } from "./use-statistics-chat-controller";
 import { cn } from "@/lib/utils";
 
@@ -12,6 +13,7 @@ interface AgentChatSurfaceProps {
   className?: string;
   variant?: "panel" | "workspace";
   contextLabel?: string;
+  proactiveBriefing?: AgentProactiveBriefing;
   onClose?: () => void;
   onExpand?: () => void;
 }
@@ -21,6 +23,7 @@ export function AgentChatSurface({
   className,
   variant = "panel",
   contextLabel,
+  proactiveBriefing,
   onClose,
   onExpand,
 }: AgentChatSurfaceProps) {
@@ -78,6 +81,7 @@ export function AgentChatSurface({
             isStreaming={isStreaming}
             isLoadingHistory={isLoadingHistory}
             variant={variant}
+            proactiveBriefing={proactiveBriefing}
             onSendSuggestion={sendMessage}
             onConfirmAction={confirmAction}
           />
