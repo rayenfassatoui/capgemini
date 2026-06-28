@@ -145,7 +145,6 @@ describe("ChatMessageList", () => {
         "Use a direct request. The agent will fetch data, cite tools, and return charts when useful.",
       ),
     ).toBeInTheDocument();
-    expect(screen.queryByText("Proactive mode")).not.toBeInTheDocument();
     expect(
       screen.queryByRole("button", { name: /review live recruitment data/i }),
     ).not.toBeInTheDocument();

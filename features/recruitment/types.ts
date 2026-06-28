@@ -241,27 +241,6 @@ export interface RecruitmentAnalyticsChart {
   summary?: string;
 }
 
-// ---------- Proactive Agent Briefing ----------
-
-export type AgentProactiveBriefingTone = 'success' | 'warning' | 'danger' | 'neutral';
-
-export interface AgentProactiveBriefingCard {
-  id: string;
-  title: string;
-  metric: string;
-  description: string;
-  tone: AgentProactiveBriefingTone;
-  priorityLabel: string;
-  evidence: string[];
-  prompt: string;
-}
-
-export interface AgentProactiveBriefing {
-  headline: string;
-  summary: string;
-  cards: AgentProactiveBriefingCard[];
-  suggestedPrompts: string[];
-}
 // ---------- Agent Response Cards ----------
 
 export type RecruitmentResponseCardKind = 'candidate' | 'pipeline' | 'governance';
