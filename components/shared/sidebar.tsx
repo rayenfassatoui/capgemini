@@ -113,6 +113,17 @@ const ROLE_LABELS: Record<UserRole, string> = {
   admin: "Administrator",
 };
 
+const NON_DOM_ID_CHARACTER_RE = /[^a-zA-Z0-9_-]+/g;
+const EDGE_DASH_RE = /^-+|-+$/g;
+
+function toSidebarTooltipId(scope: string, value: string): string {
+  const segment = value
+    .replace(NON_DOM_ID_CHARACTER_RE, "-")
+    .replace(EDGE_DASH_RE, "");
+
+  return `sidebar-${scope}-${segment || "item"}-trigger`;
+}
+
 interface SidebarProps {
   role: UserRole;
   userName: string;
@@ -140,6 +151,7 @@ function SidebarContent({
   const { locale, setLocale, t } = useI18n();
   const navItems = [AGENT_NAV_ITEM, ...(NAV_ITEMS[role] ?? NAV_ITEMS.ta)];
   const roleLabel = ROLE_LABELS[role] ?? "Talent Acquisition";
+  const tooltipScope = `${isMobile ? "mobile" : "desktop"}-${role}`;
   // Prevents hydration mismatch: theme is unknown on the server.
   // We defer all theme-dependent rendering until after mount.
   const mounted = useSyncExternalStore(
@@ -216,7 +228,10 @@ function SidebarContent({
             return (
               <TooltipProvider key={item.href} delay={0}>
                 <Tooltip>
-                  <TooltipTrigger render={<span className="block w-full" />}>
+                  <TooltipTrigger
+                    id={toSidebarTooltipId(tooltipScope, item.href)}
+                    render={<span className="block w-full" />}
+                  >
                     <Link
                       href={item.href}
                       className={cn(
@@ -275,6 +290,7 @@ function SidebarContent({
                     <TooltipProvider key={item.href} delay={0}>
                       <Tooltip>
                         <TooltipTrigger
+                          id={toSidebarTooltipId(tooltipScope, `${r}-${item.href}`)}
                           render={<span className="block w-full" />}
                         >
                           <Link
@@ -329,7 +345,10 @@ function SidebarContent({
           {/* Theme Toggle */}
           <TooltipProvider delay={0}>
             <Tooltip>
-              <TooltipTrigger render={<span className="block" />}>
+              <TooltipTrigger
+                id={toSidebarTooltipId(tooltipScope, "theme")}
+                render={<span className="block" />}
+              >
                 <Button
                   variant="ghost"
                   size={isCollapsed ? "icon" : "sm"}
@@ -372,7 +391,10 @@ function SidebarContent({
           {/* Language Toggle */}
           <TooltipProvider delay={0}>
             <Tooltip>
-              <TooltipTrigger render={<span className="block" />}>
+              <TooltipTrigger
+                id={toSidebarTooltipId(tooltipScope, "language")}
+                render={<span className="block" />}
+              >
                 <Button
                   variant="ghost"
                   size={isCollapsed ? "icon" : "sm"}
@@ -401,7 +423,10 @@ function SidebarContent({
           <div className="pt-2">
             <TooltipProvider delay={0}>
               <Tooltip>
-                <TooltipTrigger render={<span className="block" />}>
+                <TooltipTrigger
+                  id={toSidebarTooltipId(tooltipScope, "sign-out")}
+                  render={<span className="block" />}
+                >
                   <SignOutButton isCollapsed={isCollapsed} />
                 </TooltipTrigger>
                 {isCollapsed && (
