@@ -92,7 +92,7 @@ export interface Conversation {
 export type ChatView = "chat" | "history";
 
 export const SUGGESTIONS = [
-  "Run a proactive recruitment audit and tell me what to do next",
+  "Review live recruitment data and tell me what needs attention",
   "Find lobb el ghalta in the pipeline and show charts",
   "Compare CV supply versus job demand and identify skill gaps",
   "Show the pipeline as a Mermaid diagram with bottlenecks",

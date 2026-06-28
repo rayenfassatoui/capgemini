@@ -1,10 +1,9 @@
 import type { AnchorHTMLAttributes, ReactNode } from "react";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ChatMessageList } from "../components/chat/chat-message-list";
 import type { ChatMessage } from "../components/chat/chat-types";
-import type { AgentProactiveBriefing } from "../types";
 
 vi.mock("next/link", () => ({
   default: ({ children, href, ...props }: AnchorHTMLAttributes<HTMLAnchorElement>) => (
@@ -126,46 +125,31 @@ describe("ChatMessageList", () => {
     ).toBeInTheDocument();
   });
 
-  it("renders proactive briefing cards for an empty workspace", () => {
+  it("renders a manual empty workspace without proactive shortcuts", () => {
     const onSendSuggestion = vi.fn();
-    const briefing: AgentProactiveBriefing = {
-      headline: "Screening backlog needs action",
-      summary: "Live role-scoped data found a blocker.",
-      cards: [
-        {
-          id: "pending-screenings",
-          title: "Screening backlog needs action",
-          metric: "4 pending screenings",
-          description: "New candidates are waiting at the first decision gate.",
-          tone: "warning",
-          priorityLabel: "High priority",
-          evidence: ["Dashboard pendingScreenings = 4."],
-          prompt: "Fetch dashboard stats and candidates in the new stage.",
-        },
-      ],
-      suggestedPrompts: [
-        "Run proactive audit",
-        "Show me the pipeline as a Mermaid diagram",
-      ],
-    };
 
     render(
       <ChatMessageList
         messages={[]}
         isStreaming={false}
         isLoadingHistory={false}
-        proactiveBriefing={briefing}
+        variant="workspace"
         onSendSuggestion={onSendSuggestion}
         onConfirmAction={vi.fn()}
       />,
     );
 
-    expect(screen.getByText("Proactive mode")).toBeInTheDocument();
-    expect(screen.getByText("4 pending screenings")).toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole("button", { name: /run proactive audit/i }));
-
-    expect(onSendSuggestion).toHaveBeenCalledWith("Run proactive audit");
+    expect(screen.getByText("Ask the recruitment agent")).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "Use a direct request. The agent will fetch data, cite tools, and return charts when useful.",
+      ),
+    ).toBeInTheDocument();
+    expect(screen.queryByText("Proactive mode")).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /review live recruitment data/i }),
+    ).not.toBeInTheDocument();
+    expect(onSendSuggestion).not.toHaveBeenCalled();
   });
 
   it("renders duplicate evidence facts without React key warnings", () => {

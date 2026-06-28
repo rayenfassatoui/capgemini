@@ -9,7 +9,7 @@ import { IconAlertTriangle, IconArrowDown, IconChartBar, IconCheck, IconCopy, Ic
 import { cn } from "@/lib/utils";
 import { CapgeminiIcons } from "@/components/shared/icons";
 import type { AgentActionConfirmation, ChatMessage, ToolEvent } from "./chat-types";
-import type { AgentEvidenceMetadata, AgentProactiveBriefing, RecruitmentResponseCard, RecruitmentResponseCardTone } from "../../types";
+import type { AgentEvidenceMetadata, RecruitmentResponseCard, RecruitmentResponseCardTone } from "../../types";
 import { SUGGESTIONS, formatToolName } from "./chat-types";
 import {
   buildConfirmationPreview,
@@ -19,14 +19,12 @@ import {
 } from "./chat-message-helpers";
 import { ToolInspector } from "./tool-inspector";
 import { ChatAnalyticsChart } from "./chat-analytics-chart";
-import { ProactiveBriefingPanel } from "./proactive-briefing-panel";
 
 interface ChatMessageListProps {
   messages: ChatMessage[];
   isStreaming: boolean;
   isLoadingHistory: boolean;
   variant?: "panel" | "workspace";
-  proactiveBriefing?: AgentProactiveBriefing;
   onSendSuggestion: (text: string) => void;
   onConfirmAction: (confirmation: AgentActionConfirmation, decision: "confirm" | "cancel") => void;
 }
@@ -638,19 +636,12 @@ function ResponseCardsPanel({
 
 function EmptyState({
   onSendSuggestion,
-  proactiveBriefing,
+  variant = "panel",
 }: {
   onSendSuggestion: (text: string) => void;
-  proactiveBriefing?: AgentProactiveBriefing;
+  variant?: "panel" | "workspace";
 }) {
-  if (proactiveBriefing) {
-    return (
-      <ProactiveBriefingPanel
-        briefing={proactiveBriefing}
-        onSendSuggestion={onSendSuggestion}
-      />
-    );
-  }
+  const showSuggestions = variant !== "workspace";
   return (
     <div className="flex min-h-[60vh] flex-col items-center justify-center gap-8 px-5 py-14">
       <motion.div
@@ -670,38 +661,40 @@ function EmptyState({
         </p>
       </motion.div>
 
-      <div className="grid w-full max-w-xl gap-2">
-        {SUGGESTIONS.map((suggestion, index) => (
-          <motion.button
-            key={suggestion}
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{
-              duration: 0.35,
-              delay: 0.08 + index * 0.03,
-              ease: [0.32, 0.72, 0, 1],
-            }}
-            type="button"
-            onClick={() => onSendSuggestion(suggestion)}
-            className="group flex w-full items-center justify-between gap-4 rounded-lg border border-border bg-background px-4 py-3 text-left text-sm font-medium text-foreground transition-colors duration-200 hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          >
-            <span>{suggestion}</span>
-            <svg
-              aria-hidden="true"
-              className="size-3.5 shrink-0 text-muted-foreground transition-transform duration-200 group-hover:translate-x-0.5"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
+      {showSuggestions && (
+        <div className="grid w-full max-w-xl gap-2">
+          {SUGGESTIONS.map((suggestion, index) => (
+            <motion.button
+              key={suggestion}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{
+                duration: 0.35,
+                delay: 0.08 + index * 0.03,
+                ease: [0.32, 0.72, 0, 1],
+              }}
+              type="button"
+              onClick={() => onSendSuggestion(suggestion)}
+              className="group flex w-full items-center justify-between gap-4 rounded-lg border border-border bg-background px-4 py-3 text-left text-sm font-medium text-foreground transition-colors duration-200 hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
-              <path d="M5 12h14" />
-              <path d="m12 5 7 7-7 7" />
-            </svg>
-          </motion.button>
-        ))}
-      </div>
+              <span>{suggestion}</span>
+              <svg
+                aria-hidden="true"
+                className="size-3.5 shrink-0 text-muted-foreground transition-transform duration-200 group-hover:translate-x-0.5"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M5 12h14" />
+                <path d="m12 5 7 7-7 7" />
+              </svg>
+            </motion.button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -1026,7 +1019,6 @@ export function ChatMessageList({
   isStreaming,
   isLoadingHistory,
   variant = "panel",
-  proactiveBriefing,
   onSendSuggestion,
   onConfirmAction,
 }: ChatMessageListProps) {
@@ -1106,7 +1098,7 @@ export function ChatMessageList({
         {messages.length === 0 ? (
           <EmptyState
             onSendSuggestion={onSendSuggestion}
-            proactiveBriefing={proactiveBriefing}
+            variant={variant}
           />
         ) : (
           messages.map((msg, index) => (

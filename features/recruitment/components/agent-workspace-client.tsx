@@ -2,17 +2,14 @@
 
 import { useSearchParams } from "next/navigation";
 import { useEffect, useRef } from "react";
-import { IconBolt } from "@tabler/icons-react";
 
-import { Button } from "@/components/ui/button";
 import { AgentChatSurface } from "@/features/recruitment/components/chat/agent-chat-surface";
 import { useStatisticsChatController } from "@/features/recruitment/components/chat/use-statistics-chat-controller";
-import type { AgentProactiveBriefing, UserRole } from "@/features/recruitment/types";
+import type { UserRole } from "@/features/recruitment/types";
 
 interface AgentWorkspaceClientProps {
   role: UserRole;
   userName: string;
-  proactiveBriefing: AgentProactiveBriefing;
 }
 
 const ROLE_LABELS: Record<UserRole, string> = {
@@ -25,14 +22,12 @@ const ROLE_LABELS: Record<UserRole, string> = {
 export function AgentWorkspaceClient({
   role,
   userName,
-  proactiveBriefing,
 }: AgentWorkspaceClientProps) {
   const chat = useStatisticsChatController({ enabled: true });
   const searchParams = useSearchParams();
   const appliedPromptRef = useRef<string | null>(null);
   const prompt = searchParams.get("prompt")?.trim();
   const roleLabel = ROLE_LABELS[role] ?? ROLE_LABELS.ta;
-  const proactiveAuditPrompt = proactiveBriefing.suggestedPrompts[0] ?? "";
 
   useEffect(() => {
     if (!prompt || appliedPromptRef.current === prompt) return;
@@ -51,20 +46,9 @@ export function AgentWorkspaceClient({
             Recruitment workspace
           </h1>
         </div>
-        <div className="flex flex-col gap-2 md:items-end">
-          <p className="text-sm text-muted-foreground">
-            {roleLabel} · {userName}
-          </p>
-          <Button
-            type="button"
-            size="sm"
-            onClick={() => void chat.sendMessage(proactiveAuditPrompt)}
-            disabled={!proactiveAuditPrompt || chat.isStreaming}
-          >
-            <IconBolt data-icon="inline-start" />
-            Run proactive audit
-          </Button>
-        </div>
+        <p className="text-sm text-muted-foreground md:text-right">
+          {roleLabel} · {userName}
+        </p>
       </header>
 
       <div className="min-h-[calc(100dvh-13rem)] flex-1 overflow-hidden rounded-xl border border-border bg-card">
@@ -72,7 +56,6 @@ export function AgentWorkspaceClient({
           controller={chat}
           variant="workspace"
           contextLabel={`${roleLabel} workspace`}
-          proactiveBriefing={proactiveBriefing}
           className="h-full"
         />
       </div>
