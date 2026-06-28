@@ -163,7 +163,7 @@ describe("ChatMessageList", () => {
     expect(screen.getByText("Proactive mode")).toBeInTheDocument();
     expect(screen.getByText("4 pending screenings")).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: /start audit/i }));
+    fireEvent.click(screen.getByRole("button", { name: /run proactive audit/i }));
 
     expect(onSendSuggestion).toHaveBeenCalledWith("Run proactive audit");
   });

@@ -97,8 +97,10 @@ lib/                                    # Shared utilities
 
 db/
 ├── schema.ts                           # Drizzle schema (all tables)
-├── seed-users.ts                       # Demo user seeding
-├── seed-jobs.ts                        # Demo job seeding
+├── seed.ts                             # Local seed orchestrator
+├── seed-users.ts                       # Local role account seeding
+├── seed-jobs.ts                        # Baseline job seeding
+├── seed-interviews.ts                  # Pipeline/interview fixture seeding
 ├── enable-pgvector.sql                 # pgvector extension setup
 └── migrations/                         # Drizzle migrations
 ```

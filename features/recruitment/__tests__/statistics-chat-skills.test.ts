@@ -50,6 +50,9 @@ describe('statistics chat runtime skills', () => {
     expect(toolNames).toContain('get_dashboard_stats');
     expect(toolNames).toContain('get_today_interviews');
     expect(toolNames).toContain('get_notifications');
+    expect(skills.find((skill) => skill.id === 'proactive-operations')?.instructions).toContain(
+      'Treat the response as a production operating workflow using role-scoped live data, not a staged walkthrough.',
+    );
     expect(
       shouldRetryForMissingToolUse({
         message: 'chbowa next step tawa',

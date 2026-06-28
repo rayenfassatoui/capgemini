@@ -187,6 +187,7 @@ export const executors: Record<string, ToolHandler> = {
   },
 
   get_notifications: async (_args, { services, sanitizeForJson, truncateArray, ctx }) => {
+    await services.ensureTodayInterviewReminders(ctx.userId);
     const notifs = await services.getNotifications(ctx.userId);
     return truncateArray(
       notifs.map((n) => sanitizeForJson(n)),

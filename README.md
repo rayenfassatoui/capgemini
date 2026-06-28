@@ -24,7 +24,7 @@ AI-powered recruitment platform built for enterprise hiring workflows. Manages t
 bun install
 cp .env.example .env   # Fill in your values
 bun run db:push        # Push schema to database
-bun run db:seed        # Seed demo users (ta, manager, hr, admin)
+bun run db:seed        # Seed local role accounts and baseline jobs
 bun dev                # http://localhost:3000
 ```
 
@@ -62,9 +62,10 @@ CVs uploaded after setup will automatically generate embeddings. The AI agent ca
 | `bun run test` | Vitest tests |
 | `bun run db:push` | Push Drizzle schema to database |
 | `bun run db:studio` | Open Drizzle Studio (DB GUI) |
-| `bun run db:seed` | Seed demo users |
-| `bun run db:seed-users` | Seed user accounts only |
-| `bun run db:seed-jobs` | Seed sample job postings |
+| `bun run db:seed` | Seed local role accounts and baseline job records |
+| `bun run db:seed-users` | Seed local role accounts only |
+| `bun run db:seed-jobs` | Seed baseline job postings |
+| `bun run db:seed-interviews` | Seed pipeline/interview records after CVs exist |
 
 ## User Roles
 

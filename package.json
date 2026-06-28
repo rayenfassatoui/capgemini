@@ -15,6 +15,7 @@
     "db:seed": "bun run db/seed.ts",
     "db:seed-users": "bun run db/seed-users.ts",
     "db:seed-jobs": "bun run db/seed-jobs.ts",
+    "db:seed-interviews": "bun run db/seed-interviews.ts",
     "db:reindex-chunks": "bun run db/reindex-chunks.ts",
     "db:check-embeddings": "bun run db/check-embeddings.ts",
     "eval:rag": "bun run db/eval-rag.ts",

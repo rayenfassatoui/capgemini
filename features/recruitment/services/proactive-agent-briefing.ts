@@ -35,10 +35,10 @@ const STAGE_LABELS: Record<CandidateStage, string> = {
 };
 
 const ROLE_PROMPTS: Record<UserRole, string> = {
-  ta: 'Run a proactive TA audit: fetch dashboard stats, CV pool stats, job demand, and smart insights. Tell me the bottleneck, lobb el ghalta, charts, and the 3 actions I should do today.',
-  manager: 'Run a proactive manager audit: fetch my assigned pipeline, interviews, and candidate evidence. Tell me which decision is blocking progress and what I should do next.',
-  hr: 'Run a proactive HR audit: fetch my HR-stage candidates, interviews, onboarding signals, and notifications. Tell me the risk, evidence, and next actions.',
-  admin: 'Run a proactive admin audit: fetch dashboard stats, recruitment analytics, system overview, activity signals, and smart insights. Tell me lobb el ghalta, charts, governance risks, and next actions.',
+  ta: 'Run a proactive TA production audit: fetch dashboard stats, CV pool stats, job demand, smart insights, today interviews, and notifications. Identify the biggest blocker, explain lobb el ghalta from evidence, render charts or Mermaid if useful, and give the 3 actions to execute today.',
+  manager: 'Run a proactive manager production audit: fetch my assigned pipeline, interviews, and candidate evidence. Identify the decision blocking progress, explain the evidence, and give the next best actions.',
+  hr: 'Run a proactive HR production audit: fetch my HR-stage candidates, interviews, onboarding signals, and notifications. Identify the operational risk, cite evidence, and give next actions.',
+  admin: 'Run a proactive admin production audit: fetch dashboard stats, recruitment analytics, system overview, activity signals, and smart insights. Identify lobb el ghalta, chart the relevant evidence, flag governance risks, and give next actions.',
 };
 
 function formatCount(count: number, singular: string, plural = `${singular}s`) {
@@ -231,8 +231,8 @@ export function buildAgentProactiveBriefing({
   const leadCard = selectedCards[0];
   const defaultPrompt = ROLE_PROMPTS[role];
   const suggestedPrompts = [
-    leadCard.prompt,
     defaultPrompt,
+    leadCard.prompt,
     'Show me the pipeline as a Mermaid diagram and explain the largest bottleneck from live data.',
     'Compare CV supply versus job demand, identify the biggest skill gap, and give 3 actions.',
   ].filter((prompt, index, prompts) => prompts.indexOf(prompt) === index);

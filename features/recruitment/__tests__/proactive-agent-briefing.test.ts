@@ -77,7 +77,8 @@ describe('proactive agent briefing', () => {
       metric: '+6 gap',
       priorityLabel: 'Skill gap',
     });
-    expect(briefing.suggestedPrompts[0]).toContain('new stage');
+    expect(briefing.suggestedPrompts[0]).toContain('proactive TA production audit');
+    expect(briefing.suggestedPrompts.join(' ')).not.toMatch(/staged walkthrough/i);
   });
 
   it('falls back to a tool-first audit when page preload data is unavailable', () => {
@@ -88,6 +89,6 @@ describe('proactive agent briefing', () => {
       id: 'proactive-live-audit',
       metric: 'Fresh tools required',
     });
-    expect(briefing.suggestedPrompts[0]).toContain('proactive admin audit');
+    expect(briefing.suggestedPrompts[0]).toContain('proactive admin production audit');
   });
 });

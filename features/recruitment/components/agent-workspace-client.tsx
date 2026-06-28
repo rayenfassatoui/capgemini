@@ -2,7 +2,9 @@
 
 import { useSearchParams } from "next/navigation";
 import { useEffect, useRef } from "react";
+import { IconBolt } from "@tabler/icons-react";
 
+import { Button } from "@/components/ui/button";
 import { AgentChatSurface } from "@/features/recruitment/components/chat/agent-chat-surface";
 import { useStatisticsChatController } from "@/features/recruitment/components/chat/use-statistics-chat-controller";
 import type { AgentProactiveBriefing, UserRole } from "@/features/recruitment/types";
@@ -30,6 +32,7 @@ export function AgentWorkspaceClient({
   const appliedPromptRef = useRef<string | null>(null);
   const prompt = searchParams.get("prompt")?.trim();
   const roleLabel = ROLE_LABELS[role] ?? ROLE_LABELS.ta;
+  const proactiveAuditPrompt = proactiveBriefing.suggestedPrompts[0] ?? "";
 
   useEffect(() => {
     if (!prompt || appliedPromptRef.current === prompt) return;
@@ -39,7 +42,7 @@ export function AgentWorkspaceClient({
 
   return (
     <section className="mx-auto flex min-h-[calc(100dvh-7rem)] w-full max-w-6xl flex-col gap-4 px-3 py-3 md:px-6 md:py-5">
-      <header className="flex flex-col gap-2 border-b border-border pb-4 md:flex-row md:items-end md:justify-between">
+      <header className="flex flex-col gap-3 border-b border-border pb-4 md:flex-row md:items-end md:justify-between">
         <div>
           <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
             AI agent
@@ -48,9 +51,20 @@ export function AgentWorkspaceClient({
             Recruitment workspace
           </h1>
         </div>
-        <p className="text-sm text-muted-foreground">
-          {roleLabel} · {userName}
-        </p>
+        <div className="flex flex-col gap-2 md:items-end">
+          <p className="text-sm text-muted-foreground">
+            {roleLabel} · {userName}
+          </p>
+          <Button
+            type="button"
+            size="sm"
+            onClick={() => void chat.sendMessage(proactiveAuditPrompt)}
+            disabled={!proactiveAuditPrompt || chat.isStreaming}
+          >
+            <IconBolt data-icon="inline-start" />
+            Run proactive audit
+          </Button>
+        </div>
       </header>
 
       <div className="min-h-[calc(100dvh-13rem)] flex-1 overflow-hidden rounded-xl border border-border bg-card">

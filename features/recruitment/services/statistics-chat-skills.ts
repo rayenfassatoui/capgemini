@@ -93,6 +93,7 @@ const DOMAIN_SKILLS: readonly AgentRuntimeSkill[] = [
     ],
     instructions: [
       "Fetch the smallest role-allowed live signal set before advising what to do next.",
+      "Treat the response as a production operating workflow using role-scoped live data, not a staged walkthrough.",
       "Lead with the single biggest blocker, then explain why using observed counts or records.",
       "When analytics records exist, produce chart-friendly wording and ask for no extra confirmation unless a mutating action is needed.",
       "End with exactly 3 prioritized actions the user can execute today.",

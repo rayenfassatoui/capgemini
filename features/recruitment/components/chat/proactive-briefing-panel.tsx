@@ -148,7 +148,7 @@ export function ProactiveBriefingPanel({
             disabled={briefing.suggestedPrompts.length === 0}
           >
             <IconChartBar data-icon="inline-start" />
-            Start audit
+            Run proactive audit
           </Button>
         </div>
 
