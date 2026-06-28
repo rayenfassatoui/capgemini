@@ -38,8 +38,8 @@ export function ChatHeader({
   return (
     <div
       className={cn(
-        'flex shrink-0 items-center justify-between border-b border-border px-6 py-5 z-20',
-        variant === 'workspace' ? 'bg-card/80' : 'bg-background',
+        'flex shrink-0 items-center justify-between border-b border-border/70 px-5 py-4 md:px-6',
+        variant === 'workspace' ? 'bg-transparent' : 'bg-background',
       )}
     >
       <div className="flex items-center gap-4">
@@ -54,8 +54,8 @@ export function ChatHeader({
             <IconArrowLeft className="size-4 stroke-[1.5] text-foreground" />
           </Button>
         ) : (
-          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
-            <CapgeminiIcons className="h-5 w-5" />
+          <div className="flex size-10 items-center justify-center rounded-2xl border border-primary/15 bg-primary/10">
+            <CapgeminiIcons className="size-5" />
           </div>
         )}
         <div className="flex flex-col">

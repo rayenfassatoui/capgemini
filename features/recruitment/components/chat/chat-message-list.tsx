@@ -24,6 +24,7 @@ interface ChatMessageListProps {
   messages: ChatMessage[];
   isStreaming: boolean;
   isLoadingHistory: boolean;
+  variant?: "panel" | "workspace";
   onSendSuggestion: (text: string) => void;
   onConfirmAction: (confirmation: AgentActionConfirmation, decision: "confirm" | "cancel") => void;
 }
@@ -639,79 +640,53 @@ function EmptyState({
   onSendSuggestion: (text: string) => void;
 }) {
   return (
-    <div className="flex flex-col items-center justify-center min-h-[60vh] gap-10 py-16 px-6">
+    <div className="flex min-h-[60vh] flex-col items-center justify-center gap-8 px-5 py-14">
       <motion.div
-        initial={{ opacity: 0, scale: 0.95, filter: "blur(10px)" }}
-        animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
-        transition={{ duration: 1, ease: [0.32, 0.72, 0, 1] }}
-        className="relative"
-      >
-        <div className="absolute -inset-10 rounded-full bg-primary/5 blur-3xl animate-pulse-slow" />
-        <div className="relative flex h-20 w-20 items-center justify-center rounded-3xl bg-card border border-border shadow-xl">
-          <div className="absolute inset-0 rounded-3xl shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)] pointer-events-none" />
-          <CapgeminiIcons className="h-8 w-8" />
-        </div>
-      </motion.div>
-
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
+        initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.8, delay: 0.2, ease: [0.32, 0.72, 0, 1] }}
-        className="text-center space-y-3 max-w-100"
+        transition={{ duration: 0.35, ease: [0.32, 0.72, 0, 1] }}
+        className="mx-auto flex max-w-xl flex-col items-center gap-3 text-center"
       >
-        <h1 className="text-2xl font-bold tracking-[-0.03em] text-foreground font-serif">
-          Recruitment Intelligence
-        </h1>
-        <p className="text-[15px] font-medium text-muted-foreground leading-[1.6]">
-          Ask for CV matching, pipeline analysis, job requirement review, or
-          interview kits. The agent keeps history and can process PDF or DOCX
-          files when you need document-level reasoning.
+        <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+          Ready
         </p>
-        <div className="flex flex-wrap justify-center gap-2 pt-1">
-          {["CV-aware", "Role-aware", "Tool trace", "Reports"].map((label) => (
-            <span
-              key={label}
-              className="rounded-full border border-border bg-card px-2.5 py-1 text-[11px] font-medium text-muted-foreground"
-            >
-              {label}
-            </span>
-          ))}
-        </div>
+        <h1 className="text-2xl font-semibold tracking-[-0.03em] text-foreground">
+          Ask the recruitment agent
+        </h1>
+        <p className="max-w-md text-sm leading-6 text-muted-foreground">
+          Use a direct request. The agent will fetch data, cite tools, and return charts when useful.
+        </p>
       </motion.div>
 
-      <div className="flex flex-col gap-2.5 w-full max-w-120 mt-4">
-        {SUGGESTIONS.map((suggestion, i) => (
+      <div className="grid w-full max-w-xl gap-2">
+        {SUGGESTIONS.map((suggestion, index) => (
           <motion.button
             key={suggestion}
-            initial={{ opacity: 0, y: 10 }}
+            initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{
-              duration: 0.8,
-              delay: 0.4 + i * 0.05,
+              duration: 0.35,
+              delay: 0.08 + index * 0.03,
               ease: [0.32, 0.72, 0, 1],
             }}
             type="button"
             onClick={() => onSendSuggestion(suggestion)}
-            className="group flex w-full items-center justify-between rounded-xl border border-border bg-card/50 px-4 py-3.5 text-left transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] hover:bg-card hover:shadow-[0_4px_24px_rgba(0,0,0,0.03)] hover:border-primary/20 hover:-translate-y-0.5"
+            className="group flex w-full items-center justify-between gap-4 rounded-lg border border-border bg-background px-4 py-3 text-left text-sm font-medium text-foreground transition-colors duration-200 hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
-            <span className="text-[14px] font-medium text-foreground/90">
-              {suggestion}
-            </span>
-            <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-sm bg-muted transition-all group-hover:bg-primary group-hover:text-primary-foreground text-muted-foreground">
-              <svg
-                width="10"
-                height="10"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M5 12h14"></path>
-                <path d="m12 5 7 7-7 7"></path>
-              </svg>
-            </div>
+            <span>{suggestion}</span>
+            <svg
+              aria-hidden="true"
+              className="size-3.5 shrink-0 text-muted-foreground transition-transform duration-200 group-hover:translate-x-0.5"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M5 12h14" />
+              <path d="m12 5 7 7-7 7" />
+            </svg>
           </motion.button>
         ))}
       </div>
@@ -1038,6 +1013,7 @@ export function ChatMessageList({
   messages,
   isStreaming,
   isLoadingHistory,
+  variant = "panel",
   onSendSuggestion,
   onConfirmAction,
 }: ChatMessageListProps) {
@@ -1108,9 +1084,12 @@ export function ChatMessageList({
     <div
       ref={containerRef}
       onScroll={handleScroll}
-      className="relative flex-1 overflow-y-auto px-6 py-6 scrollbar-hide bg-background"
+      className={cn(
+        "relative flex-1 overflow-y-auto px-4 py-6 scrollbar-hide md:px-6",
+        variant === "workspace" ? "bg-transparent" : "bg-background",
+      )}
     >
-      <div className="mx-auto max-w-3xl flex flex-col gap-6">
+      <div className={cn("mx-auto flex flex-col gap-6", variant === "workspace" ? "max-w-4xl" : "max-w-3xl")}>
         {messages.length === 0 ? (
           <EmptyState onSendSuggestion={onSendSuggestion} />
         ) : (

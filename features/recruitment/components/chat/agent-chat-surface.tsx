@@ -77,6 +77,7 @@ export function AgentChatSurface({
             messages={messages}
             isStreaming={isStreaming}
             isLoadingHistory={isLoadingHistory}
+            variant={variant}
             onSendSuggestion={sendMessage}
             onConfirmAction={confirmAction}
           />
@@ -84,6 +85,7 @@ export function AgentChatSurface({
             input={input}
             isStreaming={isStreaming}
             attachedFile={attachedFile}
+            variant={variant}
             onInputChange={setInput}
             onSend={sendMessage}
             onStop={handleStop}

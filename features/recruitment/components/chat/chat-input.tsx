@@ -9,6 +9,7 @@ import {
   IconPlayerStopFilled,
 } from '@tabler/icons-react';
 import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 const TEXTAREA_MIN_HEIGHT_PX = 52;
 const TEXTAREA_MAX_HEIGHT_PX = 640;
@@ -18,6 +19,7 @@ interface ChatInputProps {
   input: string;
   isStreaming: boolean;
   attachedFile: File | null;
+  variant?: 'panel' | 'workspace';
   onInputChange: (value: string) => void;
   onSend: (text: string) => void;
   onStop: () => void;
@@ -30,6 +32,7 @@ export function ChatInput({
   isStreaming,
   attachedFile,
   onInputChange,
+  variant = 'panel',
   onSend,
   onStop,
   onAttachFile,
@@ -110,8 +113,8 @@ export function ChatInput({
   );
 
   return (
-    <div className="relative p-6 pt-0 bg-background">
-      <div className="mx-auto max-w-3xl">
+    <div className={cn("relative p-6 pt-0", variant === 'workspace' ? "bg-transparent" : "bg-background")}>
+      <div className={cn("mx-auto", variant === 'workspace' ? "max-w-4xl" : "max-w-3xl")}>
         {attachedFile && (
           <div className="flex items-center gap-3 mb-4 rounded-[12px] border border-border bg-card p-3 shadow-sm transition-all duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] translate-y-0 opacity-100">
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
@@ -146,7 +149,10 @@ export function ChatInput({
 
         <form
           onSubmit={handleSubmit}
-          className="group relative flex flex-col gap-2 rounded-[1.75rem] bg-card border border-border p-2 shadow-[0_4px_24px_rgba(0,0,0,0.02)] transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] focus-within:shadow-[0_8px_32px_rgba(0,0,0,0.06)] focus-within:border-primary/30"
+          className={cn(
+            "group relative flex flex-col gap-2 rounded-[1.75rem] border border-border p-2 shadow-[0_4px_24px_rgba(0,0,0,0.02)] transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] focus-within:border-primary/30 focus-within:shadow-[0_8px_32px_rgba(0,0,0,0.06)]",
+            variant === 'workspace' ? "bg-card/95" : "bg-card",
+          )}
         >
           <textarea
             ref={inputRef}
