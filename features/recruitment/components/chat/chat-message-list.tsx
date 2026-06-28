@@ -882,7 +882,7 @@ function MessageBubble({
 
       <div
         className={cn(
-          "flex flex-col max-w-[85%] lg:max-w-[75%]",
+          "flex min-w-0 max-w-[85%] flex-col lg:max-w-[75%]",
           isUser ? "items-end" : "items-start",
         )}
       >
@@ -907,7 +907,7 @@ function MessageBubble({
 
         <div
           className={cn(
-            "text-[15px] leading-[1.65]",
+            "min-w-0 max-w-full text-[15px] leading-[1.65]",
             isUser
               ? "rounded-[18px] rounded-tr-lg bg-primary text-primary-foreground px-5 py-3.5 shadow-md"
               : "text-foreground/90",
@@ -929,9 +929,9 @@ function MessageBubble({
               )}
             </div>
           ) : msg.content ? (
-            <div className="space-y-4 font-sans">
+            <div className="flex min-w-0 max-w-full flex-col gap-4 font-sans">
               <div
-                className="prose prose-sm dark:prose-invert max-w-none text-foreground/90
+                className="prose prose-sm max-w-full overflow-hidden text-foreground/90 dark:prose-invert
                 [&_p]:leading-[1.7] [&_p]:mb-4
                 [&_strong]:font-bold [&_strong]:text-foreground
                 [&_h1]:text-xl [&_h1]:font-serif [&_h1]:font-semibold [&_h1]:tracking-tight [&_h1]:text-foreground [&_h1]:mb-4 [&_h1]:mt-8
