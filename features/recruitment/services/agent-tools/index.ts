@@ -84,6 +84,32 @@ const ALL_EXECUTORS: Record<string, ToolHandler> = {
   ...activityExec,
   ...adminExec,
 };
+type ToolArgumentValidationResult =
+  | { success: true; args: Record<string, unknown> }
+  | { success: false; error: string };
+
+export function validateAgentToolArgs(
+  toolName: string,
+  args: Record<string, unknown>,
+): ToolArgumentValidationResult {
+  const schema = TOOL_ARG_SCHEMAS[toolName];
+  if (!schema) {
+    return { success: true, args };
+  }
+
+  const result = schema.safeParse(args);
+  if (!result.success) {
+    return {
+      success: false,
+      error: `Invalid arguments for ${toolName}: ${result.error.issues
+        .map((issue) => issue.message)
+        .join(", ")}`,
+    };
+  }
+
+  return { success: true, args: result.data as Record<string, unknown> };
+}
+
 
 // ---- Main executor ----
 
@@ -105,17 +131,11 @@ export async function executeAgentTool(
     };
   }
 
-  // Validate tool arguments against schema
-  const schema = TOOL_ARG_SCHEMAS[toolName];
-  if (schema) {
-    const result = schema.safeParse(args);
-    if (!result.success) {
-      return {
-        success: false,
-        error: `Invalid arguments for ${toolName}: ${result.error.issues.map((i) => i.message).join(", ")}`,
-      };
-    }
+  const validated = validateAgentToolArgs(toolName, args);
+  if (!validated.success) {
+    return { success: false, error: validated.error };
   }
+  const validatedArgs = validated.args;
 
   try {
     const services = await import("..");
@@ -126,7 +146,7 @@ export async function executeAgentTool(
       return { success: false, error: `Unimplemented tool: ${toolName}` };
     }
 
-    const result = await handler(args, {
+    const result = await handler(validatedArgs, {
       services,
       resolveId,
       sanitizeForJson,

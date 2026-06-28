@@ -1,5 +1,6 @@
 import * as z from 'zod/v3';
 import { GOVERNANCE_AUDIT_STATUSES } from './types';
+import { isAtomicJobSkillLabel, normalizeJobSkillLabels } from './job-skills';
 
 // ---------- Enums ----------
 
@@ -28,11 +29,30 @@ export const interviewDecisionSchema = z.enum(['pending', 'accepted', 'rejected'
 
 // ---------- Job Schemas ----------
 
+const jobSkillLabelSchema = z
+  .string()
+  .min(1)
+  .max(48)
+  .refine(isAtomicJobSkillLabel, {
+    message: 'Use concise skill labels, not requirement sentences',
+  });
+
+const requiredJobSkillListSchema = z
+  .array(z.string())
+  .transform((values) => normalizeJobSkillLabels(values, 20))
+  .pipe(z.array(jobSkillLabelSchema).min(1).max(20));
+
+const optionalJobSkillListSchema = z
+  .array(z.string())
+  .default([])
+  .transform((values) => normalizeJobSkillLabels(values, 20))
+  .pipe(z.array(jobSkillLabelSchema).max(20));
+
 export const createJobSchema = z.object({
   title: z.string().min(2).max(120),
   description: z.string().min(20),
-  mustHave: z.array(z.string().min(1)).min(1),
-  niceToHave: z.array(z.string().min(1)).default([]),
+  mustHave: requiredJobSkillListSchema,
+  niceToHave: optionalJobSkillListSchema,
   seniority: z.string().min(2),
   businessUnit: z.string().min(2).nullable().optional(),
 });
@@ -220,8 +240,8 @@ export const aiCandidateComparisonOutputSchema = z.object({
 export const aiJobDescriptionOutputSchema = z.object({
   title: z.string(),
   description: z.string(),
-  mustHave: z.array(z.string()).min(1),
-  niceToHave: z.array(z.string()).default([]),
+  mustHave: requiredJobSkillListSchema,
+  niceToHave: optionalJobSkillListSchema,
   seniority: z.string(),
   businessUnit: z.string().nullable().default(null),
 });
@@ -312,8 +332,8 @@ export const aiJobRequirementsOptimizerOutputSchema = z.object({
     recommendation: z.string(),
     priority: z.enum(['low', 'medium', 'high']),
   })).default([]),
-  optimizedMustHave: z.array(z.string()).default([]),
-  optimizedNiceToHave: z.array(z.string()).default([]),
+  optimizedMustHave: optionalJobSkillListSchema,
+  optimizedNiceToHave: optionalJobSkillListSchema,
   optimizedDescription: z.string(),
   marketInsights: z.array(z.string()).default([]),
 });

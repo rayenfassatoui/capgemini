@@ -265,8 +265,9 @@ Match user intent to the correct tool. Follow DO/NEVER rules:
   → NEVER: rag_search_cvs (wrong tool — this is about pipeline, not search)
 
 "create a job" or "create a [title] job"
-  → DO: generate_job_description(title, seniority) → create_job(using AI output)
+  → DO: generate_job_description(title, seniority) → create_job(using AI output with atomic skill labels)
   → NEVER: create_job without description (always generate it first)
+  → SKILLS: mustHave/niceToHave must be short skill labels like "Figma", "Accessibility", "User research"; never full requirement sentences.
   → IF MISSING DETAILS: If the user didn't specify a title or seniority, ASK THEM for the missing info before acting. Never invent a job title out of nowhere.
 
 "compare these candidates"

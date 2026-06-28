@@ -9,6 +9,7 @@ import { requiresAgentActionConfirmation } from '../services/pending-agent-actio
 import { buildStatisticsChatSystemPrompt } from '../services/statistics-chat-prompt';
 import {
   buildAgentSkillPrompt,
+  buildMissingCreateJobToolCall,
   selectAgentRuntimeSkills,
   selectToolNamesForSkills,
   shouldRetryForMissingToolUse,
@@ -36,12 +37,14 @@ describe('agent job authoring flow', () => {
       expect.arrayContaining(['generate_job_description', 'create_job']),
     );
     expect(systemPrompt).toContain(
-      'generate_job_description(title, seniority) → create_job(using AI output)',
+      'generate_job_description(title, seniority) → create_job(using AI output with atomic skill labels)',
     );
+    expect(systemPrompt).toContain('mustHave/niceToHave must be short skill labels');
     expect(systemPrompt).toContain(
       "If the user didn't specify a title or seniority, ASK THEM",
     );
     expect(skillPrompt).toContain('Generate a job description before create_job');
+    expect(skillPrompt).toContain('atomic skill labels');
     expect(
       shouldRetryForMissingToolUse({
         message,
@@ -94,5 +97,59 @@ describe('agent job authoring flow', () => {
     });
 
     expect(valid.success).toBe(true);
+  });
+
+  it('builds a confirmation-gated create_job call from generated JD output', () => {
+    const message =
+      'Create a Senior UI/UX Designer job named QA Agentic UI/UX Designer for Digital BU.';
+    const skills = selectAgentRuntimeSkills({
+      message,
+      role: 'ta',
+      hasAttachments: false,
+    });
+    const toolNames = selectToolNamesForSkills(skills);
+    const toolCall = buildMissingCreateJobToolCall({
+      message,
+      skills,
+      availableToolNames: toolNames,
+      step: 2,
+      records: [
+        {
+          toolName: 'generate_job_description',
+          args: { title: 'QA Agentic UI/UX Designer', seniority: 'Senior', businessUnit: 'Digital' },
+          mutating: false,
+          result: {
+            success: true,
+            data: {
+              title: 'Senior UI/UX Designer - QA Specialist',
+              description:
+                'Lead discovery, interaction design, accessibility, prototyping, and design-system collaboration for enterprise recruitment products.',
+              mustHave: [
+                'Proficiency in design tools such as Figma, Sketch, or Adobe XD',
+                'Familiarity with accessibility standards (WCAG 2.1) and inclusive design principles',
+              ],
+              niceToHave: [
+                'Experience with design systems and component-based design',
+              ],
+              seniority: 'Senior',
+              businessUnit: 'Digital',
+            },
+          },
+        },
+      ],
+    });
+
+    expect(toolCall).toMatchObject({
+      id: 'missing-create-job-recovery-2',
+      type: 'function',
+      function: { name: 'create_job' },
+    });
+    expect(JSON.parse(toolCall?.function.arguments ?? '{}')).toMatchObject({
+      title: 'QA Agentic UI/UX Designer',
+      seniority: 'Senior',
+      businessUnit: 'Digital',
+      mustHave: ['Figma', 'Sketch', 'Adobe XD', 'Accessibility', 'WCAG'],
+      niceToHave: ['Design systems'],
+    });
   });
 });

@@ -62,6 +62,7 @@ import {
 import {
   buildAgentSkillPrompt,
   buildMissingToolRetryMessage,
+  buildMissingCreateJobToolCall,
   selectMissingToolRecoveryToolNames,
   selectAgentRuntimeSkills,
   selectToolNamesForSkills,
@@ -484,6 +485,79 @@ export async function handleStatisticsChatPost(
               continue;
             }
 
+            const missingCreateJobToolCall = buildMissingCreateJobToolCall({
+              message: lastMessageText,
+              skills: selectedSkills,
+              availableToolNames: activeToolNames,
+              records: toolExecutionHistory,
+              step,
+            });
+            if (!missingToolRecoveryUsed && missingCreateJobToolCall) {
+              missingToolRecoveryUsed = true;
+              const recoveryToolCalls: ResponseToolCall[] = [
+                missingCreateJobToolCall,
+              ];
+
+              llmMessages.push({
+                role: "assistant",
+                content: null,
+                tool_calls: recoveryToolCalls,
+              });
+
+              queueToolCalls({
+                toolCalls: recoveryToolCalls,
+                attachments,
+                toolExecutionCache,
+                controller,
+                encoder,
+              });
+
+              const recoveryResult = await executeToolCalls({
+                toolCalls: recoveryToolCalls,
+                attachments,
+                toolExecutionCache,
+                toolExecutionHistory,
+                llmMessages,
+                controller,
+                encoder,
+                userId: session.user.id,
+                role,
+                conversationId,
+                prepareGroundedResponse,
+                persistAssistantMessage: async (text: string) => {
+                  await saveChatMessage(
+                    conversationId,
+                    session.user.id,
+                    "assistant",
+                    text,
+                  );
+                },
+                consecutiveToolFailures,
+                sawMutatingTool,
+              });
+
+              consecutiveToolFailures = recoveryResult.consecutiveToolFailures;
+              sawMutatingTool = recoveryResult.sawMutatingTool;
+              if (recoveryResult.fullResponse) {
+                fullResponse = recoveryResult.fullResponse;
+              }
+
+              if (recoveryResult.shouldReturn) {
+                return;
+              }
+
+              if (recoveryResult.shouldBreakLoop) {
+                if (fullResponse) {
+                  await streamImmediateText(
+                    controller,
+                    encoder,
+                    `\n\n${fullResponse}`,
+                  );
+                }
+                break;
+              }
+            }
+
             const recoveryToolNames = selectMissingToolRecoveryToolNames({
               skills: selectedSkills,
               availableToolNames: activeToolNames,
@@ -629,6 +703,79 @@ export async function handleStatisticsChatPost(
           sawMutatingTool = toolCallResult.sawMutatingTool;
           if (toolCallResult.fullResponse) {
             fullResponse = toolCallResult.fullResponse;
+          }
+
+          const missingCreateJobAfterToolCall = buildMissingCreateJobToolCall({
+            message: lastMessageText,
+            skills: selectedSkills,
+            availableToolNames: activeToolNames,
+            records: toolExecutionHistory,
+            step,
+          });
+          if (!missingToolRecoveryUsed && missingCreateJobAfterToolCall) {
+            missingToolRecoveryUsed = true;
+            const recoveryToolCalls: ResponseToolCall[] = [
+              missingCreateJobAfterToolCall,
+            ];
+
+            llmMessages.push({
+              role: "assistant",
+              content: null,
+              tool_calls: recoveryToolCalls,
+            });
+
+            queueToolCalls({
+              toolCalls: recoveryToolCalls,
+              attachments,
+              toolExecutionCache,
+              controller,
+              encoder,
+            });
+
+            const recoveryResult = await executeToolCalls({
+              toolCalls: recoveryToolCalls,
+              attachments,
+              toolExecutionCache,
+              toolExecutionHistory,
+              llmMessages,
+              controller,
+              encoder,
+              userId: session.user.id,
+              role,
+              conversationId,
+              prepareGroundedResponse,
+              persistAssistantMessage: async (text: string) => {
+                await saveChatMessage(
+                  conversationId,
+                  session.user.id,
+                  "assistant",
+                  text,
+                );
+              },
+              consecutiveToolFailures,
+              sawMutatingTool,
+            });
+
+            consecutiveToolFailures = recoveryResult.consecutiveToolFailures;
+            sawMutatingTool = recoveryResult.sawMutatingTool;
+            if (recoveryResult.fullResponse) {
+              fullResponse = recoveryResult.fullResponse;
+            }
+
+            if (recoveryResult.shouldReturn) {
+              return;
+            }
+
+            if (recoveryResult.shouldBreakLoop) {
+              if (fullResponse) {
+                await streamImmediateText(
+                  controller,
+                  encoder,
+                  `\n\n${fullResponse}`,
+                );
+              }
+              break;
+            }
           }
 
           if (toolCallResult.shouldReturn) {

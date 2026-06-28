@@ -139,6 +139,14 @@ export function isCandidateSearchOrRankingIntent(message: string): boolean {
 
 export function isExplicitNamedSearchIntent(message: string): boolean {
   const normalized = String(message ?? "").toLowerCase();
+  const isJobAuthoringName =
+    /\b(job|role|position|requirement|description)\b/.test(normalized) &&
+    /\b(create|new|generate|write|publish|named|called)\b/.test(normalized);
+
+  if (isJobAuthoringName) {
+    return false;
+  }
+
 
   return (
     /\bname\s*(?:is|=)\s+["']?[^"'\n,]+["']?/.test(normalized) ||

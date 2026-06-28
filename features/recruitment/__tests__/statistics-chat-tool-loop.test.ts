@@ -225,7 +225,7 @@ describe('statistics chat tool loop', () => {
     );
     requiresAgentActionConfirmationMock.mockReturnValue(true);
     requestAgentActionConfirmationMock.mockResolvedValue('confirmation required');
-    const args = { candidateIds: ['candidate-1'], stage: 'hr_interview' };
+    const args = { candidateIds: ['candidate-1'], newStage: 'hr_interview' };
     const { params } = baseExecuteParams({
       toolCalls: [toolCall('tool-call-1', 'bulk_update_candidate_stage', args)],
     });
@@ -249,6 +249,72 @@ describe('statistics chat tool loop', () => {
       shouldBreakLoop: false,
       shouldReturn: true,
     });
+  });
+
+  it('normalizes create_job arguments before storing pending confirmation', async () => {
+    getToolDefinitionMock.mockReturnValue(toolDefinition('create_job', true));
+    requiresAgentActionConfirmationMock.mockReturnValue(true);
+    requestAgentActionConfirmationMock.mockResolvedValue('confirmation required');
+    const args = {
+      title: 'Senior UI/UX Designer',
+      description:
+        'Lead discovery, interaction design, accessibility, prototyping, and design-system collaboration for enterprise recruitment products.',
+      mustHave: [
+        'Proficiency in design tools such as Figma, Sketch, or Adobe XD',
+        'Familiarity with accessibility standards (WCAG 2.1) and inclusive design principles',
+      ],
+      niceToHave: ['Experience with design systems and component-based design'],
+      seniority: 'Senior',
+      businessUnit: 'Digital',
+    };
+    const { params } = baseExecuteParams({
+      toolCalls: [toolCall('tool-call-1', 'create_job', args)],
+    });
+
+    const result = await executeToolCalls(params);
+
+    expect(executeAgentToolMock).not.toHaveBeenCalled();
+    expect(requestAgentActionConfirmationMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        toolName: 'create_job',
+        toolArgs: expect.objectContaining({
+          mustHave: ['Figma', 'Sketch', 'Adobe XD', 'Accessibility', 'WCAG'],
+          niceToHave: ['Design systems'],
+          seniority: 'Senior',
+        }),
+      }),
+    );
+    expect(result.shouldReturn).toBe(true);
+  });
+
+  it('rejects invalid create_job arguments before pending confirmation', async () => {
+    getToolDefinitionMock.mockReturnValue(toolDefinition('create_job', true));
+    requiresAgentActionConfirmationMock.mockReturnValue(true);
+    executeAgentToolMock.mockResolvedValue({
+      success: false,
+      error: 'Invalid arguments for create_job: Array must contain at least 1 element(s)',
+    });
+    const { params, llmMessages } = baseExecuteParams({
+      toolCalls: [
+        toolCall('tool-call-1', 'create_job', {
+          title: 'Senior UI/UX Designer',
+          description: 'Lead enterprise recruitment product design.',
+          mustHave: ['   '],
+          seniority: 'Senior',
+        }),
+      ],
+    });
+
+    const result = await executeToolCalls(params);
+
+    expect(requestAgentActionConfirmationMock).not.toHaveBeenCalled();
+    expect(executeAgentToolMock).toHaveBeenCalledWith(
+      'create_job',
+      expect.objectContaining({ mustHave: ['   '] }),
+      { userId: 'user-1', role: 'ta' },
+    );
+    expect(llmMessages[0]?.content).toContain('Invalid arguments for create_job');
+    expect(result.shouldReturn).toBe(false);
   });
 
   it('executes read-only tools, emits file events, and strips file payloads before LLM reuse', async () => {

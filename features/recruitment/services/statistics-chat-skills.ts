@@ -1,4 +1,6 @@
 import type { UserRole } from "../types";
+import { normalizeJobSkillLabels } from "../job-skills";
+import type { ResponseToolCall, ToolExecutionRecord } from "./statistics-chat-types";
 
 export type AgentRuntimeSkillId =
   | "evidence-discipline"
@@ -42,6 +44,14 @@ interface MissingToolRetryParams {
 interface MissingToolRecoveryParams {
   skills: readonly AgentRuntimeSkill[];
   availableToolNames: readonly string[];
+}
+
+interface MissingCreateJobRecoveryParams {
+  message: string;
+  skills: readonly AgentRuntimeSkill[];
+  availableToolNames: readonly string[];
+  records: readonly ToolExecutionRecord[];
+  step: number;
 }
 
 const RECRUITMENT_TRIAGE_RE =
@@ -187,6 +197,7 @@ const DOMAIN_SKILLS: readonly AgentRuntimeSkill[] = [
     instructions: [
       "Ask for missing title or seniority before creating a job; do not invent core fields.",
       "Generate a job description before create_job when the user asks for a new job from a short brief.",
+      "Before create_job, convert mustHave and niceToHave into atomic skill labels such as Figma, Accessibility, User research; never send full requirement sentences.",
       "For optimization, fetch the existing job before recommending edits.",
     ],
     requiresFreshTools: true,
@@ -535,6 +546,102 @@ export function shouldRetryForMissingToolUse({
     (RECRUITMENT_TRIAGE_RE.test(message) ||
       skills.some((skill) => skill.id === "proactive-operations"))
   );
+}
+
+const CREATE_JOB_REQUEST_RE =
+  /\b(create|new|generate|write|publish)\b.*\b(job|requirement|description|role|position)\b|\b(job|requirement|description|role|position)\b.*\b(create|new|generate|write|publish)\b/i;
+
+export function buildMissingCreateJobToolCall({
+  message,
+  skills,
+  availableToolNames,
+  records,
+  step,
+}: MissingCreateJobRecoveryParams): ResponseToolCall | null {
+  if (
+    !CREATE_JOB_REQUEST_RE.test(message) ||
+    !availableToolNames.includes("create_job") ||
+    !skills.some((skill) => skill.id === "job-authoring") ||
+    records.some((record) => record.toolName === "create_job")
+  ) {
+    return null;
+  }
+
+  const generatedRecord = [...records]
+    .reverse()
+    .find(
+      (record) =>
+        record.toolName === "generate_job_description" &&
+        record.result.success &&
+        record.result.data &&
+        typeof record.result.data === "object" &&
+        !Array.isArray(record.result.data),
+    );
+
+  if (!generatedRecord?.result.data) {
+    return null;
+  }
+
+  const generated = generatedRecord.result.data as Record<string, unknown>;
+  const generatedArgs = generatedRecord.args;
+  const requestedTitle =
+    typeof generatedArgs.title === "string" && generatedArgs.title.trim().length > 0
+      ? generatedArgs.title.trim()
+      : "";
+  const requestedSeniority =
+    typeof generatedArgs.seniority === "string" && generatedArgs.seniority.trim().length > 0
+      ? generatedArgs.seniority.trim()
+      : "";
+  const requestedBusinessUnit =
+    typeof generatedArgs.businessUnit === "string" && generatedArgs.businessUnit.trim().length > 0
+      ? generatedArgs.businessUnit.trim()
+      : undefined;
+  const title =
+    requestedTitle || (typeof generated.title === "string" ? generated.title.trim() : "");
+  const description =
+    typeof generated.description === "string" ? generated.description.trim() : "";
+  const seniority =
+    requestedSeniority ||
+    (typeof generated.seniority === "string" ? generated.seniority.trim() : "");
+  const mustHave = Array.isArray(generated.mustHave)
+    ? normalizeJobSkillLabels(
+        generated.mustHave.filter(
+          (value): value is string => typeof value === "string",
+        ),
+      )
+    : [];
+  const niceToHave = Array.isArray(generated.niceToHave)
+    ? normalizeJobSkillLabels(
+        generated.niceToHave.filter(
+          (value): value is string => typeof value === "string",
+        ),
+      )
+    : [];
+  const businessUnit =
+    requestedBusinessUnit ??
+    (typeof generated.businessUnit === "string" && generated.businessUnit.trim().length > 0
+      ? generated.businessUnit.trim()
+      : undefined);
+
+  if (!title || !description || mustHave.length === 0 || !seniority) {
+    return null;
+  }
+
+  return {
+    id: `missing-create-job-recovery-${step}`,
+    type: "function",
+    function: {
+      name: "create_job",
+      arguments: JSON.stringify({
+        title,
+        description,
+        mustHave,
+        niceToHave,
+        seniority,
+        ...(businessUnit ? { businessUnit } : {}),
+      }),
+    },
+  };
 }
 
 export function buildMissingToolRetryMessage(

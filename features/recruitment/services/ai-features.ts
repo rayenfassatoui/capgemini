@@ -680,7 +680,7 @@ export async function generateJobDescription(
   businessUnit: string | null;
 }> {
   const systemPrompt =
-    "You are a JSON API. Respond ONLY with valid JSON. No markdown, no explanations, no code fences.";
+    "You are a JSON API. Respond ONLY with valid JSON. No markdown, no explanations, no code fences. mustHave and niceToHave MUST be concise atomic skill labels, not requirement sentences.";
 
   const userPrompt = `You are a senior technical recruiter at Capgemini. Generate a complete, professional job description.
 
@@ -692,8 +692,8 @@ ${additionalContext ? `Additional Context: ${additionalContext}` : ""}
 Return a JSON object with:
 - title: refined job title (string)
 - description: detailed job description, 3-5 paragraphs covering role overview, responsibilities, team, and what we offer. Be specific to Capgemini as a global consulting/technology company. Do NOT use markdown — plain text with line breaks.
-- mustHave: string[] (6-10 essential skills/requirements)
-- niceToHave: string[] (4-6 desirable skills/qualifications)
+- mustHave: string[] (6-10 atomic skill labels only, 1-4 words each. Good: "Figma", "Accessibility", "User research", "QA testing", "Agentic systems". Bad: "Proficiency in design tools such as Figma, Sketch, or Adobe XD")
+- niceToHave: string[] (4-6 atomic skill labels only, 1-4 words each. Good: "Design systems", "Analytics", "Human-computer interaction". Bad: "Master's degree in Human-Computer Interaction")
 - seniority: the seniority level (string)
 - businessUnit: business unit or null`;
 
@@ -1226,7 +1226,7 @@ export async function optimizeJobRequirements(jobId: string): Promise<{
     .where(eq(candidates.jobId, jobId));
 
   const systemPrompt =
-    "You are a JSON API. Respond ONLY with valid JSON. No markdown, no explanations, no code fences.";
+    "You are a JSON API. Respond ONLY with valid JSON. No markdown, no explanations, no code fences. Skill arrays MUST contain concise atomic skill labels, not requirement sentences.";
 
   const userPrompt = `You are a job description optimization expert at Capgemini. Analyze this job posting and suggest improvements to attract better candidates and improve screening match rates.
 
@@ -1253,8 +1253,8 @@ Analyze the job description for:
 Return a JSON object with:
 - analysis: { clarity: 0-100, competitiveness: 0-100, inclusivity: 0-100, overallScore: 0-100 }
 - suggestions: array of { area: string, issue: string, recommendation: string, priority: "low"|"medium"|"high" } (4-8 suggestions)
-- optimizedMustHave: string[] (improved must-have list)
-- optimizedNiceToHave: string[] (improved nice-to-have list)
+- optimizedMustHave: string[] (improved atomic must-have skill labels only, 1-4 words each; no requirement sentences)
+- optimizedNiceToHave: string[] (improved atomic nice-to-have skill labels only, 1-4 words each; no qualifications as full sentences)
 - optimizedDescription: string (rewritten, improved job description — plain text with line breaks, no markdown)
 - marketInsights: string[] (3-5 insights about how this role competes in the current market)`;
 

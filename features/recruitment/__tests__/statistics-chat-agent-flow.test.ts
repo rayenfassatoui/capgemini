@@ -216,4 +216,5 @@ describe('statistics chat agent flow', () => {
     expect(text).toContain('UX Research');
     expect(text).toContain('@@META@@');
   });
+
 });

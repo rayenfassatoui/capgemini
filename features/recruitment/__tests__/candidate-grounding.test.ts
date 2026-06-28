@@ -3,6 +3,7 @@ import {
   buildAllowedCandidatesFromToolRecords,
   groundAssistantResponse,
   isCandidateSearchOrRankingIntent,
+  isExplicitNamedSearchIntent,
   validateGroundedCandidateNames,
   type GroundingToolRecord,
 } from "../services/candidate-grounding";
@@ -56,6 +57,14 @@ describe("candidate name grounding guard", () => {
 
     expect(validation.ok).toBe(true);
     expect(validation.rejectedNames).toHaveLength(0);
+  });
+
+  it("does not treat job names as candidate named-search intents", () => {
+    expect(
+      isExplicitNamedSearchIntent(
+        "Create a Senior UI/UX Designer job named QA Agentic UI/UX Designer for Digital BU.",
+      ),
+    ).toBe(false);
   });
 
   it("replaces hallucinated transferable-skills rankings with deterministic grounded rows", () => {

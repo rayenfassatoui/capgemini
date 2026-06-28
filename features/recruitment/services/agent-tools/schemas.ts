@@ -1,4 +1,26 @@
 import * as z from 'zod/v3';
+import { isAtomicJobSkillLabel, normalizeJobSkillLabels } from '../../job-skills';
+
+const jobSkillLabelSchema = z
+  .string()
+  .min(1)
+  .max(48)
+  .refine(isAtomicJobSkillLabel, {
+    message: 'Use concise skill labels, not requirement sentences',
+  });
+
+const requiredJobSkillListSchema = z
+  .array(z.string())
+  .transform((values) => normalizeJobSkillLabels(values, 20))
+  .pipe(z.array(jobSkillLabelSchema).min(1).max(20));
+
+const optionalJobSkillListSchema = z
+  .array(z.string())
+  .optional()
+  .default([])
+  .transform((values) => normalizeJobSkillLabels(values, 20))
+  .pipe(z.array(jobSkillLabelSchema).max(20));
+
 
 const candidateAnswerSchema = z
   .object({
@@ -51,8 +73,8 @@ export const TOOL_ARG_SCHEMAS: Record<string, z.ZodType> = {
     .object({
       title: z.string(),
       description: z.string(),
-      mustHave: z.array(z.string()),
-      niceToHave: z.array(z.string()).optional(),
+      mustHave: requiredJobSkillListSchema,
+      niceToHave: optionalJobSkillListSchema,
       seniority: z.string(),
       businessUnit: z.string().optional(),
     })

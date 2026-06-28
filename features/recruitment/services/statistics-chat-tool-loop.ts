@@ -1,6 +1,6 @@
 import "server-only";
 import type { UserRole } from "@/features/recruitment/types";
-import { executeAgentTool, getToolDefinition } from "./agent-tools";
+import { executeAgentTool, getToolDefinition, validateAgentToolArgs } from "./agent-tools";
 import {
   compactToolResult,
   makeToolCallCacheKey,
@@ -141,8 +141,10 @@ export async function executeToolCalls({
 
   for (const toolCall of toolCalls) {
     const toolName = toolCall.function.name;
-    const toolArgs = parseToolArgs(toolCall.function.arguments);
-    injectUploadAttachment(toolName, toolArgs, attachments);
+    const rawToolArgs = parseToolArgs(toolCall.function.arguments);
+    injectUploadAttachment(toolName, rawToolArgs, attachments);
+    const validation = validateAgentToolArgs(toolName, rawToolArgs);
+    const toolArgs = validation.success ? validation.args : rawToolArgs;
 
     const cacheKey = makeToolCallCacheKey(toolName, toolArgs);
     const cached = toolExecutionCache.get(cacheKey);
@@ -204,7 +206,7 @@ export async function executeToolCalls({
       sawMutation = true;
     }
 
-    if (toolDef && requiresAgentActionConfirmation(toolName, mutating)) {
+    if (toolDef && requiresAgentActionConfirmation(toolName, mutating) && validation.success) {
       fullResponse = await requestAgentActionConfirmation({
         toolName,
         toolArgs,

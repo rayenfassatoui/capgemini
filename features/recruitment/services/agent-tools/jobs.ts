@@ -27,7 +27,7 @@ export const definitions: AgentToolDefinition[] = [
   {
     name: 'create_job',
     description:
-      'Create a new job posting. Requires title, description, mustHave skills array, and seniority level. Optionally niceToHave skills and businessUnit.',
+      'Create a new job posting. Requires title, description, atomic mustHave skill labels, and seniority level. Optionally atomic niceToHave skill labels and businessUnit.',
     parameters: {
       type: 'object',
       properties: {
@@ -38,12 +38,14 @@ export const definitions: AgentToolDefinition[] = [
         },
         mustHave: {
           type: 'array',
-          description: 'Array of must-have skills (at least 1)',
+          description:
+            'Atomic must-have skill labels only. Use short terms like Figma, Accessibility, User research. Never send full requirement sentences.',
           items: { type: 'string' },
         },
         niceToHave: {
           type: 'array',
-          description: 'Array of nice-to-have skills (optional)',
+          description:
+            'Atomic nice-to-have skill labels only. Use short terms, not qualifications or full sentences.',
           items: { type: 'string' },
         },
         seniority: {
