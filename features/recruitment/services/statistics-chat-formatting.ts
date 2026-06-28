@@ -89,6 +89,11 @@ export function buildDeterministicFallbackFromRecords(
     return null;
   }
 
+  const analyticsFallback = buildAnalyticsFallbackFromRecords(successful);
+  if (analyticsFallback) {
+    return analyticsFallback;
+  }
+
   const prioritizedToolNames = [
     "compare_candidates",
     "hybrid_search_cvs",
@@ -123,6 +128,201 @@ export function buildDeterministicFallbackFromRecords(
   }
 
   return `I’m returning a deterministic fallback summary from the data that was already fetched successfully. Latest successful tool: **${prioritized.toolName}**.`;
+}
+
+function buildAnalyticsFallbackFromRecords(
+  records: ToolExecutionRecord[],
+): string | null {
+  const dashboard = getToolRecordData(records, "get_dashboard_stats");
+  const insights = getToolRecordData(records, "get_smart_insights");
+  if (!dashboard && !insights) {
+    return null;
+  }
+
+  const dashboardRecord = toRecord(dashboard);
+  const insightsRecord = toRecord(insights);
+  const totalCandidates = getNumber(dashboardRecord, "totalCandidates");
+  const totalJobs = getNumber(dashboardRecord, "totalJobs");
+  const pendingScreenings = getNumber(dashboardRecord, "pendingScreenings");
+  const stageBreakdown = toNumberRecord(dashboardRecord?.stageBreakdown);
+  const pipelineFunnel = toNumberRecord(insightsRecord?.pipelineFunnel);
+  const bottleneck = findTopEntry(stageBreakdown ?? pipelineFunnel);
+  const skillGap = findLargestSkillGap(insightsRecord?.skillGapAnalysis);
+  const topRole = findTopCount(insightsRecord?.mostDemandedJobProfiles, "title");
+
+  const rootCauseParts: string[] = [];
+  if (bottleneck) {
+    rootCauseParts.push(
+      `${formatStageLabel(bottleneck.key)} is the largest visible stage with ${bottleneck.value} candidate${bottleneck.value === 1 ? "" : "s"}`,
+    );
+  }
+  if (skillGap) {
+    rootCauseParts.push(
+      `${skillGap.skill} demand is ${skillGap.demand} while CV supply is ${skillGap.supply}`,
+    );
+  }
+
+  const lobb =
+    rootCauseParts.length > 0
+      ? rootCauseParts.join("; ")
+      : "the fetched dashboard does not expose a single dominant bottleneck";
+
+  const evidence = [
+    totalCandidates === null ? null : `Assigned pipeline candidates: **${totalCandidates}**.`,
+    totalJobs === null ? null : `Open jobs / job records: **${totalJobs}**.`,
+    pendingScreenings === null
+      ? null
+      : `Pending screenings: **${pendingScreenings}**.`,
+    bottleneck
+      ? `Largest stage: **${formatStageLabel(bottleneck.key)}** with **${bottleneck.value}** candidate${bottleneck.value === 1 ? "" : "s"}.`
+      : null,
+    skillGap
+      ? `Largest skill gap: **${skillGap.skill}** demand **${skillGap.demand}** vs supply **${skillGap.supply}**.`
+      : null,
+    topRole
+      ? `Most demanded role: **${topRole.label}** with **${topRole.count}** signal${topRole.count === 1 ? "" : "s"}.`
+      : null,
+  ].filter((line): line is string => Boolean(line));
+
+  return [
+    "# My read",
+    `Lobb el mochkol: ${lobb}.`,
+    "",
+    "# Evidence",
+    ...evidence.map((line) => `- ${line}`),
+    "",
+    "# Charts and diagram",
+    "I fetched dashboard and insight tools first. The UI renders the Mermaid pipeline and chart cards below from those exact tool records.",
+    "",
+    "# Actions",
+    "1. Clear the largest stage first; assign an owner and daily exit target.",
+    skillGap
+      ? `2. Source or reskill for **${skillGap.skill}** before opening more similar demand.`
+      : "2. Compare job demand against CV supply before opening more requisitions.",
+    "3. Re-check the funnel after the next hiring-cycle update and keep only evidence-backed claims.",
+    "",
+    "# Caveats",
+    "- This is deterministic recovery output because the model skipped required tool calls.",
+    "- Recommendations are inferred from fetched dashboard and insight data only.",
+  ].join("\n");
+}
+
+function getToolRecordData(
+  records: ToolExecutionRecord[],
+  toolName: string,
+): unknown {
+  return [...records].reverse().find((record) => record.toolName === toolName)
+    ?.result.data;
+}
+
+function toRecord(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : null;
+}
+
+function getNumber(
+  record: Record<string, unknown> | null,
+  key: string,
+): number | null {
+  const value = record?.[key];
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
+function toNumberRecord(value: unknown): Record<string, number> | null {
+  const record = toRecord(value);
+  if (!record) {
+    return null;
+  }
+
+  const result: Record<string, number> = {};
+  for (const [key, nestedValue] of Object.entries(record)) {
+    if (typeof nestedValue === "number" && Number.isFinite(nestedValue)) {
+      result[key] = nestedValue;
+    }
+  }
+
+  return Object.keys(result).length > 0 ? result : null;
+}
+
+function findTopEntry(
+  record: Record<string, number> | null,
+): { key: string; value: number } | null {
+  if (!record) {
+    return null;
+  }
+
+  const [key, value] =
+    Object.entries(record)
+      .filter(([, count]) => count > 0)
+      .sort(([, left], [, right]) => right - left)[0] ?? [];
+  return typeof key === "string" && typeof value === "number"
+    ? { key, value }
+    : null;
+}
+
+function findLargestSkillGap(value: unknown): {
+  skill: string;
+  demand: number;
+  supply: number;
+} | null {
+  if (!Array.isArray(value)) {
+    return null;
+  }
+
+  return value
+    .map((item) => {
+      const record = toRecord(item);
+      const skill = record?.skill;
+      const demand = record?.demand;
+      const supply = record?.supply;
+      if (
+        typeof skill !== "string" ||
+        typeof demand !== "number" ||
+        typeof supply !== "number"
+      ) {
+        return null;
+      }
+
+      return { skill, demand, supply };
+    })
+    .filter((item): item is { skill: string; demand: number; supply: number } =>
+      Boolean(item),
+    )
+    .sort(
+      (left, right) =>
+        right.demand - right.supply - (left.demand - left.supply),
+    )[0] ?? null;
+}
+
+function findTopCount(
+  value: unknown,
+  labelKey: string,
+): { label: string; count: number } | null {
+  if (!Array.isArray(value)) {
+    return null;
+  }
+
+  return value
+    .map((item) => {
+      const record = toRecord(item);
+      const label = record?.[labelKey];
+      const count = record?.count;
+      if (typeof label !== "string" || typeof count !== "number") {
+        return null;
+      }
+
+      return { label, count };
+    })
+    .filter((item): item is { label: string; count: number } => Boolean(item))
+    .sort((left, right) => right.count - left.count)[0] ?? null;
+}
+
+function formatStageLabel(stage: string): string {
+  return stage
+    .split("_")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
 }
 
 export function logGroundingGuardBlock({

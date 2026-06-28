@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import * as z from 'zod/v3';
 
 import type {
   RecruitmentResponseCard,
@@ -358,7 +358,7 @@ function buildDashboardCard(
   if (!record.result.success || !parsed.success) return null;
 
   const metrics: RecruitmentResponseCardMetric[] = [];
-  pushMetric(metrics, 'Candidates', formatCount(parsed.data.totalCandidates));
+  pushMetric(metrics, 'Pipeline candidates', formatCount(parsed.data.totalCandidates));
   pushMetric(metrics, 'Jobs', formatCount(parsed.data.totalJobs));
   pushMetric(metrics, 'Pending screenings', formatCount(parsed.data.pendingScreenings), undefined, parsed.data.pendingScreenings > 0 ? 'warning' : 'success');
   pushMetric(metrics, 'Interviews today', formatCount(parsed.data.totalInterviewsToday));

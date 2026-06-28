@@ -10,6 +10,8 @@ const EXPLICIT_NAME_HINT_RE = /\bname\s*(?:is|=)\s+["']?([^"'\n,]+)["']?/i;
 
 const ROLE_QUERY_STRIP_RE =
   /\b(i want|find me|search for|looking for|please|candidate|candidates|resume|resumes|cv|cvs|name is|name=|called|compare|versus|vs\.?|who is better|better|best|chkoun khir|khir|wela|7aseb el resume|haseb el resume)\b/gi;
+const NON_CANDIDATE_COMPARE_REF_RE =
+  /\b(action|actions|analytics?|chart|charts|dashboard|demand|diagram|funnel|ghalta|gap|job|jobs|lobb|pipeline|pool|skill|skills|statistics?|stats|supply)\b/i;
 
 export type ChatIntent = "greeting" | "compare" | "named_search" | "agent";
 
@@ -94,7 +96,7 @@ function extractCompareCandidateRefs(input: string): string[] {
       const parts = working
         .split(separator)
         .map((part) => sanitizeReference(part))
-        .filter(Boolean);
+        .filter(isLikelyCandidateReference);
       if (parts.length >= 2) {
         return parts.slice(0, 5);
       }
@@ -102,6 +104,16 @@ function extractCompareCandidateRefs(input: string): string[] {
   }
 
   return [];
+}
+
+function isLikelyCandidateReference(input: string): boolean {
+  const normalized = normalizeLookupText(input);
+  if (!normalized || NON_CANDIDATE_COMPARE_REF_RE.test(normalized)) {
+    return false;
+  }
+
+  const words = normalized.split(/\s+/).filter(Boolean);
+  return words.length > 0 && words.length <= 4;
 }
 
 function sanitizeReference(input: string): string {

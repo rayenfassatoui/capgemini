@@ -2,24 +2,12 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('server-only', () => ({}));
 
-vi.mock('../services/agent-tools', () => ({
-  executeAgentTool: vi.fn(),
-  getToolDefinition: vi.fn(),
-}));
 
-vi.mock('../services/pending-agent-actions', () => ({
-  requiresAgentActionConfirmation: vi.fn(),
-}));
-
-vi.mock('../services/statistics-chat-confirmation', () => ({
-  requestAgentActionConfirmation: vi.fn(),
-}));
-
-import { executeAgentTool, getToolDefinition } from '../services/agent-tools';
+import * as agentTools from '../services/agent-tools';
 import type { AgentToolDefinition } from '../services/agent-tools';
 import { makeToolCallCacheKey } from '../services/agent-tools/utils';
-import { requiresAgentActionConfirmation } from '../services/pending-agent-actions';
-import { requestAgentActionConfirmation } from '../services/statistics-chat-confirmation';
+import * as pendingAgentActions from '../services/pending-agent-actions';
+import * as chatConfirmation from '../services/statistics-chat-confirmation';
 import {
   executeToolCalls,
   queueToolCalls,
@@ -135,13 +123,15 @@ function baseExecuteParams(overrides: {
   };
 }
 
-const executeAgentToolMock = vi.mocked(executeAgentTool);
-const getToolDefinitionMock = vi.mocked(getToolDefinition);
-const requiresAgentActionConfirmationMock = vi.mocked(
-  requiresAgentActionConfirmation,
+const executeAgentToolMock = vi.spyOn(agentTools, 'executeAgentTool');
+const getToolDefinitionMock = vi.spyOn(agentTools, 'getToolDefinition');
+const requiresAgentActionConfirmationMock = vi.spyOn(
+  pendingAgentActions,
+  'requiresAgentActionConfirmation',
 );
-const requestAgentActionConfirmationMock = vi.mocked(
-  requestAgentActionConfirmation,
+const requestAgentActionConfirmationMock = vi.spyOn(
+  chatConfirmation,
+  'requestAgentActionConfirmation',
 );
 
 describe('statistics chat tool loop', () => {
@@ -216,11 +206,15 @@ describe('statistics chat tool loop', () => {
       shouldReturn: false,
     });
     expect(llmMessages).toHaveLength(1);
-    expect(llmMessages[0]).toMatchObject({
+    const cachedToolMessage = llmMessages[0];
+    expect(cachedToolMessage).toMatchObject({
       role: 'tool',
       tool_call_id: 'tool-call-1',
     });
-    expect(JSON.parse(llmMessages[0].content) as unknown).toEqual([
+    if (cachedToolMessage.role !== 'tool') {
+      throw new Error('Expected cached tool message');
+    }
+    expect(JSON.parse(cachedToolMessage.content) as unknown).toEqual([
       { id: 'job-1', title: 'Engineer' },
     ]);
   });
@@ -283,7 +277,11 @@ describe('statistics chat tool loop', () => {
     });
     expect(toolExecutionHistory).toHaveLength(1);
     expect(toolExecutionHistory[0].result.data).toEqual({ rows: 2 });
-    expect(JSON.parse(llmMessages[0].content) as unknown).toEqual({ rows: 2 });
+    const executedToolMessage = llmMessages[0];
+    if (executedToolMessage.role !== 'tool') {
+      throw new Error('Expected executed tool message');
+    }
+    expect(JSON.parse(executedToolMessage.content) as unknown).toEqual({ rows: 2 });
 
     const events = readEvents(decodeChunks(chunks));
     expect(events.map((event) => event.prefix)).toEqual([

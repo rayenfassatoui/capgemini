@@ -15,11 +15,11 @@ import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLe
 const chartConfig = {
   hired: {
     label: "Hired",
-    color: "hsl(var(--chart-2))", // using chart-2 for success (emerald)
+    color: "var(--chart-2)", // using chart-2 for success
   },
   rejected: {
     label: "Rejected",
-    color: "hsl(var(--chart-1))", // using chart-1 for destructive (rose)
+    color: "var(--chart-1)", // using chart-1 for destructive
   },
 };
 

@@ -18,7 +18,7 @@ const pipelineCard: RecruitmentResponseCard = {
   tone: "warning",
   sourceTool: "get_dashboard_stats",
   metrics: [
-    { label: "Candidates", value: "12" },
+    { label: "Pipeline candidates", value: "12" },
     { label: "Pending screenings", value: "4", tone: "warning" },
   ],
   bullets: ["TA Screening has 5 candidates."],
@@ -41,7 +41,7 @@ describe("chat response cards", () => {
     expect(extracted.cards).toHaveLength(1);
     expect(extracted.cards[0]?.metrics).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ label: "Candidates", value: "12" }),
+        expect.objectContaining({ label: "Pipeline candidates", value: "12" }),
       ]),
     );
   });

@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import * as z from 'zod/v3';
 
 import type {
   RecruitmentAnalyticsChart,
@@ -121,6 +121,31 @@ const dashboardStatsSchema = z.object({
   totalInterviewsToday: z.number().finite().nonnegative(),
   pendingScreenings: z.number().finite().nonnegative(),
   stageBreakdown: z.record(z.string(), z.number().finite().nonnegative()),
+});
+
+const adminRecruitmentAnalyticsSchema = z.object({
+  pipelineFunnel: z.record(z.string(), z.number().finite().nonnegative()),
+  hiringRate: z.number().finite().nonnegative(),
+  rejectionRate: z.number().finite().nonnegative(),
+  candidatesPerJob: z.array(
+    z.object({
+      jobTitle: z.string(),
+      count: z.number().finite().nonnegative(),
+    })
+  ),
+  interviewsPerStage: z.array(
+    z.object({
+      stage: z.string(),
+      count: z.number().finite().nonnegative(),
+    })
+  ),
+  monthlyHiringTrend: z.array(
+    z.object({
+      month: z.string(),
+      hired: z.number().finite().nonnegative(),
+      rejected: z.number().finite().nonnegative(),
+    })
+  ),
 });
 
 function hasPositiveValue(data: readonly RecruitmentAnalyticsChartDatum[], keys: readonly string[]): boolean {
@@ -390,9 +415,9 @@ function addDashboardCharts(candidates: ChartCandidate[], data: z.infer<typeof d
     createCountChart({
       id: 'dashboard-kpis',
       title: 'Recruitment KPI overview',
-      description: 'Current high-level recruitment counters.',
+      description: 'Current high-level recruitment counters. Candidate count means assigned pipeline candidates, not uploaded CVs.',
       data: [
-        { label: 'Candidates', count: data.totalCandidates },
+        { label: 'Pipeline candidates', count: data.totalCandidates },
         { label: 'Jobs', count: data.totalJobs },
         { label: 'Interviews today', count: data.totalInterviewsToday },
         { label: 'Pending screenings', count: data.pendingScreenings },
@@ -412,6 +437,71 @@ function addDashboardCharts(candidates: ChartCandidate[], data: z.infer<typeof d
     }),
     88,
     ['pipeline', 'funnel', 'stage', 'stages', 'candidate', 'candidates', 'hiring', 'dashboard']
+  );
+}
+
+function addAdminAnalyticsCharts(
+  candidates: ChartCandidate[],
+  data: z.infer<typeof adminRecruitmentAnalyticsSchema>
+) {
+  pushCandidate(
+    candidates,
+    createCountChart({
+      id: 'pipeline-funnel',
+      title: 'Pipeline funnel',
+      description: 'Candidates distributed across all recruitment stages.',
+      data: buildPipelineData(data.pipelineFunnel),
+    }),
+    92,
+    ['pipeline', 'funnel', 'stage', 'stages', 'candidate', 'candidates', 'hiring', 'dashboard', 'admin']
+  );
+
+  pushCandidate(
+    candidates,
+    {
+      id: 'admin-hiring-trend',
+      kind: 'line',
+      title: 'Hiring trend',
+      description: 'Hired and rejected candidates over the last 6 months.',
+      xKey: 'label',
+      series: [
+        { key: 'hired', label: 'Hired', color: CHART_COLORS[3] },
+        { key: 'rejected', label: 'Rejected', color: CHART_COLORS[0] },
+      ],
+      data: data.monthlyHiringTrend.map((item) => ({
+        label: item.month,
+        hired: item.hired,
+        rejected: item.rejected,
+      })),
+      summary: `Current hiring rate ${data.hiringRate}% and rejection rate ${data.rejectionRate}%.`,
+    },
+    84,
+    ['hiring', 'trend', 'month', 'monthly', 'rejected', 'rejection', 'courbe', 'analytics']
+  );
+
+  pushCandidate(
+    candidates,
+    createCountChart({
+      id: 'admin-candidates-per-job',
+      title: 'Candidates per job',
+      description: 'Open workload concentration by job.',
+      data: toCountData(data.candidatesPerJob, 'jobTitle', 'count', 8),
+      summary: 'Jobs with more candidates may need faster screening decisions.',
+    }),
+    68,
+    ['candidate', 'candidates', 'job', 'jobs', 'workload', 'analytics']
+  );
+
+  pushCandidate(
+    candidates,
+    createCountChart({
+      id: 'admin-interviews-per-stage',
+      title: 'Interviews by stage',
+      description: 'Interview volume split by workflow stage.',
+      data: toCountData(data.interviewsPerStage, 'stage', 'count', 8),
+    }),
+    60,
+    ['interview', 'interviews', 'stage', 'stages', 'analytics']
   );
 }
 
@@ -482,6 +572,14 @@ export function buildAnalyticsChartsFromToolRecords(
       const parsed = dashboardStatsSchema.safeParse(record.result.data);
       if (parsed.success) {
         addDashboardCharts(candidates, parsed.data);
+      }
+      continue;
+    }
+
+    if (record.toolName === 'get_recruitment_analytics') {
+      const parsed = adminRecruitmentAnalyticsSchema.safeParse(record.result.data);
+      if (parsed.success) {
+        addAdminAnalyticsCharts(candidates, parsed.data);
       }
     }
   }

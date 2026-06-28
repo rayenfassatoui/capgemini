@@ -27,7 +27,7 @@ export const definitions: AgentToolDefinition[] = [
       type: 'object',
       properties: {
         limit: {
-          type: 'string',
+          type: 'number',
           description: 'Maximum number of entries to return (default 100)',
         },
       },

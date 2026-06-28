@@ -155,15 +155,27 @@ export function isToolMutating(toolName: string): boolean {
   return getToolDefinition(toolName)?.mutating ?? false;
 }
 
-export function getToolsForRole(role: UserRole) {
+export function getToolsForRole(
+  role: UserRole,
+  options: { toolNames?: readonly string[] } = {},
+) {
+  const selectedToolNames = options.toolNames
+    ? new Set(options.toolNames)
+    : null;
+
   return TOOL_DEFINITIONS.filter(
-    (t) => t.allowedRoles.length === 0 || t.allowedRoles.includes(role),
-  ).map((t) => ({
+    (tool) =>
+      (tool.allowedRoles.length === 0 || tool.allowedRoles.includes(role)) &&
+      (!selectedToolNames || selectedToolNames.has(tool.name)),
+  ).map((tool) => ({
     type: "function" as const,
     function: {
-      name: t.name,
-      description: t.description,
-      parameters: t.parameters,
+      name: tool.name,
+      description: tool.description,
+      parameters: {
+        ...tool.parameters,
+        additionalProperties: false,
+      },
     },
   }));
 }

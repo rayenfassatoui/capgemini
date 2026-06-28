@@ -1,12 +1,7 @@
 import "server-only";
 import type { UserRole } from "@/features/recruitment/types";
 import { executeAgentTool, getToolDefinition } from "./agent-tools";
-import {
-  cancelPendingAgentAction,
-  confirmPendingAgentAction,
-  createPendingAgentAction,
-  markPendingAgentActionExecuted,
-} from "./pending-agent-actions";
+import * as pendingAgentActions from "./pending-agent-actions";
 import {
   buildActionConfirmationResponse,
   buildConfirmedActionResponse,
@@ -80,7 +75,7 @@ export async function executeConfirmedActionIfRequested({
   }
 
   if (confirmation.decision === "cancel") {
-    const action = await cancelPendingAgentAction(
+    const action = await pendingAgentActions.cancelPendingAgentAction(
       confirmation.actionId,
       userId,
       conversationId,
@@ -91,7 +86,7 @@ export async function executeConfirmedActionIfRequested({
     return { handled: true, fullResponse };
   }
 
-  const action = await confirmPendingAgentAction(
+  const action = await pendingAgentActions.confirmPendingAgentAction(
     confirmation.actionId,
     userId,
     conversationId,
@@ -124,7 +119,7 @@ export async function executeConfirmedActionIfRequested({
     role,
   });
 
-  await markPendingAgentActionExecuted(action.id, result.success, result.error);
+  await pendingAgentActions.markPendingAgentActionExecuted(action.id, result.success, result.error);
 
   const { fileDownload, data } = takeFileDownloadPayload(result.data);
   if (fileDownload) {
@@ -189,7 +184,7 @@ export async function requestAgentActionConfirmation({
   persistAssistantMessage,
 }: RequestActionConfirmationParams): Promise<string> {
   const confirmationSummary = `${purpose}. This action can change recruitment data and needs your explicit confirmation.`;
-  const pendingAction = await createPendingAgentAction({
+  const pendingAction = await pendingAgentActions.createPendingAgentAction({
     userId,
     conversationId,
     toolName,

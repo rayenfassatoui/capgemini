@@ -5,19 +5,20 @@ import type {
 
 export const CHAT_CHART_EVENT_PREFIX = '@@CHART@@';
 
-const VALID_CHART_KINDS = new Set<RecruitmentAnalyticsChartKind>([
-  'line',
-  'bar',
-  'comparison-bar',
-]);
+const VALID_CHART_KINDS: Record<RecruitmentAnalyticsChartKind, true> = {
+  line: true,
+  bar: true,
+  'comparison-bar': true,
+};
+
+const SERIES_KEY_RE = /^[A-Za-z][A-Za-z0-9_-]{0,39}$/;
+const SAFE_CHART_COLOR_RE =
+  /^(?:var\(--chart-[1-5]\)|#[0-9A-Fa-f]{3,8}|(?:oklch|rgb|rgba)\([^)]+\))$/;
 
 function isRecruitmentAnalyticsChartKind(
   value: unknown
 ): value is RecruitmentAnalyticsChartKind {
-  return (
-    typeof value === 'string' &&
-    (VALID_CHART_KINDS as ReadonlySet<string>).has(value)
-  );
+  return typeof value === 'string' && value in VALID_CHART_KINDS;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -41,6 +42,15 @@ function isChartDatum(
   return true;
 }
 
+function normalizeChartColor(value: string): string | null {
+  const color = value.trim();
+  if (!SAFE_CHART_COLOR_RE.test(color)) {
+    return null;
+  }
+
+  return color;
+}
+
 function parseChartSeries(value: unknown): RecruitmentAnalyticsChart['series'] | null {
   if (!Array.isArray(value) || value.length === 0) {
     return null;
@@ -56,17 +66,18 @@ function parseChartSeries(value: unknown): RecruitmentAnalyticsChart['series'] |
 
     const key = item.key.trim();
     const label = item.label.trim();
-    if (!key || !label || keys.has(key)) {
+    if (!SERIES_KEY_RE.test(key) || !label || keys.has(key)) {
       return null;
     }
+
+    const color =
+      typeof item.color === 'string' ? normalizeChartColor(item.color) : null;
 
     keys.add(key);
     series.push({
       key,
       label,
-      ...(typeof item.color === 'string' && item.color.trim()
-        ? { color: item.color }
-        : {}),
+      ...(color ? { color } : {}),
     });
   }
 
@@ -87,6 +98,12 @@ export function normalizeRecruitmentAnalyticsChart(
     typeof title !== 'string' ||
     xKey !== 'label'
   ) {
+    return null;
+  }
+
+  const normalizedId = id.trim();
+  const normalizedTitle = title.trim();
+  if (!normalizedId || !normalizedTitle) {
     return null;
   }
 
@@ -116,9 +133,9 @@ export function normalizeRecruitmentAnalyticsChart(
   }
 
   return {
-    id: id.trim(),
+    id: normalizedId,
     kind,
-    title: title.trim(),
+    title: normalizedTitle,
     ...(typeof description === 'string' && description.trim()
       ? { description: description.trim() }
       : {}),

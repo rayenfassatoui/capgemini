@@ -25,6 +25,11 @@ import { getToolsForRole } from "./agent-tools";
 import { getNvidiaClient } from "./ai";
 import { buildAgentEvidenceMetadata } from "./agent-evidence";
 import { buildAnalyticsChartsFromToolRecords } from "./chat-analytics-charts";
+import {
+  buildRecruitmentMermaidDiagramFromToolRecords,
+  normalizeMermaidCodeFences,
+  stripMermaidCodeFences,
+} from "./chat-analytics-diagrams";
 import { buildResponseCardsFromToolRecords } from "./chat-response-cards";
 import {
   executeConfirmedActionIfRequested,
@@ -54,6 +59,14 @@ import {
   isCreativeOffTopicRequest,
   isRecruitmentWorkRequest,
 } from "./statistics-chat-prompt";
+import {
+  buildAgentSkillPrompt,
+  buildMissingToolRetryMessage,
+  selectMissingToolRecoveryToolNames,
+  selectAgentRuntimeSkills,
+  selectToolNamesForSkills,
+  shouldRetryForMissingToolUse,
+} from "./statistics-chat-skills";
 import {
   MAX_AGENT_STEPS,
   type LLMMessage,
@@ -134,10 +147,16 @@ export async function handleStatisticsChatPost(
   const lastMessageText =
     lastUserMessage?.role === "user" ? lastUserMessage.content : "";
 
+  const hasAttachments = Boolean(attachments?.length);
   const preflight = classifyChatIntent(
     lastMessageText,
-    Boolean(attachments?.length),
+    hasAttachments,
   );
+  const selectedSkills = selectAgentRuntimeSkills({
+    message: lastMessageText,
+    role,
+    hasAttachments,
+  });
 
   const encoder = new TextEncoder();
   const conversationId = conversation.id;
@@ -201,15 +220,25 @@ export async function handleStatisticsChatPost(
           cards,
         });
 
-        const responseText = ensureAgenticResponseStructure({
-          text: grounded.text,
-          userMessage: lastMessageText,
-          role,
-          records: toolExecutionHistory,
-        });
+        const responseText = normalizeMermaidCodeFences(
+          ensureAgenticResponseStructure({
+            text: grounded.text,
+            userMessage: lastMessageText,
+            role,
+            records: toolExecutionHistory,
+          }),
+        );
+
+        const diagram = buildRecruitmentMermaidDiagramFromToolRecords(
+          toolExecutionHistory,
+          { question: lastMessageText },
+        );
+        const responseWithDiagram = diagram
+          ? `${stripMermaidCodeFences(responseText)}\n\n${diagram}`
+          : responseText;
 
         return appendChatResponseCardsToContent(
-          appendChatChartsToContent(responseText, charts),
+          appendChatChartsToContent(responseWithDiagram, charts),
           cards,
         );
       };
@@ -307,7 +336,6 @@ export async function handleStatisticsChatPost(
           return;
         }
 
-        const hasAttachments = Boolean(attachments?.length);
         const isOffTopicCreative =
           !hasAttachments &&
           preflight.intent === "agent" &&
@@ -341,11 +369,20 @@ export async function handleStatisticsChatPost(
           return;
         }
 
-        const tools = getToolsForRole(role);
+        const selectedToolNames = selectToolNamesForSkills(selectedSkills);
+        let tools = getToolsForRole(role, { toolNames: selectedToolNames });
+        if (tools.length === 0) {
+          tools = getToolsForRole(role);
+        }
+        const activeToolNames = tools.map((tool) => tool.function.name);
         const systemPrompt = buildStatisticsChatSystemPrompt({
           role,
           today: new Date().toISOString().split("T")[0],
           attachments,
+          skillInstructions: buildAgentSkillPrompt(
+            selectedSkills,
+            activeToolNames,
+          ),
         });
 
         const shouldMinimizeHistory =
@@ -369,6 +406,8 @@ export async function handleStatisticsChatPost(
         let consecutiveToolFailures = 0;
         let sawMutatingTool = false;
         let llmRetryUsed = false;
+        let missingToolRetryUsed = false;
+        let missingToolRecoveryUsed = false;
 
         let step = 0;
         while (step < MAX_AGENT_STEPS) {
@@ -421,6 +460,115 @@ export async function handleStatisticsChatPost(
 
           if (!toolCalls || toolCalls.length === 0) {
             const textContent = message?.content ?? "";
+            if (
+              !missingToolRetryUsed &&
+              shouldRetryForMissingToolUse({
+                message: lastMessageText,
+                skills: selectedSkills,
+                availableToolNames: activeToolNames,
+                toolExecutionCount: toolExecutionHistory.length,
+              })
+            ) {
+              missingToolRetryUsed = true;
+              llmMessages.push({
+                role: "assistant",
+                content: textContent || "I attempted to answer without tools.",
+              });
+              llmMessages.push({
+                role: "user",
+                content: buildMissingToolRetryMessage(
+                  selectedSkills,
+                  activeToolNames,
+                ),
+              });
+              continue;
+            }
+
+            const recoveryToolNames = selectMissingToolRecoveryToolNames({
+              skills: selectedSkills,
+              availableToolNames: activeToolNames,
+            });
+            if (
+              !missingToolRecoveryUsed &&
+              toolExecutionHistory.length === 0 &&
+              recoveryToolNames.length > 0
+            ) {
+              missingToolRecoveryUsed = true;
+              const recoveryToolCalls: ResponseToolCall[] = recoveryToolNames.map(
+                (toolName, index) => ({
+                  id: `missing-tool-recovery-${step}-${index}`,
+                  type: "function",
+                  function: { name: toolName, arguments: "{}" },
+                }),
+              );
+
+              llmMessages.push({
+                role: "assistant",
+                content: null,
+                tool_calls: recoveryToolCalls,
+              });
+
+              queueToolCalls({
+                toolCalls: recoveryToolCalls,
+                attachments,
+                toolExecutionCache,
+                controller,
+                encoder,
+              });
+
+              const recoveryResult = await executeToolCalls({
+                toolCalls: recoveryToolCalls,
+                attachments,
+                toolExecutionCache,
+                toolExecutionHistory,
+                llmMessages,
+                controller,
+                encoder,
+                userId: session.user.id,
+                role,
+                conversationId,
+                prepareGroundedResponse,
+                persistAssistantMessage: async (text: string) => {
+                  await saveChatMessage(
+                    conversationId,
+                    session.user.id,
+                    "assistant",
+                    text,
+                  );
+                },
+                consecutiveToolFailures,
+                sawMutatingTool,
+              });
+
+              consecutiveToolFailures = recoveryResult.consecutiveToolFailures;
+              sawMutatingTool = recoveryResult.sawMutatingTool;
+              if (recoveryResult.fullResponse) {
+                fullResponse = recoveryResult.fullResponse;
+              }
+
+              if (recoveryResult.shouldReturn) {
+                return;
+              }
+
+              if (recoveryResult.shouldBreakLoop) {
+                if (fullResponse) {
+                  await streamImmediateText(
+                    controller,
+                    encoder,
+                    `\n\n${fullResponse}`,
+                  );
+                }
+                break;
+              }
+
+              const recoveryFallback =
+                buildDeterministicFallbackFromRecords(toolExecutionHistory) ??
+                "I fetched the required tools, but could not build a deterministic summary.";
+              fullResponse = prepareGroundedResponse(recoveryFallback);
+              await streamImmediateText(controller, encoder, fullResponse);
+              break;
+            }
+
             if (textContent) {
               const finalizedText = prepareGroundedResponse(textContent);
               llmMessages.push({

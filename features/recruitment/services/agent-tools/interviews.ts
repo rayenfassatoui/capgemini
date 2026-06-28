@@ -224,7 +224,7 @@ export const definitions: AgentToolDefinition[] = [
           description: 'Overall evaluation summary (optional)',
         },
         score: {
-          type: 'string',
+          type: 'number',
           description: 'Score from 0-100',
         },
         decision: {

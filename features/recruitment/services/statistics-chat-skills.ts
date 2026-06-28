@@ -1,0 +1,517 @@
+import type { UserRole } from "../types";
+
+export type AgentRuntimeSkillId =
+  | "evidence-discipline"
+  | "recruitment-triage"
+  | "analytics-visualization"
+  | "cv-search"
+  | "job-matching"
+  | "job-authoring"
+  | "workflow-actions"
+  | "interview-operations"
+  | "communication"
+  | "governance-admin"
+  | "attachment-processing"
+  | "onboarding";
+
+export interface AgentRuntimeSkill {
+  id: AgentRuntimeSkillId;
+  title: string;
+  description: string;
+  triggers: readonly RegExp[];
+  toolNames: readonly string[];
+  instructions: readonly string[];
+  requiresFreshTools: boolean;
+  roles?: readonly UserRole[];
+}
+
+interface SelectAgentRuntimeSkillsParams {
+  message: string;
+  role: UserRole;
+  hasAttachments: boolean;
+}
+
+interface MissingToolRetryParams {
+  message: string;
+  skills: readonly AgentRuntimeSkill[];
+  availableToolNames: readonly string[];
+  toolExecutionCount: number;
+}
+
+interface MissingToolRecoveryParams {
+  skills: readonly AgentRuntimeSkill[];
+  availableToolNames: readonly string[];
+}
+
+const RECRUITMENT_TRIAGE_RE =
+  /\b(recruit(?:ment|ing)?|talent|candidate|candidates|cv|cvs|resume|resumes|job|jobs|pipeline|screening|interview|interviews|hire|hiring|onboarding|offer|skills?|seniority|profile|profiles)\b/i;
+
+const EVIDENCE_DISCIPLINE_SKILL: AgentRuntimeSkill = {
+  id: "evidence-discipline",
+  title: "Evidence-first reasoning",
+  description:
+    "Separate observed tool evidence from inference and refuse unsupported claims.",
+  triggers: [/.*/],
+  toolNames: [],
+  instructions: [
+    "State the decision first, then cite the concrete tool values that support it.",
+    "Mark missing data as a caveat instead of filling gaps from prior chat text.",
+    "If the answer would mention candidates, jobs, CVs, interviews, or statistics, use fresh tools first.",
+  ],
+  requiresFreshTools: false,
+};
+
+const DOMAIN_SKILLS: readonly AgentRuntimeSkill[] = [
+  {
+    id: "analytics-visualization",
+    title: "Analytics and diagram generation",
+    description:
+      "Fetch dashboard/statistics evidence and let deterministic chart or Mermaid renderers visualize it.",
+    triggers: [
+      /\b(dashboard|overview|stat(?:s|istics)?|analytics?|kpi|trend|tendance|courbe|chart|graph|graphique|diagram|diagramme|diagrames|mermaid|visuali[sz]e|pipeline|funnel|skill gap|gap)\b/i,
+    ],
+    toolNames: [
+      "get_dashboard_stats",
+      "get_smart_insights",
+      "get_cv_pool_stats",
+      "get_jobs_stats",
+      "get_recruitment_analytics",
+    ],
+    instructions: [
+      "Call analytics tools before writing any metric, chart, diagram, trend, or funnel answer.",
+      "For chart requests, rely on deterministic chart cards generated from tool records; do not invent chart JSON.",
+      "For diagram requests, fetch pipeline data so the renderer can build a valid Mermaid flowchart from real counts.",
+    ],
+    requiresFreshTools: true,
+  },
+  {
+    id: "cv-search",
+    title: "CV and profile search",
+    description:
+      "Search CVs semantically and ground candidate rows in retrieved profile data.",
+    triggers: [
+      /\b(cv|cvs|resume|resumes|profile|profiles|candidate|candidates|skill|skills|competence|talent|developer|engineer|consultant|find|search|rank|top|best|shortlist)\b/i,
+    ],
+    toolNames: [
+      "rag_search_cvs",
+      "semantic_search_cvs",
+      "search_cv_pool",
+      "list_cv_pool",
+      "get_cv_details",
+      "get_candidates_by_stage",
+      "get_candidate",
+    ],
+    instructions: [
+      "Prefer rag_search_cvs for natural-language searches; fall back to semantic_search_cvs only if needed.",
+      "Candidate table rows must come from current tool results only.",
+      "Use get_cv_details or get_candidate when a single profile needs deeper evidence.",
+    ],
+    requiresFreshTools: true,
+  },
+  {
+    id: "job-matching",
+    title: "Job matching and shortlist scoring",
+    description:
+      "Resolve jobs, match CVs against requirements, compare candidates, and explain fit gaps.",
+    triggers: [
+      /\b(match|matching|fit|score|shortlist|best\s+match|top\s+candidates?|requirements?|must-have|nice-to-have|assign|screening|screen)\b/i,
+    ],
+    toolNames: [
+      "list_jobs",
+      "get_job",
+      "match_cvs_to_job",
+      "match_cvs_to_job_with_filters",
+      "hybrid_search_cvs",
+      "compare_candidates",
+      "get_candidates_by_job",
+      "get_candidate",
+      "generate_screening",
+      "get_screening",
+      "bulk_assign_cvs_to_job",
+      "assign_cv_to_job",
+    ],
+    instructions: [
+      "Resolve job IDs through list_jobs or get_job before match tools.",
+      "Use match_cvs_to_job or hybrid_search_cvs before ranking fit.",
+      "Use compare_candidates for explicit comparisons instead of manually synthesizing rankings.",
+    ],
+    requiresFreshTools: true,
+  },
+  {
+    id: "job-authoring",
+    title: "Job authoring and optimization",
+    description:
+      "Generate, create, template, close, or optimize job requirements with validation.",
+    triggers: [
+      /\b(create|new|generate|write|publish|close|template|optimi[sz]e|improve|review).*\b(job|requirement|description|role|position)\b/i,
+      /\b(job|requirement|description|role|position).*\b(create|new|generate|write|publish|close|template|optimi[sz]e|improve|review)\b/i,
+    ],
+    toolNames: [
+      "list_jobs",
+      "get_job",
+      "generate_job_description",
+      "create_job",
+      "ai_optimize_job_requirements",
+      "save_job_as_template",
+      "list_job_templates",
+      "create_job_from_template",
+      "close_job",
+    ],
+    instructions: [
+      "Ask for missing title or seniority before creating a job; do not invent core fields.",
+      "Generate a job description before create_job when the user asks for a new job from a short brief.",
+      "For optimization, fetch the existing job before recommending edits.",
+    ],
+    requiresFreshTools: true,
+  },
+  {
+    id: "workflow-actions",
+    title: "Candidate workflow actions",
+    description:
+      "Move candidates, add notes, assign CVs, and keep mutating operations confirmation-safe.",
+    triggers: [
+      /\b(move|update|stage|advance|reject|accept|assign|bulk|note|notes|workflow|pipeline action)\b/i,
+    ],
+    toolNames: [
+      "get_candidates_by_job",
+      "get_candidates_by_stage",
+      "get_candidate",
+      "update_candidate_stage",
+      "bulk_update_candidate_stage",
+      "assign_cv_to_job",
+      "add_candidate_note",
+      "get_candidate_notes",
+      "list_jobs",
+    ],
+    instructions: [
+      "Resolve candidate IDs through candidate list/detail tools before mutating tools.",
+      "Summarize exactly what will change before a confirmation-gated mutating action.",
+      "Never use display names as IDs.",
+    ],
+    requiresFreshTools: true,
+  },
+  {
+    id: "interview-operations",
+    title: "Interview operations",
+    description:
+      "Generate interview kits, inspect calendars/reports, and schedule or reschedule interviews.",
+    triggers: [
+      /\b(interview|calendar|schedule|reschedule|cancel|question|questions|guide|scorecard|report|debrief|meeting|meet)\b/i,
+    ],
+    toolNames: [
+      "get_candidates_by_job",
+      "get_candidates_by_stage",
+      "get_candidate",
+      "generate_interview_questions",
+      "get_interview_guide",
+      "schedule_interview",
+      "get_interview",
+      "get_today_interviews",
+      "get_interview_calendar",
+      "get_interview_report",
+      "get_interview_reports_by_candidate",
+      "reschedule_interview",
+      "cancel_interview",
+      "create_interview_report",
+      "ai_interview_debrief",
+      "predict_pipeline_score",
+    ],
+    instructions: [
+      "Resolve candidate and job IDs before generating interview material or scheduling.",
+      "Ask for missing date, time, stage, or meeting link before scheduling.",
+      "Use reports/debrief tools for post-interview analysis instead of guessing from memory.",
+    ],
+    requiresFreshTools: true,
+  },
+  {
+    id: "communication",
+    title: "Recruitment communication",
+    description:
+      "Generate candidate emails, send interview/rejection messages, inspect notifications, and export communication data.",
+    triggers: [
+      /\b(email|mail|message|invite|invitation|offer|rejection|notification|notify|export|csv|excel|xlsx|download)\b/i,
+    ],
+    toolNames: [
+      "generate_candidate_email",
+      "send_interview_invite_email",
+      "send_rejection_email",
+      "get_notifications",
+      "mark_notification_read",
+      "mark_all_notifications_read",
+      "export_candidates_csv",
+      "get_candidate",
+      "get_job",
+    ],
+    instructions: [
+      "Generate or fetch message context before sending communication.",
+      "Do not claim delivery beyond logged tool results.",
+      "Use export tools for file requests instead of describing a file manually.",
+    ],
+    requiresFreshTools: true,
+  },
+  {
+    id: "governance-admin",
+    title: "Admin governance and audit",
+    description:
+      "Inspect system overview, recruitment analytics, email logs, onboarding, and audit activity for admins.",
+    triggers: [
+      /\b(admin|governance|audit|activity|logs?|users?|roles?|permission|email logs?|system|onboarding overview|risk|risks?)\b/i,
+    ],
+    roles: ["admin"],
+    toolNames: [
+      "get_system_overview",
+      "get_recruitment_analytics",
+      "get_email_logs",
+      "get_onboarding_overview",
+      "get_onboarding_detailed",
+      "get_activity_log_enriched",
+      "get_activity_log",
+      "export_email_logs",
+      "export_onboarding",
+      "generate_candidate_accept_excel",
+    ],
+    instructions: [
+      "Separate observed audit facts from inferred governance risks.",
+      "Call admin evidence tools before drawing conclusions about users, email delivery, onboarding, or activity.",
+      "State source limits when logs do not include provider, bounce, SLA, or before/after data.",
+    ],
+    requiresFreshTools: true,
+  },
+  {
+    id: "attachment-processing",
+    title: "Attachment and CV upload processing",
+    description:
+      "Process attached CV files, upload them, and check duplicate risk.",
+    triggers: [/\b(upload|attach|attached|file|pdf|docx|process\s+cv|parse\s+cv)\b/i],
+    toolNames: [
+      "upload_cv",
+      "check_duplicate_cv",
+      "scan_pool_duplicates",
+      "get_cv_details",
+      "list_cv_pool",
+    ],
+    instructions: [
+      "When attachments exist and the user asks to process a CV, call upload_cv with attachmentIndex 0 unless they specify another attachment.",
+      "After upload, check duplicate risk before recommending next actions.",
+      "Never expose raw attachment bytes in the final answer.",
+    ],
+    requiresFreshTools: true,
+  },
+  {
+    id: "onboarding",
+    title: "Onboarding checklist operations",
+    description:
+      "Inspect and update onboarding tasks for hired candidates.",
+    triggers: [/\b(onboarding|checklist|task|tasks|hired|starter|start date)\b/i],
+    toolNames: [
+      "get_candidates_by_stage",
+      "get_candidate",
+      "get_onboarding_checklist",
+      "toggle_onboarding_task",
+      "add_onboarding_task",
+    ],
+    instructions: [
+      "Resolve the hired candidate before checklist operations.",
+      "Use checklist tools for task state; do not infer task completion from chat text.",
+      "Confirmation-gated updates must say which task changes.",
+    ],
+    requiresFreshTools: true,
+  },
+];
+
+const TRIAGE_SKILL: AgentRuntimeSkill = {
+  id: "recruitment-triage",
+  title: "Recruitment triage",
+  description:
+    "Default recruitment investigation path when the user asks a broad domain question.",
+  triggers: [RECRUITMENT_TRIAGE_RE],
+  toolNames: [
+    "get_dashboard_stats",
+    "get_smart_insights",
+    "list_jobs",
+    "get_candidates_by_stage",
+    "rag_search_cvs",
+  ],
+  instructions: [
+    "Start with the smallest evidence set that can answer the question.",
+    "If the user asks a broad status question, fetch dashboard and insight tools first.",
+    "If the user asks about people or profiles, switch to CV/candidate search tools.",
+  ],
+  requiresFreshTools: true,
+};
+
+const MISSING_TOOL_RECOVERY_PLAN: Partial<
+  Record<AgentRuntimeSkillId, readonly string[]>
+> = {
+  "analytics-visualization": [
+    "get_dashboard_stats",
+    "get_smart_insights",
+  ],
+  "recruitment-triage": [
+    "get_dashboard_stats",
+    "get_smart_insights",
+  ],
+  "cv-search": ["list_cv_pool"],
+  "job-matching": ["list_jobs"],
+  "job-authoring": ["list_jobs"],
+  "workflow-actions": ["get_candidates_by_stage"],
+  "interview-operations": ["get_today_interviews"],
+  communication: ["get_email_logs"],
+  "governance-admin": ["get_system_overview"],
+  onboarding: ["get_candidates_by_stage"],
+};
+
+function pushUniqueSkill(
+  skills: AgentRuntimeSkill[],
+  skill: AgentRuntimeSkill,
+) {
+  if (!skills.some((item) => item.id === skill.id)) {
+    skills.push(skill);
+  }
+}
+
+
+export function selectAgentRuntimeSkills({
+  message,
+  role,
+  hasAttachments,
+}: SelectAgentRuntimeSkillsParams): AgentRuntimeSkill[] {
+  const skills: AgentRuntimeSkill[] = [EVIDENCE_DISCIPLINE_SKILL];
+  const normalized = message.trim();
+
+  for (const skill of DOMAIN_SKILLS) {
+    if (skill.roles && !skill.roles.includes(role)) {
+      continue;
+    }
+
+    const attachmentTriggered =
+      skill.id === "attachment-processing" && hasAttachments;
+    const textTriggered = skill.triggers.some((trigger) =>
+      trigger.test(normalized),
+    );
+
+    if (attachmentTriggered || textTriggered) {
+      pushUniqueSkill(skills, skill);
+    }
+  }
+
+  const hasFreshToolSkill = skills.some((skill) => skill.requiresFreshTools);
+  if (!hasFreshToolSkill && RECRUITMENT_TRIAGE_RE.test(normalized)) {
+    pushUniqueSkill(skills, TRIAGE_SKILL);
+  }
+
+  return skills;
+}
+
+export function selectToolNamesForSkills(
+  skills: readonly AgentRuntimeSkill[],
+): string[] {
+  const names = new Set<string>();
+  for (const skill of skills) {
+    for (const toolName of skill.toolNames) {
+      names.add(toolName);
+    }
+  }
+
+  return Array.from(names);
+}
+
+export function selectMissingToolRecoveryToolNames({
+  skills,
+  availableToolNames,
+}: MissingToolRecoveryParams): string[] {
+  const availableTools = new Set(availableToolNames);
+  const recoveryToolNames = new Set<string>();
+
+  for (const skill of skills) {
+    if (!skill.requiresFreshTools) {
+      continue;
+    }
+
+    const plannedToolNames = MISSING_TOOL_RECOVERY_PLAN[skill.id] ?? [];
+    for (const toolName of plannedToolNames) {
+      if (availableTools.has(toolName)) {
+        recoveryToolNames.add(toolName);
+      }
+    }
+  }
+
+  return Array.from(recoveryToolNames);
+}
+
+export function buildAgentSkillPrompt(
+  skills: readonly AgentRuntimeSkill[],
+  availableToolNames: readonly string[],
+): string {
+  const availableTools = new Set(availableToolNames);
+  const activeSkills = skills.filter(
+    (skill) =>
+      !skill.requiresFreshTools ||
+      skill.toolNames.some((toolName) => availableTools.has(toolName)),
+  );
+
+  if (activeSkills.length === 0) {
+    return "";
+  }
+
+  const blocks = activeSkills.map((skill) => {
+    const tools = skill.toolNames.filter((toolName) => availableTools.has(toolName));
+    const toolLine =
+      tools.length > 0 ? `Available tools: ${tools.join(", ")}` : "Available tools: none";
+
+    return [
+      `Skill: ${skill.title} (${skill.id})`,
+      `Purpose: ${skill.description}`,
+      toolLine,
+      "Steps:",
+      ...skill.instructions.map((instruction, index) =>
+        `${index + 1}. ${instruction}`,
+      ),
+    ].join("\n");
+  });
+
+  return [
+    "",
+    "═══════════════════════════════════════",
+    "SECTION 11: DYNAMIC AGENT SKILLS",
+    "═══════════════════════════════════════",
+    "The application selected these runtime skills for this user request. Follow them in order; they are not optional style guidance.",
+    "",
+    ...blocks,
+  ].join("\n\n");
+}
+
+export function shouldRetryForMissingToolUse({
+  message,
+  skills,
+  availableToolNames,
+  toolExecutionCount,
+}: MissingToolRetryParams): boolean {
+  if (toolExecutionCount > 0 || availableToolNames.length === 0) {
+    return false;
+  }
+
+  const hasToolRequiredSkill = skills.some(
+    (skill) =>
+      skill.requiresFreshTools &&
+      skill.toolNames.some((toolName) => availableToolNames.includes(toolName)),
+  );
+
+  return hasToolRequiredSkill && RECRUITMENT_TRIAGE_RE.test(message);
+}
+
+export function buildMissingToolRetryMessage(
+  skills: readonly AgentRuntimeSkill[],
+  availableToolNames: readonly string[],
+): string {
+  const requiredSkillNames = skills
+    .filter((skill) => skill.requiresFreshTools)
+    .map((skill) => skill.title);
+
+  return [
+    "The previous draft used no tools, so it is not grounded enough to send.",
+    `Selected skills: ${requiredSkillNames.join(", ") || "Evidence-first reasoning"}.`,
+    `Available tools: ${availableToolNames.join(", ")}.`,
+    "Call the smallest necessary tool set now, then answer from those results. Do not provide another final answer before tool evidence exists.",
+  ].join("\n");
+}

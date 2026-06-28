@@ -3,10 +3,10 @@ import type { UserRole } from '../../types';
 // ---- Tool definition types ----
 
 export interface AgentToolParameter {
-  type: string;
+  type: 'string' | 'number' | 'boolean' | 'array' | 'object';
   description: string;
   enum?: string[];
-  items?: { type: string };
+  items?: { type: 'string' | 'number' | 'boolean' | 'object' };
 }
 
 export interface AgentToolDefinition {

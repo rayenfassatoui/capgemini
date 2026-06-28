@@ -91,7 +91,8 @@ const DonutChart = React.forwardRef<HTMLDivElement, DonutChartProps>(
             cy={size / 2}
             r={radius}
             fill="transparent"
-            stroke="hsl(var(--border) / 0.5)"
+            stroke="var(--border)"
+            strokeOpacity={0.5}
             strokeWidth={strokeWidth}
           />
 

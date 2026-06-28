@@ -121,6 +121,8 @@ describe('agent evaluation suite', () => {
     expect(prompt).toContain('list_jobs → hybrid_search_cvs(jobId)');
     expect(prompt).toContain('NEVER: list_cv_pool alone (ignores job requirements)');
     expect(prompt).toContain('ALL numeric tool arguments (limit, count, threshold, score) must be passed as numbers');
+    expect(prompt).toContain('Distinguish CV pool from pipeline candidates');
+    expect(prompt).toContain('get_cv_pool_stats (CV pool size and skills)');
   });
 
   it('blocks creative off-topic work while preserving recruitment requests', () => {

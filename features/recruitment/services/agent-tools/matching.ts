@@ -44,7 +44,7 @@ export const definitions: AgentToolDefinition[] = [
           items: { type: 'string' },
         },
         minPositions: {
-          type: 'string',
+          type: 'number',
           description:
             'Filter: minimum number of past positions/experiences (as number)',
         },
@@ -108,7 +108,7 @@ export const definitions: AgentToolDefinition[] = [
           description: 'UUID of the job to assign CVs to',
         },
         count: {
-          type: 'string',
+          type: 'number',
           description: 'Number of top CVs to assign (default: 5)',
         },
       },
@@ -130,12 +130,12 @@ export const definitions: AgentToolDefinition[] = [
             'Natural language description of the ideal candidate profile, skills, or experience to search for',
         },
         limit: {
-          type: 'string',
+          type: 'number',
           description:
             'Maximum number of results to return (default: 10, max: 30)',
         },
         threshold: {
-          type: 'string',
+          type: 'number',
           description:
             'Cosine distance threshold (0-1, lower = stricter match). Default: 0.6. Use 0.4 for strict matches, 0.8 for broad matches.',
         },
@@ -157,7 +157,7 @@ export const definitions: AgentToolDefinition[] = [
           description: 'UUID of the job to match against',
         },
         limit: {
-          type: 'string',
+          type: 'number',
           description: 'Maximum number of results to return (default: 20)',
         },
       },
@@ -178,7 +178,7 @@ export const definitions: AgentToolDefinition[] = [
           description: 'Natural language search query describing the ideal candidate',
         },
         limit: {
-          type: 'string',
+          type: 'number',
           description: 'Maximum number of chunks to return (default: 15, max: 20)',
         },
       },

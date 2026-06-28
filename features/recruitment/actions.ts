@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { requireRole } from '@/lib/auth';
 import { waitUntil } from '@vercel/functions';
-import { ZodError } from 'zod';
+import * as z from 'zod/v3';
 import type {
   CreateJobInput,
   UploadCvInput,
@@ -18,7 +18,7 @@ import type {
 // ---------- Error Handling Utility ----------
 
 function handleActionError(error: unknown): never {
-  if (error instanceof ZodError) {
+  if (error instanceof z.ZodError) {
     throw new Error(`Validation failed: ${error.errors.map(e => e.message).join(', ')}`);
   }
   if (error instanceof Error) {

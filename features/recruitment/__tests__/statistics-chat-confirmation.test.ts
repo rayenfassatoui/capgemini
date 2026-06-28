@@ -2,25 +2,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('server-only', () => ({}));
 
-vi.mock('../services/agent-tools', () => ({
-  executeAgentTool: vi.fn(),
-  getToolDefinition: vi.fn(),
-}));
 
-vi.mock('../services/pending-agent-actions', () => ({
-  cancelPendingAgentAction: vi.fn(),
-  confirmPendingAgentAction: vi.fn(),
-  createPendingAgentAction: vi.fn(),
-  markPendingAgentActionExecuted: vi.fn(),
-}));
-
-import { executeAgentTool, getToolDefinition } from '../services/agent-tools';
-import {
-  cancelPendingAgentAction,
-  confirmPendingAgentAction,
-  createPendingAgentAction,
-  markPendingAgentActionExecuted,
-} from '../services/pending-agent-actions';
+import * as agentTools from '../services/agent-tools';
+import * as pendingAgentActions from '../services/pending-agent-actions';
 import {
   executeConfirmedActionIfRequested,
   requestAgentActionConfirmation,
@@ -63,16 +47,29 @@ function readEvents(text: string): CapturedEvent[] {
     });
 }
 
-const executeAgentToolMock = vi.mocked(executeAgentTool);
-const getToolDefinitionMock = vi.mocked(getToolDefinition);
-const cancelPendingAgentActionMock = vi.mocked(cancelPendingAgentAction);
-const confirmPendingAgentActionMock = vi.mocked(confirmPendingAgentAction);
-const createPendingAgentActionMock = vi.mocked(createPendingAgentAction);
-const markPendingAgentActionExecutedMock = vi.mocked(markPendingAgentActionExecuted);
+const executeAgentToolMock = vi.spyOn(agentTools, 'executeAgentTool');
+const getToolDefinitionMock = vi.spyOn(agentTools, 'getToolDefinition');
+const cancelPendingAgentActionMock = vi.spyOn(
+  pendingAgentActions,
+  'cancelPendingAgentAction',
+);
+const confirmPendingAgentActionMock = vi.spyOn(
+  pendingAgentActions,
+  'confirmPendingAgentAction',
+);
+const createPendingAgentActionMock = vi.spyOn(
+  pendingAgentActions,
+  'createPendingAgentAction',
+);
+const markPendingAgentActionExecutedMock = vi.spyOn(
+  pendingAgentActions,
+  'markPendingAgentActionExecuted',
+);
 
 describe('statistics chat confirmation flow', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    markPendingAgentActionExecutedMock.mockResolvedValue(undefined);
   });
 
   it('ignores requests without a confirmation decision', async () => {
@@ -99,6 +96,9 @@ describe('statistics chat confirmation flow', () => {
     cancelPendingAgentActionMock.mockResolvedValue({
       id: 'action-1',
       toolName: 'close_job',
+      summary: 'Close job',
+      args: {},
+      expiresAt: new Date('2030-01-01T00:00:00.000Z'),
     });
 
     const { controller, chunks } = createStreamCapture();
@@ -134,12 +134,14 @@ describe('statistics chat confirmation flow', () => {
     confirmPendingAgentActionMock.mockResolvedValue({
       id: 'action-1',
       toolName: 'export_candidate_report',
+      summary: 'Export candidate report',
       args: { candidateId: 'candidate-1' },
+      expiresAt: new Date('2030-01-01T00:00:00.000Z'),
     });
     getToolDefinitionMock.mockReturnValue({
       name: 'export_candidate_report',
       description: 'Export candidate report',
-      parameters: {},
+      parameters: { type: 'object', properties: {}, required: [] },
       allowedRoles: ['admin'],
       mutating: false,
     });
@@ -247,6 +249,7 @@ describe('statistics chat confirmation flow', () => {
       toolName: 'bulk_update_candidate_stage',
       summary:
         'Update recruitment workflow state. This action can change recruitment data and needs your explicit confirmation.',
+      args: { candidateIds: ['candidate-1'], stage: 'hr_interview' },
       expiresAt: new Date('2030-01-01T00:00:00.000Z'),
     });
 

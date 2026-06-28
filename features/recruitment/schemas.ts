@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import * as z from 'zod/v3';
 import { GOVERNANCE_AUDIT_STATUSES } from './types';
 
 // ---------- Enums ----------

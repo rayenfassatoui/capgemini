@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildAllowedCandidatesFromToolRecords,
   groundAssistantResponse,
+  isCandidateSearchOrRankingIntent,
   validateGroundedCandidateNames,
   type GroundingToolRecord,
 } from "../services/candidate-grounding";
@@ -145,6 +146,50 @@ describe("candidate name grounding guard", () => {
     expect(grounded.text).not.toContain("Maria Garcia");
   });
 
+
+  it("does not replace analytics summaries that do not ask for candidates", () => {
+    const grounded = groundAssistantResponse(
+      [
+        "Lobb el mochkol: TA Interview is the largest visible stage.",
+        "## Evidence",
+        "- Total Jobs: 5.",
+        "- Manager Interview has 1 candidate.",
+      ].join("\n"),
+      [
+        {
+          toolName: "get_dashboard_stats",
+          result: {
+            success: true,
+            data: {
+              totalCandidates: 8,
+              totalJobs: 5,
+              pendingScreenings: 0,
+            },
+          },
+        },
+      ],
+      {
+        userMessage: "Show me the hiring funnel bottleneck",
+      },
+    );
+
+    expect(grounded.blocked).toBe(false);
+    expect(grounded.text).toContain("Lobb el mochkol");
+    expect(grounded.text).not.toContain(
+      "I couldn’t find any accessible candidates",
+    );
+  });
+
+  it("does not treat skill-demand chart comparisons as candidate ranking", () => {
+    expect(
+      isCandidateSearchOrRankingIntent(
+        "Compare CV pool skills with job demand and show charts",
+      ),
+    ).toBe(false);
+    expect(isCandidateSearchOrRankingIntent("Compare Ahmed vs Sarah")).toBe(
+      true,
+    );
+  });
   it("does not allow non-admin responses to reuse names absent from current user-scoped tool output", () => {
     const currentUserScopedRecords: GroundingToolRecord[] = [
       {

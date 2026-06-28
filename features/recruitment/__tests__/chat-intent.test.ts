@@ -16,6 +16,15 @@ describe('chat intent classification', () => {
     expect(result).toEqual({ intent: 'agent' });
   });
 
+
+  it('keeps skill-demand comparison prompts on the agent analytics path', () => {
+    const result = classifyChatIntent(
+      'Compare CV pool skills with job demand and show charts. Give me lobb el ghalta and actions.',
+    );
+
+    expect(result.intent).toBe('agent');
+    expect(result.candidateRefs).toBeUndefined();
+  });
   it('keeps explicit compare prompts on the dedicated compare path', () => {
     const result = classifyChatIntent('Compare Ahmed vs Sarah');
 

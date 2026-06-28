@@ -11,7 +11,7 @@ export const definitions: AgentToolDefinition[] = [
       type: 'object',
       properties: {
         limit: {
-          type: 'string',
+          type: 'number',
           description: 'Maximum number of entries to return (default 50)',
         },
       },
@@ -70,7 +70,7 @@ export const definitions: AgentToolDefinition[] = [
           description: 'UUID of the onboarding task',
         },
         completed: {
-          type: 'string',
+          type: 'boolean',
           description: 'true or false',
         },
       },
@@ -112,7 +112,7 @@ export const definitions: AgentToolDefinition[] = [
       type: 'object',
       properties: {
         limit: {
-          type: 'string',
+          type: 'number',
           description: 'Maximum number of entries to return (default 50)',
         },
       },

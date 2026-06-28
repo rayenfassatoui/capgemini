@@ -34,15 +34,15 @@ const chartConfig = {
 
 export function PipelineFunnelChart({ analytics }: { analytics: RecruitmentAnalytics }) {
   const data = [
-    { name: STAGE_LABELS.new, value: analytics.pipelineFunnel.new, fill: "hsl(var(--chart-1))" },
-    { name: STAGE_LABELS.ta_screening, value: analytics.pipelineFunnel.ta_screening, fill: "hsl(var(--chart-2))" },
-    { name: STAGE_LABELS.ta_interview, value: analytics.pipelineFunnel.ta_interview, fill: "hsl(var(--chart-3))" },
-    { name: STAGE_LABELS.ta_accepted, value: analytics.pipelineFunnel.ta_accepted, fill: "hsl(var(--chart-4))" },
-    { name: STAGE_LABELS.manager_interview, value: analytics.pipelineFunnel.manager_interview, fill: "hsl(var(--chart-5))" },
-    { name: STAGE_LABELS.manager_accepted, value: analytics.pipelineFunnel.manager_accepted, fill: "hsl(var(--chart-1))" },
-    { name: STAGE_LABELS.hr_interview, value: analytics.pipelineFunnel.hr_interview, fill: "hsl(var(--chart-2))" },
-    { name: STAGE_LABELS.hr_accepted, value: analytics.pipelineFunnel.hr_accepted, fill: "hsl(var(--chart-3))" },
-    { name: STAGE_LABELS.hired, value: analytics.pipelineFunnel.hired, fill: "hsl(var(--chart-4))" },
+    { name: STAGE_LABELS.new, value: analytics.pipelineFunnel.new, fill: "var(--chart-1)" },
+    { name: STAGE_LABELS.ta_screening, value: analytics.pipelineFunnel.ta_screening, fill: "var(--chart-2)" },
+    { name: STAGE_LABELS.ta_interview, value: analytics.pipelineFunnel.ta_interview, fill: "var(--chart-3)" },
+    { name: STAGE_LABELS.ta_accepted, value: analytics.pipelineFunnel.ta_accepted, fill: "var(--chart-4)" },
+    { name: STAGE_LABELS.manager_interview, value: analytics.pipelineFunnel.manager_interview, fill: "var(--chart-5)" },
+    { name: STAGE_LABELS.manager_accepted, value: analytics.pipelineFunnel.manager_accepted, fill: "var(--chart-1)" },
+    { name: STAGE_LABELS.hr_interview, value: analytics.pipelineFunnel.hr_interview, fill: "var(--chart-2)" },
+    { name: STAGE_LABELS.hr_accepted, value: analytics.pipelineFunnel.hr_accepted, fill: "var(--chart-3)" },
+    { name: STAGE_LABELS.hired, value: analytics.pipelineFunnel.hired, fill: "var(--chart-4)" },
   ];
 
   return (

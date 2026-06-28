@@ -114,6 +114,18 @@ export function normalizeCandidateNameLoose(value: string): string {
 
 export function isCandidateSearchOrRankingIntent(message: string): boolean {
   const normalized = String(message ?? "").toLowerCase();
+  const isSkillDemandComparison =
+    /\b(compare|comparison|gap|demand|supply)\b.*\b(cv\s+pool|job\s+demand|skills?)\b/.test(
+      normalized,
+    ) ||
+    /\b(cv\s+pool|job\s+demand|skills?)\b.*\b(compare|comparison|gap|demand|supply)\b/.test(
+      normalized,
+    );
+
+  if (isSkillDemandComparison) {
+    return false;
+  }
+
 
   return (
     /\b(transferable\s+skills?|top\s+\d*\s*candidates?|best\s+fit|best\s+candidates?|rank(?:ing|ed)?|shortlist|recommend(?:ation|ed)?|compare|comparison)\b/.test(
@@ -211,6 +223,22 @@ export function groundAssistantResponse(
     isRankingFlow ||
     allowedCandidates.candidates.length > 0 ||
     isExplicitNamedSearchIntent(options.userMessage);
+  const needsCandidateGuard =
+    isRankingFlow ||
+    allowedCandidates.candidates.length > 0 ||
+    isExplicitNamedSearchIntent(options.userMessage);
+
+  if (!needsCandidateGuard) {
+    return {
+      text: rawText,
+      blocked: false,
+      deterministic: false,
+      candidateCount: 0,
+      rejectedNames: [],
+      sourceTools: [],
+    };
+  }
+
 
   if (isRankingFlow) {
     const validation = validateGroundedCandidateNames(

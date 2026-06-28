@@ -71,7 +71,7 @@ describe("ChatMessageList", () => {
             tone: "warning",
             sourceTool: "get_dashboard_stats",
             metrics: [
-              { label: "Candidates", value: "12" },
+              { label: "Pipeline candidates", value: "12" },
               { label: "Pending screenings", value: "4", tone: "warning" },
             ],
             bullets: ["TA Screening has 5 candidates."],

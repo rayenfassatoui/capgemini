@@ -22,15 +22,15 @@ const chartConfig = {
   },
   ta_rejected: {
     label: "TA Rejected",
-    color: "hsl(var(--chart-1))",
+    color: "var(--chart-1)",
   },
   manager_rejected: {
     label: "Manager Rejected",
-    color: "hsl(var(--chart-2))",
+    color: "var(--chart-2)",
   },
   hr_rejected: {
     label: "HR Rejected",
-    color: "hsl(var(--chart-3))",
+    color: "var(--chart-3)",
   },
 };
 

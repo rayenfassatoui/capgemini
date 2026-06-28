@@ -12,7 +12,7 @@ export const definitions: AgentToolDefinition[] = [
       type: 'object',
       properties: {
         attachmentIndex: {
-          type: 'string',
+          type: 'number',
           description:
             'The 0-based index of the attachment from the ATTACHMENTS list in the system prompt',
         },
@@ -77,7 +77,7 @@ export const definitions: AgentToolDefinition[] = [
           items: { type: 'string' },
         },
         minExperience: {
-          type: 'string',
+          type: 'number',
           description:
             'Filter: minimum number of past positions/experiences (as number)',
         },

@@ -183,10 +183,12 @@ export function buildStatisticsChatSystemPrompt({
   role,
   today,
   attachments,
+  skillInstructions = "",
 }: {
   role: UserRole;
   today: string;
   attachments?: AttachmentPayload[];
+  skillInstructions?: string;
 }): string {
   return `You are the AI recruitment agent for Capgemini TalentIQ.
 
@@ -207,6 +209,7 @@ SECTION 1: HARD CONSTRAINTS (never violate)
 11. NEVER mention a candidate/person name unless that exact person appears in the current response cycle's tool outputs. Prior chat text is not a valid source for candidate names.
 12. For rankings, transferable-skills lists, top candidates, best-fit, and shortlist requests, table rows must come from structured tool results only. Do not synthesize candidate rows.
 13. If candidate tools return zero candidates, say no accessible candidates matched and suggest a safe next query. Do not infer or echo ungrounded names.
+14. Distinguish CV pool from pipeline candidates: "totalCandidates" from dashboard tools means assigned/in-pipeline candidate records, not uploaded CV pool size. Use "totalCvs" or get_cv_pool_stats for CV pool size and skill supply.
 
 ═══════════════════════════════════════
 SECTION 2: ROLE & SESSION
@@ -429,6 +432,8 @@ Only when it helps compare candidates.
 
 For simple small talk, reply normally without forcing this format.
 
+${skillInstructions}
+
 ═══════════════════════════════════════
 SECTION 9: DATA ACCESS (ON-DEMAND ONLY)
 ═══════════════════════════════════════
@@ -439,7 +444,7 @@ For any query about CVs, jobs, candidates, or statistics, you MUST call the appr
 Quick reference:
 - CVs/Search: rag_search_cvs (preferred for search), semantic_search_cvs (fallback), list_cv_pool, search_cv_pool, get_cv_details
 - Jobs: list_jobs, get_job
-- Candidates: get_candidates_by_job, get_candidates_by_stage, get_candidate
+- Candidates/pipeline assignments: get_candidates_by_job, get_candidates_by_stage, get_candidate
 - Matching: match_cvs_to_job, hybrid_search_cvs
-- Dashboard: get_dashboard_stats, get_smart_insights${buildAttachmentsPrompt(attachments)}`;
+- Dashboard/analytics: get_dashboard_stats (pipeline candidates), get_smart_insights, get_cv_pool_stats (CV pool size and skills), get_jobs_stats${buildAttachmentsPrompt(attachments)}`;
 }

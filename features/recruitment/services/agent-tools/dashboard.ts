@@ -6,7 +6,7 @@ export const definitions: AgentToolDefinition[] = [
   {
     name: 'get_dashboard_stats',
     description:
-      "Get recruitment dashboard statistics: total candidates, total jobs, today's interviews, pending screenings, and stage breakdown.",
+      "Get recruitment dashboard statistics: assigned/in-pipeline candidates, total jobs, today's interviews, pending screenings, and stage breakdown. This does not count uploaded CV pool size.",
     parameters: { type: 'object', properties: {}, required: [] },
     allowedRoles: ['ta', 'manager', 'hr', 'admin'],
     mutating: false,

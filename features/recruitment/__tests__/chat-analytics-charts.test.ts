@@ -5,6 +5,7 @@ import {
   extractChatChartsFromContent,
 } from '../chat-chart-events';
 import { buildAnalyticsChartsFromToolRecords } from '../services/chat-analytics-charts';
+import { buildRecruitmentMermaidDiagramFromToolRecords, normalizeMermaidCodeFences, stripMermaidCodeFences } from '../services/chat-analytics-diagrams';
 
 const smartInsightsData = {
   mostDemandedJobProfiles: [
@@ -56,6 +57,36 @@ const cvPoolData = {
   ],
 };
 
+const dashboardData = {
+  totalCandidates: 0,
+  totalJobs: 5,
+  totalInterviewsToday: 0,
+  pendingScreenings: 0,
+  stageBreakdown: {
+    new: 0,
+    ta_screening: 0,
+  },
+};
+
+
+const adminAnalyticsData = {
+  pipelineFunnel: smartInsightsData.pipelineFunnel,
+  hiringRate: 18,
+  rejectionRate: 12,
+  candidatesPerJob: [
+    { jobTitle: 'Data Engineer', count: 4 },
+    { jobTitle: 'Frontend Engineer', count: 2 },
+  ],
+  interviewsPerStage: [
+    { stage: 'TA', count: 3 },
+    { stage: 'Manager', count: 2 },
+  ],
+  monthlyHiringTrend: [
+    { month: 'Jan', hired: 1, rejected: 0 },
+    { month: 'Feb', hired: 2, rejected: 1 },
+  ],
+};
+
 describe('chat analytics charts', () => {
   it('prioritizes a line chart when the analytics question asks for a curve', () => {
     const charts = buildAnalyticsChartsFromToolRecords(
@@ -99,5 +130,91 @@ describe('chat analytics charts', () => {
     ]);
 
     expect(charts).toEqual([]);
+  });
+
+  it('labels dashboard candidates as pipeline candidates', () => {
+    const charts = buildAnalyticsChartsFromToolRecords([
+      { toolName: 'get_dashboard_stats', result: { success: true, data: dashboardData } },
+    ]);
+
+    const dashboardChart = charts.find((chart) => chart.id === 'dashboard-kpis');
+
+    expect(dashboardChart?.description).toContain('assigned pipeline candidates');
+    expect(dashboardChart?.data[0]).toMatchObject({
+      label: 'Pipeline candidates',
+      count: 0,
+    });
+  });
+
+  it('normalizes unlabeled Mermaid fences so Streamdown renders model diagrams', () => {
+    const normalized = normalizeMermaidCodeFences(`\`\`\`
+graph TD
+  A[CV Pool: 10] --> B[Pipeline Candidates: 0]
+\`\`\``);
+
+    expect(normalized).toContain('```mermaid');
+    expect(normalized).toContain('graph TD');
+  });
+
+  it('strips model Mermaid fences before appending deterministic diagrams', () => {
+    const stripped = stripMermaidCodeFences(`Before
+\`\`\`mermaid
+flowchart TD
+  A[Open Jobs: 5] --> B[Pipeline Candidates: 0]
+\`\`\`
+After`);
+
+    expect(stripped).toBe('Before\n\nAfter');
+  });
+
+  it('builds a valid Mermaid pipeline diagram even when all fetched stages are zero', () => {
+    const diagram = buildRecruitmentMermaidDiagramFromToolRecords(
+      [
+        {
+          toolName: 'get_dashboard_stats',
+          args: {},
+          mutating: false,
+          result: { success: true, data: dashboardData },
+        },
+      ],
+      { question: 'show Mermaid pipeline diagram' }
+    );
+
+    expect(diagram).toContain('```mermaid');
+    expect(diagram).toContain('flowchart LR');
+    expect(diagram).toContain('New<br/>0 candidates');
+  });
+
+  it('builds chart cards from admin recruitment analytics tool output', () => {
+    const charts = buildAnalyticsChartsFromToolRecords(
+      [
+        {
+          toolName: 'get_recruitment_analytics',
+          result: { success: true, data: adminAnalyticsData },
+        },
+      ],
+      { question: 'show admin hiring trend analytics' }
+    );
+
+    expect(charts.map((chart) => chart.id)).toContain('admin-hiring-trend');
+    expect(charts.map((chart) => chart.id)).toContain('pipeline-funnel');
+  });
+
+  it('builds a valid Mermaid pipeline diagram from fetched stage counts', () => {
+    const diagram = buildRecruitmentMermaidDiagramFromToolRecords(
+      [
+        {
+          toolName: 'get_recruitment_analytics',
+          args: {},
+          mutating: false,
+          result: { success: true, data: adminAnalyticsData },
+        },
+      ],
+      { question: 'diagramme pipeline' }
+    );
+
+    expect(diagram).toContain('```mermaid');
+    expect(diagram).toContain('flowchart LR');
+    expect(diagram).toContain('New<br/>4 candidates');
   });
 });
