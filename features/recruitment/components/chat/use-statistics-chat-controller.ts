@@ -97,6 +97,7 @@ export interface StatisticsChatController {
   isStreaming: boolean;
   isLoadingHistory: boolean;
   attachedFile: File | null;
+  reference: AgentReference | null;
   setInput: (value: string) => void;
   switchConversation: (conversationId: string) => Promise<void>;
   createNewChat: () => Promise<void>;
@@ -105,6 +106,7 @@ export interface StatisticsChatController {
   sendMessage: (text: string, confirmation?: { actionId: string; decision: "confirm" | "cancel" }) => Promise<void>;
   attachFile: (file: File) => void;
   removeFile: () => void;
+  removeReference: () => void;
   confirmAction: (confirmation: AgentActionConfirmation, decision: "confirm" | "cancel") => Promise<void>;
 }
 
@@ -123,6 +125,9 @@ export function useStatisticsChatController({
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
   const [conversationsLoaded, setConversationsLoaded] = useState(false);
   const [attachedFile, setAttachedFile] = useState<File | null>(null);
+  const [activeReference, setActiveReference] = useState<AgentReference | null>(
+    reference ?? null,
+  );
   const abortRef = useRef<AbortController | null>(null);
 
   const loadMessages = useCallback(async (conversationId: string) => {
@@ -155,6 +160,10 @@ export function useStatisticsChatController({
       setIsLoadingHistory(false);
     }
   }, []);
+
+  useEffect(() => {
+    setActiveReference(reference ?? null);
+  }, [reference]);
 
   useEffect(() => {
     if (!enabled || conversationsLoaded) return;
@@ -241,7 +250,11 @@ export function useStatisticsChatController({
     async (text: string, confirmationRequest?: { actionId: string; decision: "confirm" | "cancel" }) => {
       const trimmed =
         text.trim() ||
-        (attachedFile ? `Upload and process ${attachedFile.name}` : "");
+        (attachedFile
+          ? `Upload and process ${attachedFile.name}`
+          : activeReference
+            ? `Review referenced CV: ${activeReference.title}`
+            : "");
       if (!trimmed || isStreaming) return;
 
       let convId = activeConversationId;
@@ -271,6 +284,7 @@ export function useStatisticsChatController({
               },
             ]
           : undefined,
+        reference: activeReference ?? undefined,
       };
 
       const assistantMsg: ChatMessage = {
@@ -329,7 +343,7 @@ export function useStatisticsChatController({
             messages: history,
             ...(attachments ? { attachments } : {}),
             ...(confirmationRequest ? { confirmation: confirmationRequest } : {}),
-            ...(reference ? { reference } : {}),
+            ...(activeReference ? { reference: activeReference } : {}),
           }),
           signal: controller.signal,
         });
@@ -720,7 +734,7 @@ export function useStatisticsChatController({
         abortRef.current = null;
       }
     },
-    [isStreaming, messages, activeConversationId, attachedFile, reference],
+    [isStreaming, messages, activeConversationId, attachedFile, activeReference],
   );
 
   const confirmAction = useCallback(
@@ -766,6 +780,7 @@ export function useStatisticsChatController({
     isStreaming,
     isLoadingHistory,
     attachedFile,
+    reference: activeReference,
     setInput,
     switchConversation,
     createNewChat,
@@ -775,5 +790,6 @@ export function useStatisticsChatController({
     attachFile: setAttachedFile,
     removeFile: () => setAttachedFile(null),
     confirmAction,
+    removeReference: () => setActiveReference(null),
   };
 }

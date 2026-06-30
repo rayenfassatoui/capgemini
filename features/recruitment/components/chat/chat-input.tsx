@@ -10,6 +10,8 @@ import {
 } from '@tabler/icons-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { AgentReferenceChip } from './agent-reference-chip';
+import type { AgentReference } from './agent-prompts';
 
 const TEXTAREA_MIN_HEIGHT_PX = 52;
 const TEXTAREA_MAX_HEIGHT_PX = 640;
@@ -19,24 +21,28 @@ interface ChatInputProps {
   input: string;
   isStreaming: boolean;
   attachedFile: File | null;
+  reference: AgentReference | null;
   variant?: 'panel' | 'workspace';
   onInputChange: (value: string) => void;
   onSend: (text: string) => void;
   onStop: () => void;
   onAttachFile: (file: File) => void;
   onRemoveFile: () => void;
+  onRemoveReference: () => void;
 }
 
 export function ChatInput({
   input,
   isStreaming,
   attachedFile,
+  reference,
   onInputChange,
   variant = 'panel',
   onSend,
   onStop,
   onAttachFile,
   onRemoveFile,
+  onRemoveReference,
 }: ChatInputProps) {
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -154,6 +160,17 @@ export function ChatInput({
             variant === 'workspace' ? "bg-card/95" : "bg-card",
           )}
         >
+          {reference && (
+            <div className="flex flex-wrap items-center gap-2 border-b border-border/60 px-3 pb-2 pt-1">
+              <span className="text-[11px] font-medium text-muted-foreground">
+                References
+              </span>
+              <AgentReferenceChip
+                reference={reference}
+                onRemove={onRemoveReference}
+              />
+            </div>
+          )}
           <textarea
             ref={inputRef}
             value={input}
@@ -162,7 +179,9 @@ export function ChatInput({
             placeholder={
               attachedFile
                 ? 'Ask about this document...'
-                : 'Send a message...'
+                : reference
+                  ? 'Ask about the referenced CV...'
+                  : 'Send a message...'
             }
             disabled={isStreaming}
             rows={1}
@@ -209,7 +228,7 @@ export function ChatInput({
                 <Button
                   type="submit"
                   className="h-10 w-10 shrink-0 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] hover:scale-[0.98] active:scale-[0.94] disabled:bg-muted disabled:text-muted-foreground flex items-center justify-center"
-                  disabled={!input.trim() && !attachedFile}
+                  disabled={!input.trim() && !attachedFile && !reference}
                   aria-label="Send message"
                 >
                   <IconSend2 className="size-4 stroke-[2px] ml-[2px]" />

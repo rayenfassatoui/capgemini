@@ -65,7 +65,6 @@ export function AgentWorkspaceClient({
           controller={chat}
           variant="workspace"
           contextLabel={`${roleLabel} workspace`}
-          reference={reference}
           className="h-full"
         />
       </div>

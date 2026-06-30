@@ -19,6 +19,7 @@ import {
 } from "./chat-message-helpers";
 import { ToolInspector } from "./tool-inspector";
 import { ChatAnalyticsChart } from "./chat-analytics-chart";
+import { AgentReferenceChip } from "./agent-reference-chip";
 
 interface ChatMessageListProps {
   messages: ChatMessage[];
@@ -962,6 +963,11 @@ function MessageBubble({
           </div>
         )}
         {!isUser && <SourceEvidencePanel evidence={msg.metadata?.evidence} />}
+        {isUser && msg.reference && (
+          <div className="mb-1 flex max-w-full justify-end">
+            <AgentReferenceChip reference={msg.reference} placement="message" />
+          </div>
+        )}
 
         <div
           className={cn(

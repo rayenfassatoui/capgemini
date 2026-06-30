@@ -1,4 +1,5 @@
 import type { AgentEvidenceMetadata, RecruitmentAnalyticsChart, RecruitmentResponseCard } from "../../types";
+import type { AgentReference } from "./agent-prompts";
 
 export type ToolEventStatus = "queued" | "running" | "pending_confirmation" | "success" | "error";
 
@@ -76,6 +77,7 @@ export interface ChatMessage {
   content: string;
   toolEvents?: ToolEvent[];
   attachments?: ChatAttachment[];
+  reference?: AgentReference;
   fileDownloads?: FileDownload[];
   charts?: RecruitmentAnalyticsChart[];
   cards?: RecruitmentResponseCard[];
