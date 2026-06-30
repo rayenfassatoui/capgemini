@@ -417,7 +417,7 @@ export const agentReferenceSchema = z.object({
   title: z.string().min(1).max(120),
   subtitle: z.string().min(1).max(160).optional(),
   href: z.string().min(1).max(300).optional(),
-  facts: z.array(agentReferenceFactSchema).max(6).optional(),
+  facts: z.array(agentReferenceFactSchema).max(10).optional(),
 });
 
 export type AgentReferencePayload = z.infer<typeof agentReferenceSchema>;
@@ -431,7 +431,7 @@ export const statisticsChatRequestSchema = z.object({
   messages: z.array(chatMessageSchema).min(1).max(20),
   attachments: z.array(chatAttachmentSchema).max(5).optional(),
   confirmation: agentActionConfirmationSchema.optional(),
-  reference: agentReferenceSchema.optional(),
+  references: z.array(agentReferenceSchema).max(5).optional(),
 });
 
 const optionalGovernanceSearchParam = z.preprocess((value) => {

@@ -34,8 +34,8 @@ export function AgentChatSurface({
     isStreaming,
     isLoadingHistory,
     attachedFile,
-    reference,
-    setReference,
+    references,
+    addReference,
     setInput,
     switchConversation,
     createNewChat,
@@ -45,6 +45,7 @@ export function AgentChatSurface({
     attachFile,
     removeFile,
     removeReference,
+    clearReferences,
     confirmAction,
   } = controller;
 
@@ -89,15 +90,16 @@ export function AgentChatSurface({
             input={input}
             isStreaming={isStreaming}
             attachedFile={attachedFile}
-            reference={reference}
+            references={references}
             variant={variant}
             onInputChange={setInput}
             onSend={sendMessage}
             onStop={handleStop}
             onAttachFile={attachFile}
             onRemoveFile={removeFile}
-            onSetReference={setReference}
+            onAddReference={addReference}
             onRemoveReference={removeReference}
+            onClearReferences={clearReferences}
           />
         </>
       )}

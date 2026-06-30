@@ -963,9 +963,15 @@ function MessageBubble({
           </div>
         )}
         {!isUser && <SourceEvidencePanel evidence={msg.metadata?.evidence} />}
-        {isUser && msg.reference && (
-          <div className="mb-1 flex max-w-full justify-end">
-            <AgentReferenceChip reference={msg.reference} placement="message" />
+        {isUser && msg.references && msg.references.length > 0 && (
+          <div className="mb-1 flex max-w-full flex-wrap justify-end gap-1.5">
+            {msg.references.map((reference) => (
+              <AgentReferenceChip
+                key={`${reference.type}:${reference.id}`}
+                reference={reference}
+                placement="message"
+              />
+            ))}
           </div>
         )}
 

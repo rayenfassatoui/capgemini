@@ -77,7 +77,7 @@ export interface ChatMessage {
   content: string;
   toolEvents?: ToolEvent[];
   attachments?: ChatAttachment[];
-  reference?: AgentReference;
+  references?: AgentReference[];
   fileDownloads?: FileDownload[];
   charts?: RecruitmentAnalyticsChart[];
   cards?: RecruitmentResponseCard[];

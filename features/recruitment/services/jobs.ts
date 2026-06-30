@@ -2,7 +2,7 @@ import { and, count, desc, eq, inArray } from 'drizzle-orm';
 import { db } from '@/lib/db';
 import { candidates, interviews, jobs } from '@/db/schema';
 import { createJobSchema } from '../schemas';
-import type { CandidateStage, CreateJobInput, UserRole } from '../types';
+import type { AgentJobCommandOption, CandidateStage, CreateJobInput, UserRole } from '../types';
 
 const ACTIVE_CANDIDATE_STAGES: CandidateStage[] = [
   'new',
@@ -38,6 +38,24 @@ export async function listJobs(userId: string) {
     .from(jobs)
     .where(eq(jobs.createdBy, userId))
     .orderBy(desc(jobs.createdAt));
+}
+
+export async function listJobCommandOptions(userId: string): Promise<AgentJobCommandOption[]> {
+  const rows = await listJobs(userId);
+
+  return rows.map((job) => ({
+    id: job.id,
+    title: job.title,
+    subtitle: [job.seniority, job.businessUnit, job.status]
+      .filter(Boolean)
+      .join(' · '),
+    seniority: job.seniority,
+    status: job.status,
+    businessUnit: job.businessUnit,
+    mustHave: job.mustHave,
+    niceToHave: job.niceToHave,
+    createdAt: job.createdAt,
+  }));
 }
 
 export async function getJob(jobId: string) {

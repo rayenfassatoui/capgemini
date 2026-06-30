@@ -78,20 +78,28 @@ import {
 import { SlidingWindowRateLimiter } from "@/lib/rate-limit";
 const chatLimiter = new SlidingWindowRateLimiter(15, 60_000);
 
-function appendReferenceContextToUserMessage(
+function appendReferencesContextToUserMessage(
   content: string,
-  reference: AgentReferencePayload | undefined,
+  references: AgentReferencePayload[] | undefined,
 ): string {
-  if (!reference) return content;
+  if (!references?.length) return content;
+
+  const referenceLines = references.flatMap((reference, index) => [
+    `${index + 1}. CV reference`,
+    `- cvId: ${reference.id}`,
+    `- title: ${reference.title}`,
+    ...(reference.subtitle ? [`- subtitle: ${reference.subtitle}`] : []),
+    ...(reference.facts?.map((fact) => `- ${fact.label}: ${fact.value}`) ?? []),
+  ]);
 
   return [
     content,
     "",
-    "APP-SUPPLIED ACTIVE REFERENCE:",
-    `- Type: CV`,
-    `- cvId: ${reference.id}`,
-    "- This reference was selected from the application UI, not typed by the user.",
-    "- Before answering about this CV, call get_cv_details with this exact cvId.",
+    "APP-SUPPLIED ACTIVE REFERENCES:",
+    ...referenceLines,
+    "- These references were selected from the application UI, not typed by the user.",
+    "- Before answering about any referenced CV, call get_cv_details with that exact cvId.",
+    "- If the user asks to compare, rank, or summarize all selected CVs, call get_cv_details for every listed cvId.",
     "- Treat visible reference labels as UI preview only; tool results are the source of truth.",
   ].join("\n");
 }
@@ -141,7 +149,7 @@ export async function handleStatisticsChatPost(
     conversationId: reqConversationId,
     attachments,
     confirmation,
-    reference,
+    references,
   } = parsed.data;
 
   const conversation = await getOrCreateChatConversation(
@@ -412,7 +420,7 @@ export async function handleStatisticsChatPost(
           : dbHistory.slice(-20);
 
         let referenceMessageIndex = -1;
-        if (reference) {
+        if (references?.length) {
           for (let index = contextualHistory.length - 1; index >= 0; index--) {
             if (contextualHistory[index].role === "user") {
               referenceMessageIndex = index;
@@ -430,7 +438,7 @@ export async function handleStatisticsChatPost(
               role: message.role as "user" | "assistant",
               content:
                 index === referenceMessageIndex
-                  ? appendReferenceContextToUserMessage(visibleContent, reference)
+                  ? appendReferencesContextToUserMessage(visibleContent, references)
                   : visibleContent,
             };
           }),

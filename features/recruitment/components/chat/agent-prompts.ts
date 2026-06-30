@@ -14,7 +14,7 @@ export interface AgentReference {
   facts?: AgentReferenceFact[];
 }
 
-const MAX_REFERENCE_FACTS = 6;
+const MAX_REFERENCE_FACTS = 10;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);

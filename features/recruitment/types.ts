@@ -68,10 +68,29 @@ export interface AgentCvReferenceOption {
   title: string;
   subtitle: string;
   filename: string;
+  contentType: string;
+  size: number;
   email: string | null;
   phone: string | null;
   skills: string[];
   languages: string[];
+  summary: string | null;
+  experienceCount: number;
+  latestExperience: string | null;
+  educationCount: number;
+  latestEducation: string | null;
+  createdAt: Date;
+}
+
+export interface AgentJobCommandOption {
+  id: string;
+  title: string;
+  subtitle: string;
+  seniority: string;
+  status: string;
+  businessUnit: string | null;
+  mustHave: string[];
+  niceToHave: string[];
   createdAt: Date;
 }
 

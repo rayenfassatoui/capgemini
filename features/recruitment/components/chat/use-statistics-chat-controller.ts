@@ -81,10 +81,12 @@ function normalizeMetadataCards(value: unknown): RecruitmentResponseCard[] {
 
   return cards;
 }
+const MAX_ACTIVE_REFERENCES = 5;
+
 
 interface UseStatisticsChatControllerOptions {
   enabled: boolean;
-  reference?: AgentReference | null;
+  references?: AgentReference[];
 }
 
 export interface StatisticsChatController {
@@ -97,8 +99,8 @@ export interface StatisticsChatController {
   isStreaming: boolean;
   isLoadingHistory: boolean;
   attachedFile: File | null;
-  reference: AgentReference | null;
-  setReference: (reference: AgentReference) => void;
+  references: AgentReference[];
+  addReference: (reference: AgentReference) => void;
   setInput: (value: string) => void;
   switchConversation: (conversationId: string) => Promise<void>;
   createNewChat: () => Promise<void>;
@@ -107,13 +109,14 @@ export interface StatisticsChatController {
   sendMessage: (text: string, confirmation?: { actionId: string; decision: "confirm" | "cancel" }) => Promise<void>;
   attachFile: (file: File) => void;
   removeFile: () => void;
-  removeReference: () => void;
+  removeReference: (reference: AgentReference) => void;
+  clearReferences: () => void;
   confirmAction: (confirmation: AgentActionConfirmation, decision: "confirm" | "cancel") => Promise<void>;
 }
 
 export function useStatisticsChatController({
   enabled,
-  reference,
+  references,
 }: UseStatisticsChatControllerOptions): StatisticsChatController {
   const [view, setView] = useState<ChatView>("chat");
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -126,8 +129,8 @@ export function useStatisticsChatController({
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
   const [conversationsLoaded, setConversationsLoaded] = useState(false);
   const [attachedFile, setAttachedFile] = useState<File | null>(null);
-  const [activeReference, setActiveReference] = useState<AgentReference | null>(
-    reference ?? null,
+  const [activeReferences, setActiveReferences] = useState<AgentReference[]>(
+    references ?? [],
   );
   const abortRef = useRef<AbortController | null>(null);
 
@@ -163,8 +166,38 @@ export function useStatisticsChatController({
   }, []);
 
   useEffect(() => {
-    setActiveReference(reference ?? null);
-  }, [reference]);
+    setActiveReferences(references ?? []);
+  }, [references]);
+
+  const addReference = useCallback((nextReference: AgentReference) => {
+    setActiveReferences((currentReferences) => {
+      if (
+        currentReferences.some(
+          (currentReference) =>
+            currentReference.type === nextReference.type &&
+            currentReference.id === nextReference.id,
+        )
+      ) {
+        return currentReferences;
+      }
+
+      return [...currentReferences, nextReference].slice(0, MAX_ACTIVE_REFERENCES);
+    });
+  }, []);
+
+  const removeReference = useCallback((referenceToRemove: AgentReference) => {
+    setActiveReferences((currentReferences) =>
+      currentReferences.filter(
+        (currentReference) =>
+          currentReference.type !== referenceToRemove.type ||
+          currentReference.id !== referenceToRemove.id,
+      ),
+    );
+  }, []);
+
+  const clearReferences = useCallback(() => {
+    setActiveReferences([]);
+  }, []);
 
   useEffect(() => {
     if (!enabled || conversationsLoaded) return;
@@ -253,9 +286,11 @@ export function useStatisticsChatController({
         text.trim() ||
         (attachedFile
           ? `Upload and process ${attachedFile.name}`
-          : activeReference
-            ? `Review referenced CV: ${activeReference.title}`
-            : "");
+          : activeReferences.length === 1
+            ? `Review referenced CV: ${activeReferences[0].title}`
+            : activeReferences.length > 1
+              ? `Review referenced CVs: ${activeReferences.map((item) => item.title).join(", ")}`
+              : "");
       if (!trimmed || isStreaming) return;
 
       let convId = activeConversationId;
@@ -285,7 +320,7 @@ export function useStatisticsChatController({
               },
             ]
           : undefined,
-        reference: activeReference ?? undefined,
+        references: activeReferences.length > 0 ? activeReferences : undefined,
       };
 
       const assistantMsg: ChatMessage = {
@@ -344,7 +379,7 @@ export function useStatisticsChatController({
             messages: history,
             ...(attachments ? { attachments } : {}),
             ...(confirmationRequest ? { confirmation: confirmationRequest } : {}),
-            ...(activeReference ? { reference: activeReference } : {}),
+            ...(activeReferences.length > 0 ? { references: activeReferences } : {}),
           }),
           signal: controller.signal,
         });
@@ -735,7 +770,7 @@ export function useStatisticsChatController({
         abortRef.current = null;
       }
     },
-    [isStreaming, messages, activeConversationId, attachedFile, activeReference],
+    [isStreaming, messages, activeConversationId, attachedFile, activeReferences],
   );
 
   const confirmAction = useCallback(
@@ -781,7 +816,7 @@ export function useStatisticsChatController({
     isStreaming,
     isLoadingHistory,
     attachedFile,
-    reference: activeReference,
+    references: activeReferences,
     setInput,
     switchConversation,
     createNewChat,
@@ -791,7 +826,8 @@ export function useStatisticsChatController({
     attachFile: setAttachedFile,
     removeFile: () => setAttachedFile(null),
     confirmAction,
-    setReference: setActiveReference,
-    removeReference: () => setActiveReference(null),
+    addReference,
+    removeReference,
+    clearReferences,
   };
 }

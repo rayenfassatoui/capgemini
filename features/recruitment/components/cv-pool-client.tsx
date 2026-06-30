@@ -68,11 +68,18 @@ interface CvRecord {
   extractedEmail: string | null;
   extractedSkills: string[] | null;
   createdAt: Date;
+  extractedPhone?: string | null;
+  extractedExperiences?: Array<Record<string, string>> | null;
+  extractedEducation?: Array<Record<string, string>> | null;
+  extractedLanguages?: string[] | null;
+  extractedSummary?: string | null;
 }
 
 interface CvFullDetails {
   id: string;
   filename: string;
+  contentType: string;
+  size: number;
   extractedName: string | null;
   extractedEmail: string | null;
   extractedPhone: string | null;
@@ -81,6 +88,7 @@ interface CvFullDetails {
   extractedEducation: Array<Record<string, string>> | null;
   extractedLanguages: string[] | null;
   extractedSummary: string | null;
+  createdAt: Date;
 }
 
 interface CvPoolClientProps {
@@ -410,20 +418,65 @@ export function CvPoolClient({
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
+  const formatReferenceDate = (value: Date) => {
+    const date = new Date(value);
+    if (!Number.isFinite(date.getTime())) return null;
+
+    return new Intl.DateTimeFormat('en-GB', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+      timeZone: 'UTC',
+    }).format(date);
+  };
+
+  const formatStructuredCvEntry = (
+    entries: Array<Record<string, string>> | null | undefined,
+  ) => {
+    const firstEntry = entries?.[0];
+    if (!firstEntry) return null;
+
+    const values = Object.values(firstEntry)
+      .map((value) => value.trim())
+      .filter(Boolean);
+
+    if (values.length === 0) return null;
+
+    return values.slice(0, 3).join(' · ').slice(0, 160);
+  };
+
   const buildCvAgentReference = (
-    cv: Pick<CvRecord, 'id' | 'filename' | 'extractedName' | 'extractedEmail' | 'extractedSkills'> &
-      Partial<Pick<CvFullDetails, 'extractedPhone' | 'extractedLanguages'>>,
+    cv: Pick<CvRecord, 'id' | 'filename' | 'contentType' | 'size' | 'extractedName' | 'extractedEmail' | 'extractedSkills' | 'createdAt'> &
+      Partial<Pick<CvFullDetails, 'extractedPhone' | 'extractedExperiences' | 'extractedEducation' | 'extractedLanguages' | 'extractedSummary'>>,
   ): AgentReference => {
     const candidateName = cv.extractedName || cv.filename;
+    const uploadedAt = formatReferenceDate(cv.createdAt);
+    const latestExperience = formatStructuredCvEntry(cv.extractedExperiences);
+    const latestEducation = formatStructuredCvEntry(cv.extractedEducation);
     const facts: AgentReference['facts'] = [
       ...(cv.extractedEmail ? [{ label: 'Email', value: cv.extractedEmail }] : []),
       ...(cv.extractedPhone ? [{ label: 'Phone', value: cv.extractedPhone }] : []),
       ...(cv.extractedSkills && cv.extractedSkills.length > 0
-        ? [{ label: 'Skills', value: cv.extractedSkills.slice(0, 5).join(', ') }]
+        ? [{ label: 'Skills', value: cv.extractedSkills.slice(0, 6).join(', ') }]
         : []),
       ...(cv.extractedLanguages && cv.extractedLanguages.length > 0
         ? [{ label: 'Languages', value: cv.extractedLanguages.slice(0, 4).join(', ') }]
         : []),
+      ...(latestExperience
+        ? [{ label: 'Latest experience', value: latestExperience }]
+        : cv.extractedExperiences && cv.extractedExperiences.length > 0
+          ? [{ label: 'Experience entries', value: String(cv.extractedExperiences.length) }]
+          : []),
+      ...(latestEducation
+        ? [{ label: 'Education', value: latestEducation }]
+        : cv.extractedEducation && cv.extractedEducation.length > 0
+          ? [{ label: 'Education entries', value: String(cv.extractedEducation.length) }]
+          : []),
+      ...(cv.extractedSummary ? [{ label: 'Summary', value: cv.extractedSummary.slice(0, 160) }] : []),
+      { label: 'File', value: cv.filename },
+      { label: 'File type', value: cv.contentType },
+      { label: 'Size', value: formatFileSize(cv.size) },
+      ...(uploadedAt ? [{ label: 'Uploaded', value: uploadedAt }] : []),
     ];
 
     return {

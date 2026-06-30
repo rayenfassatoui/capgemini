@@ -122,6 +122,12 @@ export async function listJobsAction() {
   return services.listJobs(session.user.id);
 }
 
+export async function listJobCommandOptionsAction() {
+  const session = await requireRole(['ta', 'manager', 'hr', 'admin']);
+  const services = await getServices();
+  return services.listJobCommandOptions(session.user.id);
+}
+
 export async function getJobAction(jobId: string) {
   await requireRole(['ta', 'manager', 'hr', 'admin']);
   const services = await getServices();

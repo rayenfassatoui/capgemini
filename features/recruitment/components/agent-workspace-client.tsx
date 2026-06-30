@@ -31,7 +31,8 @@ export function AgentWorkspaceClient({
     () => parseAgentReferenceParam(referenceParam),
     [referenceParam],
   );
-  const chat = useStatisticsChatController({ enabled: true, reference });
+  const references = useMemo(() => (reference ? [reference] : []), [reference]);
+  const chat = useStatisticsChatController({ enabled: true, references });
   const appliedPromptRef = useRef<string | null>(null);
   const roleLabel = ROLE_LABELS[role] ?? ROLE_LABELS.ta;
   const handoffKey = prompt

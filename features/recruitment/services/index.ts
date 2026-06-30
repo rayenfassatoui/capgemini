@@ -35,6 +35,7 @@ export {
 export {
   createJob,
   listJobs,
+  listJobCommandOptions,
   getJob,
   closeJob,
   saveJobAsTemplate,

@@ -11,6 +11,21 @@ type CvAccessScope = {
   role: UserRole;
 };
 
+function formatStructuredCvEntry(
+  entries: Array<Record<string, string>> | null | undefined,
+): string | null {
+  const firstEntry = entries?.[0];
+  if (!firstEntry) return null;
+
+  const values = Object.values(firstEntry)
+    .map((value) => value.trim())
+    .filter(Boolean);
+
+  if (values.length === 0) return null;
+
+  return values.slice(0, 3).join(' · ').slice(0, 160);
+}
+
 function cvAccessCondition(cvId: string, scope: CvAccessScope) {
   if (scope.role === 'admin') {
     return eq(cvPool.id, cvId);
@@ -149,11 +164,16 @@ export async function listCvReferenceOptions(userId: string): Promise<AgentCvRef
     .select({
       id: cvPool.id,
       filename: cvPool.filename,
+      contentType: cvPool.contentType,
+      size: cvPool.size,
       extractedName: cvPool.extractedName,
       extractedEmail: cvPool.extractedEmail,
       extractedPhone: cvPool.extractedPhone,
       extractedSkills: cvPool.extractedSkills,
+      extractedExperiences: cvPool.extractedExperiences,
+      extractedEducation: cvPool.extractedEducation,
       extractedLanguages: cvPool.extractedLanguages,
+      extractedSummary: cvPool.extractedSummary,
       createdAt: cvPool.createdAt,
     })
     .from(cvPool)
@@ -165,10 +185,17 @@ export async function listCvReferenceOptions(userId: string): Promise<AgentCvRef
     title: cv.extractedName ?? cv.filename,
     subtitle: cv.extractedEmail ?? cv.filename,
     filename: cv.filename,
+    contentType: cv.contentType,
+    size: cv.size,
     email: cv.extractedEmail,
     phone: cv.extractedPhone,
     skills: cv.extractedSkills ?? [],
     languages: cv.extractedLanguages ?? [],
+    summary: cv.extractedSummary,
+    experienceCount: cv.extractedExperiences?.length ?? 0,
+    latestExperience: formatStructuredCvEntry(cv.extractedExperiences),
+    educationCount: cv.extractedEducation?.length ?? 0,
+    latestEducation: formatStructuredCvEntry(cv.extractedEducation),
     createdAt: cv.createdAt,
   }));
 }
