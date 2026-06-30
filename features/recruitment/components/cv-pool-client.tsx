@@ -547,6 +547,7 @@ export function CvPoolClient({
         <div className="relative w-full flex-1 sm:max-w-sm">
           <IconSearch className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
+            id="cv-pool-search"
             placeholder="Search CVs..."
             className="pl-9"
             value={searchQuery}
@@ -563,7 +564,7 @@ export function CvPoolClient({
             {isExporting ? 'Exporting...' : 'Export ZIP'}
           </Button>
           <Dialog open={isUploadOpen} onOpenChange={setIsUploadOpen}>
-            <DialogTrigger className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2">
+            <DialogTrigger render={<Button id="cv-pool-upload-trigger" className="h-10 px-4 py-2" />}>
               <IconUpload className="mr-2 h-4 w-4" />
               Upload CVs
             </DialogTrigger>
