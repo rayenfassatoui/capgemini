@@ -23,6 +23,7 @@ export {
   updateCvExtraction,
   updateCvRawText,
   listCvPool,
+  listCvReferenceOptions,
   deleteCv,
   getCvDetails,
   getCvFile,

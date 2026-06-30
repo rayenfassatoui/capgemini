@@ -35,6 +35,7 @@ export function AgentChatSurface({
     isLoadingHistory,
     attachedFile,
     reference,
+    setReference,
     setInput,
     switchConversation,
     createNewChat,
@@ -95,6 +96,7 @@ export function AgentChatSurface({
             onStop={handleStop}
             onAttachFile={attachFile}
             onRemoveFile={removeFile}
+            onSetReference={setReference}
             onRemoveReference={removeReference}
           />
         </>

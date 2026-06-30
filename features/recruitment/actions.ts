@@ -89,6 +89,12 @@ export async function listCvPoolAction() {
   return services.listCvPool(session.user.id);
 }
 
+export async function listCvReferenceOptionsAction() {
+  const session = await requireRole(['ta', 'admin']);
+  const services = await getServices();
+  return services.listCvReferenceOptions(session.user.id);
+}
+
 export async function deleteCvAction(cvId: string) {
   const session = await requireRole(['ta', 'admin']);
   const services = await getServices();

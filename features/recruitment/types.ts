@@ -63,6 +63,18 @@ export interface CvExtractionResult {
   extractedSummary?: string | null;
 }
 
+export interface AgentCvReferenceOption {
+  id: string;
+  title: string;
+  subtitle: string;
+  filename: string;
+  email: string | null;
+  phone: string | null;
+  skills: string[];
+  languages: string[];
+  createdAt: Date;
+}
+
 export interface AssignCvToJobInput {
   cvId: string;
   jobId: string;

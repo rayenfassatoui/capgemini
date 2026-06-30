@@ -98,6 +98,7 @@ export interface StatisticsChatController {
   isLoadingHistory: boolean;
   attachedFile: File | null;
   reference: AgentReference | null;
+  setReference: (reference: AgentReference) => void;
   setInput: (value: string) => void;
   switchConversation: (conversationId: string) => Promise<void>;
   createNewChat: () => Promise<void>;
@@ -790,6 +791,7 @@ export function useStatisticsChatController({
     attachFile: setAttachedFile,
     removeFile: () => setAttachedFile(null),
     confirmAction,
+    setReference: setActiveReference,
     removeReference: () => setActiveReference(null),
   };
 }

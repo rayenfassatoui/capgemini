@@ -2,7 +2,7 @@ import { and, desc, eq } from 'drizzle-orm';
 import { db } from '@/lib/db';
 import { cvPool } from '@/db/schema';
 import { cvExtractionSchema, uploadCvSchema } from '../schemas';
-import type { CvExtractionResult, UploadCvInput, UserRole } from '../types';
+import type { AgentCvReferenceOption, CvExtractionResult, UploadCvInput, UserRole } from '../types';
 import { callOpenRouter, cleanJsonResponse } from './ai';
 import { aiCvExtractionOutputSchema } from '../schemas';
 
@@ -142,6 +142,35 @@ export async function listCvPool(userId: string) {
     .from(cvPool)
     .where(eq(cvPool.uploadedBy, userId))
     .orderBy(desc(cvPool.createdAt));
+}
+
+export async function listCvReferenceOptions(userId: string): Promise<AgentCvReferenceOption[]> {
+  const rows = await db
+    .select({
+      id: cvPool.id,
+      filename: cvPool.filename,
+      extractedName: cvPool.extractedName,
+      extractedEmail: cvPool.extractedEmail,
+      extractedPhone: cvPool.extractedPhone,
+      extractedSkills: cvPool.extractedSkills,
+      extractedLanguages: cvPool.extractedLanguages,
+      createdAt: cvPool.createdAt,
+    })
+    .from(cvPool)
+    .where(eq(cvPool.uploadedBy, userId))
+    .orderBy(desc(cvPool.createdAt));
+
+  return rows.map((cv) => ({
+    id: cv.id,
+    title: cv.extractedName ?? cv.filename,
+    subtitle: cv.extractedEmail ?? cv.filename,
+    filename: cv.filename,
+    email: cv.extractedEmail,
+    phone: cv.extractedPhone,
+    skills: cv.extractedSkills ?? [],
+    languages: cv.extractedLanguages ?? [],
+    createdAt: cv.createdAt,
+  }));
 }
 
 export async function deleteCv(cvId: string, userId: string) {
