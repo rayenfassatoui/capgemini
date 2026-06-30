@@ -50,11 +50,10 @@ import { Separator } from '@/components/ui/separator';
 import { Progress } from '@/components/ui/progress';
 import { deleteCvAction, exportSingleCvExcelAction, exportMultipleCvsZipAction, getCvDetailsAction, getCvFileAction } from '../actions';
 import { useUploadQueue } from './upload-provider';
-import { buildAgentPromptHref } from './chat/agent-prompts';
+import { buildAgentPromptHref, type AgentReference } from './chat/agent-prompts';
 import { EvidenceReadinessPanel } from './evidence-readiness-panel';
 import {
   buildCvEvidenceReadiness,
-  formatEvidenceReadinessForAgent,
 } from './evidence-readiness';
 import type { CvPoolStats } from '../types';
 
@@ -411,25 +410,30 @@ export function CvPoolClient({
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
-  const buildCvAgentPrompt = (
+  const buildCvAgentReference = (
     cv: Pick<CvRecord, 'id' | 'filename' | 'extractedName' | 'extractedEmail' | 'extractedSkills'> &
-      Partial<Pick<CvFullDetails, 'extractedPhone' | 'extractedExperiences' | 'extractedEducation' | 'extractedLanguages' | 'extractedSummary'>>,
-    task: string
-  ) => {
+      Partial<Pick<CvFullDetails, 'extractedPhone' | 'extractedLanguages'>>,
+  ): AgentReference => {
     const candidateName = cv.extractedName || cv.filename;
-    const skills = cv.extractedSkills?.join(', ') || 'No extracted skills available';
-    const readiness = buildCvEvidenceReadiness({
-      filename: cv.filename,
-      extractedName: cv.extractedName,
-      extractedEmail: cv.extractedEmail,
-      extractedPhone: cv.extractedPhone,
-      extractedSkills: cv.extractedSkills,
-      extractedExperiences: cv.extractedExperiences,
-      extractedEducation: cv.extractedEducation,
-      extractedLanguages: cv.extractedLanguages,
-      extractedSummary: cv.extractedSummary,
-    });
-    return `CV "${candidateName}" (cv id: ${cv.id}, email: ${cv.extractedEmail || 'not extracted'}, skills: ${skills}). ${formatEvidenceReadinessForAgent(readiness)} ${task}`;
+    const facts: AgentReference['facts'] = [
+      ...(cv.extractedEmail ? [{ label: 'Email', value: cv.extractedEmail }] : []),
+      ...(cv.extractedPhone ? [{ label: 'Phone', value: cv.extractedPhone }] : []),
+      ...(cv.extractedSkills && cv.extractedSkills.length > 0
+        ? [{ label: 'Skills', value: cv.extractedSkills.slice(0, 5).join(', ') }]
+        : []),
+      ...(cv.extractedLanguages && cv.extractedLanguages.length > 0
+        ? [{ label: 'Languages', value: cv.extractedLanguages.slice(0, 4).join(', ') }]
+        : []),
+    ];
+
+    return {
+      type: 'cv',
+      id: cv.id,
+      title: candidateName,
+      subtitle: cv.extractedEmail ?? cv.filename,
+      href: `/ta/cv-pool?reviewCvId=${cv.id}`,
+      ...(facts.length > 0 ? { facts } : {}),
+    };
   };
 
   const poolAgentPrompt = `Analyze the current CV pool. Total CVs: ${stats.totalCvs}. Top extracted skills: ${stats.topSkills.slice(0, 8).map((item) => `${item.skill} (${item.count})`).join(', ') || 'none yet'}. Language distribution: ${stats.languageDistribution.map((item) => `${item.language} (${item.count})`).join(', ') || 'none yet'}. Recommend which profiles to review first, where skill coverage is strong, and which gaps matter for upcoming job matching.`;
@@ -791,10 +795,8 @@ export function CvPoolClient({
                       <div className="flex items-center gap-1">
                         <Link
                           href={buildAgentPromptHref(
-                            buildCvAgentPrompt(
-                              cv,
-                              'Summarize candidate strengths, risks, missing evidence, and best-fit job types. Then propose the next TA action.'
-                            )
+                            'Summarize this CV: strengths, risks, missing evidence, and best-fit job types. Then propose the next TA action.',
+                            buildCvAgentReference(cv),
                           )}
                           title="Ask Agent about this CV"
                         >
@@ -898,10 +900,8 @@ export function CvPoolClient({
               <div className="grid gap-2 sm:grid-cols-2">
                 <Link
                   href={buildAgentPromptHref(
-                    buildCvAgentPrompt(
-                      reviewData,
-                      'Explain this candidate profile for a recruiter. Focus on strengths, risks, missing evidence, and the safest next step.'
-                    )
+                    'Explain this CV for a recruiter. Focus on strengths, risks, missing evidence, and the safest next step.',
+                    buildCvAgentReference(reviewData),
                   )}
                 >
                   <Button variant="outline" className="w-full justify-start rounded-xl">
@@ -911,10 +911,8 @@ export function CvPoolClient({
                 </Link>
                 <Link
                   href={buildAgentPromptHref(
-                    buildCvAgentPrompt(
-                      reviewData,
-                      'Generate a targeted first-round interview plan with technical questions, behavioral checks, red flags, and scoring guidance.'
-                    )
+                    'Generate a targeted first-round interview plan for this CV with technical questions, behavioral checks, red flags, and scoring guidance.',
+                    buildCvAgentReference(reviewData),
                   )}
                 >
                   <Button className="w-full justify-start rounded-xl">

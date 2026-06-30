@@ -1,6 +1,6 @@
 import "server-only";
 
-import { statisticsChatRequestSchema } from "../schemas";
+import { statisticsChatRequestSchema, type AgentReferencePayload } from "../schemas";
 import {
   appendChatChartsToContent,
   extractChatChartsFromContent,
@@ -78,6 +78,24 @@ import {
 import { SlidingWindowRateLimiter } from "@/lib/rate-limit";
 const chatLimiter = new SlidingWindowRateLimiter(15, 60_000);
 
+function appendReferenceContextToUserMessage(
+  content: string,
+  reference: AgentReferencePayload | undefined,
+): string {
+  if (!reference) return content;
+
+  return [
+    content,
+    "",
+    "APP-SUPPLIED ACTIVE REFERENCE:",
+    `- Type: CV`,
+    `- cvId: ${reference.id}`,
+    "- This reference was selected from the application UI, not typed by the user.",
+    "- Before answering about this CV, call get_cv_details with this exact cvId.",
+    "- Treat visible reference labels as UI preview only; tool results are the source of truth.",
+  ].join("\n");
+}
+
 export async function handleStatisticsChatPost(
   request: Request,
   session: StatisticsChatSession,
@@ -123,6 +141,7 @@ export async function handleStatisticsChatPost(
     conversationId: reqConversationId,
     attachments,
     confirmation,
+    reference,
   } = parsed.data;
 
   const conversation = await getOrCreateChatConversation(
@@ -392,13 +411,27 @@ export async function handleStatisticsChatPost(
           ? dbHistory.slice(-8).filter((message) => message.role === "user")
           : dbHistory.slice(-20);
 
+        let referenceMessageIndex = -1;
+        if (reference) {
+          for (let index = contextualHistory.length - 1; index >= 0; index--) {
+            if (contextualHistory[index].role === "user") {
+              referenceMessageIndex = index;
+              break;
+            }
+          }
+        }
+
         const llmMessages: LLMMessage[] = [
           { role: "system", content: systemPrompt },
-          ...contextualHistory.map((message) => {
+          ...contextualHistory.map((message, index) => {
             const withoutCards = extractChatResponseCardsFromContent(message.content);
+            const visibleContent = extractChatChartsFromContent(withoutCards.content).content;
             return {
               role: message.role as "user" | "assistant",
-              content: extractChatChartsFromContent(withoutCards.content).content,
+              content:
+                index === referenceMessageIndex
+                  ? appendReferenceContextToUserMessage(visibleContent, reference)
+                  : visibleContent,
             };
           }),
         ];

@@ -405,6 +405,22 @@ export const chatAttachmentSchema = z.object({
   rawBytes: z.string().min(1), // base64
 });
 
+
+export const agentReferenceFactSchema = z.object({
+  label: z.string().min(1).max(40),
+  value: z.string().min(1).max(160),
+});
+
+export const agentReferenceSchema = z.object({
+  type: z.literal('cv'),
+  id: z.string().uuid(),
+  title: z.string().min(1).max(120),
+  subtitle: z.string().min(1).max(160).optional(),
+  href: z.string().min(1).max(300).optional(),
+  facts: z.array(agentReferenceFactSchema).max(6).optional(),
+});
+
+export type AgentReferencePayload = z.infer<typeof agentReferenceSchema>;
 export const agentActionConfirmationSchema = z.object({
   actionId: z.string().uuid(),
   decision: z.enum(['confirm', 'cancel']),
@@ -415,6 +431,7 @@ export const statisticsChatRequestSchema = z.object({
   messages: z.array(chatMessageSchema).min(1).max(20),
   attachments: z.array(chatAttachmentSchema).max(5).optional(),
   confirmation: agentActionConfirmationSchema.optional(),
+  reference: agentReferenceSchema.optional(),
 });
 
 const optionalGovernanceSearchParam = z.preprocess((value) => {

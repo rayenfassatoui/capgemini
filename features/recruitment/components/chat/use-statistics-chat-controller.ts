@@ -15,6 +15,7 @@ import {
 } from "../../chat-card-events";
 import type { RecruitmentAnalyticsChart, RecruitmentResponseCard } from "../../types";
 
+import type { AgentReference } from "./agent-prompts";
 import type {
   AgentActionConfirmation,
   ChatMessage,
@@ -83,6 +84,7 @@ function normalizeMetadataCards(value: unknown): RecruitmentResponseCard[] {
 
 interface UseStatisticsChatControllerOptions {
   enabled: boolean;
+  reference?: AgentReference | null;
 }
 
 export interface StatisticsChatController {
@@ -108,6 +110,7 @@ export interface StatisticsChatController {
 
 export function useStatisticsChatController({
   enabled,
+  reference,
 }: UseStatisticsChatControllerOptions): StatisticsChatController {
   const [view, setView] = useState<ChatView>("chat");
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -326,6 +329,7 @@ export function useStatisticsChatController({
             messages: history,
             ...(attachments ? { attachments } : {}),
             ...(confirmationRequest ? { confirmation: confirmationRequest } : {}),
+            ...(reference ? { reference } : {}),
           }),
           signal: controller.signal,
         });
@@ -716,7 +720,7 @@ export function useStatisticsChatController({
         abortRef.current = null;
       }
     },
-    [isStreaming, messages, activeConversationId, attachedFile],
+    [isStreaming, messages, activeConversationId, attachedFile, reference],
   );
 
   const confirmAction = useCallback(

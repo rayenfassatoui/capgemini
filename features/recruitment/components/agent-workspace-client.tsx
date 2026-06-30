@@ -1,10 +1,11 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 
 import { AgentChatSurface } from "@/features/recruitment/components/chat/agent-chat-surface";
 import { useStatisticsChatController } from "@/features/recruitment/components/chat/use-statistics-chat-controller";
+import { parseAgentReferenceParam } from "@/features/recruitment/components/chat/agent-prompts";
 import type { UserRole } from "@/features/recruitment/types";
 
 interface AgentWorkspaceClientProps {
@@ -23,17 +24,25 @@ export function AgentWorkspaceClient({
   role,
   userName,
 }: AgentWorkspaceClientProps) {
-  const chat = useStatisticsChatController({ enabled: true });
   const searchParams = useSearchParams();
-  const appliedPromptRef = useRef<string | null>(null);
   const prompt = searchParams.get("prompt")?.trim();
+  const referenceParam = searchParams.get("reference");
+  const reference = useMemo(
+    () => parseAgentReferenceParam(referenceParam),
+    [referenceParam],
+  );
+  const chat = useStatisticsChatController({ enabled: true, reference });
+  const appliedPromptRef = useRef<string | null>(null);
   const roleLabel = ROLE_LABELS[role] ?? ROLE_LABELS.ta;
+  const handoffKey = prompt
+    ? `${prompt}:${reference?.type ?? "none"}:${reference?.id ?? "none"}`
+    : null;
 
   useEffect(() => {
-    if (!prompt || appliedPromptRef.current === prompt) return;
-    appliedPromptRef.current = prompt;
+    if (!prompt || !handoffKey || appliedPromptRef.current === handoffKey) return;
+    appliedPromptRef.current = handoffKey;
     chat.setInput(prompt);
-  }, [chat, prompt]);
+  }, [chat, handoffKey, prompt]);
 
   return (
     <section className="mx-auto flex min-h-[calc(100dvh-7rem)] w-full max-w-6xl flex-col gap-4 px-3 py-3 md:px-6 md:py-5">
@@ -56,6 +65,7 @@ export function AgentWorkspaceClient({
           controller={chat}
           variant="workspace"
           contextLabel={`${roleLabel} workspace`}
+          reference={reference}
           className="h-full"
         />
       </div>
