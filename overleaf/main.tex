@@ -7,6 +7,7 @@
 \usepackage{geometry}
 \usepackage{setspace}
 \usepackage{graphicx}
+\usepackage{adjustbox}
 \usepackage{array}
 \usepackage{tabularx}
 \usepackage{longtable}
@@ -14,17 +15,22 @@
 \usepackage{enumitem}
 \usepackage{float}
 \usepackage{xcolor}
+\usepackage{xurl}
 \usepackage{hyperref}
+\usepackage{microtype}
 \usepackage{fancyhdr}
 \usepackage{caption}
+\usepackage{seqsplit}
 \usepackage{tikz}
-\usetikzlibrary{arrows.meta,positioning,fit,calc,shapes.geometric}
+\usetikzlibrary{arrows.meta,positioning,fit,calc,shapes.geometric,backgrounds}
 
 \geometry{margin=2.5cm}
 \setstretch{1.15}
 \captionsetup{font=small,labelfont=bf}
 \setlist[itemize]{leftmargin=1.5em}
 \setlist[enumerate]{leftmargin=1.8em}
+\raggedbottom
+\emergencystretch=4em
 
 \hypersetup{
   colorlinks=true,
@@ -60,30 +66,18 @@
 \newcommand{\reportauthor}{\textit{À compléter}}
 \newcommand{\reportacademicadvisor}{\textit{À compléter}}
 \newcommand{\reportcompanyadvisor}{\textit{À compléter}}
-\newcommand{\screenshotplaceholder}[2][0.28\textheight]{%
-  \begin{center}
-    \begin{tikzpicture}
-      \node[draw=cgblue, rounded corners, thick, fill=boxgray, inner sep=10pt] {
-        \begin{minipage}[c][#1][c]{0.84\linewidth}
-          \centering
-          {\color{cgblue}\bfseries Illustration à insérer}\\[0.7em]
-          {\large\ttfamily #2}\\[0.9em]
-          {\small Capture d'écran prévue lors de la finalisation du mémoire.}
-        \end{minipage}
-      };
-    \end{tikzpicture}
-  \end{center}
+\newcommand{\appcapture}[2][0.42\textheight]{%
+  \noindent\adjustbox{max width=0.96\linewidth,max totalheight=#1,center}{%
+    \includegraphics{#2}%
+  }%
 }
-\newsavebox{\diagrambox}
 \newcommand{\diagraminput}[1]{%
-  \sbox{\diagrambox}{\input{#1}}%
-  \ifdim\wd\diagrambox>\linewidth
-    \resizebox{0.96\linewidth}{!}{\usebox{\diagrambox}}%
-  \else
-    \usebox{\diagrambox}%
-  \fi
+  \noindent\adjustbox{max width=\linewidth,max totalheight=0.78\textheight,center}{%
+    \input{#1}%
+  }%
 }
-\newcommand{\sourcecode}[1]{\texttt{#1}}
+\DeclareRobustCommand{\sourcecode}[1]{\texorpdfstring{{\ttfamily\seqsplit{#1}}}{#1}}
+\newcommand{\netref}[1]{\hyperref[#1]{[\ref*{#1}]}}
 
 \begin{document}
 \selectlanguage{french}
@@ -100,7 +94,7 @@
   \vspace{0.4cm}
   {\Large \textbf{\projectname}\par}
   \vspace{1.5cm}
-  \begin{tabular}{>{\bfseries}p{4.2cm}p{9.5cm}}
+  \begin{tabular}{@{}>{\bfseries}l@{\hspace{1.2cm}}l@{}}
     Réalisé par : & \reportauthor \\
     Entreprise d'accueil : & Capgemini / Capgemini Engineering \\
     Encadrant académique : & \reportacademicadvisor \\

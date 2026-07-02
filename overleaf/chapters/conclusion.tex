@@ -3,7 +3,7 @@
 
 Le projet \projectname{} a permis de concevoir une plateforme de recrutement d'entreprise cohérente, couvrant l'ensemble du cycle métier : centralisation des CV, structuration des offres, progression des candidats avec historique auditable, organisation des entretiens, notifications, analytique, gouvernance des actions IA et administration. Contrairement à une application limitée au suivi administratif, la solution rassemble dans un même environnement les opérations, les données et les mécanismes de décision qui structurent réellement le travail des équipes TA, Manager, HR et Admin.
 
-Sur le plan technique, le projet montre la pertinence d'une architecture \textit{feature-driven} pour un produit full-stack moderne. La séparation entre routes, actions serveur, services métier, composants d'interface et schéma de données favorise la lisibilité, la maintenabilité et l'évolution incrémentale. Cette organisation a également facilité l'intégration de briques avancées comme les embeddings, les chunks RAG, les guides d'entretien IA et l'agent conversationnel multi-outils, sans dénaturer le cœur métier de l'application.
+Sur le plan technique, le projet montre la pertinence d'une architecture \textit{feature-driven} pour un produit full-stack moderne. La séparation entre routes, actions serveur, services métier, composants d'interface et schéma de données favorise la lisibilité, la maintenabilité et l'évolution incrémentale. Cette organisation a également facilité l'intégration de briques avancées comme les embeddings, les chunks RAG, les guides d'entretien IA et l'agent conversationnel multi-outils, sans dénaturer le c\oe{}ur métier de l'application.
 
 La contribution la plus distinctive réside dans l'industrialisation raisonnée de l'intelligence artificielle. Le projet ne s'appuie pas sur un modèle unique utilisé de manière opaque ; il combine extraction structurée, matching, génération guidée, autopilot d'entretien, conversation outillée, garde-fous d'exécution et validation des sorties. L'évaluation comparative du pipeline RAG sur 40 requêtes, avec 85\% de couverture de vérité terrain, montre un gain de pertinence mesurable : amélioration de Precision@5, Precision@10, MRR@10 et NDCG@10, tout en maintenant un taux d'erreur nul.
 
@@ -12,8 +12,11 @@ La validation retenue pour ce rapport combine deux niveaux complémentaires : d'
 
 \begin{table}[H]
   \centering
+  \scriptsize
   \caption{Synthèse de validation fonctionnelle}
-  \begin{tabularx}{\textwidth}{>{\bfseries}p{2.8cm}X X X}
+  \setlength{\tabcolsep}{3pt}
+  \noindent\begin{adjustbox}{max width=\linewidth,center}
+  \begin{tabularx}{\textwidth}{>{\bfseries\raggedright\arraybackslash}p{2.4cm}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X}
     \toprule
     Domaine & Scénario de validation & Résultat attendu & Résultat retenu \\
     \midrule
@@ -25,10 +28,11 @@ La validation retenue pour ce rapport combine deux niveaux complémentaires : d'
     Chat analytique & Question posée depuis le chat ou \sourcecode{/agent}. & Outils RBAC, streaming SSE, preuves, confirmations, graphiques, cartes typées et trace par phases. & Couvert par l'orchestration, le grounding, les confirmations, les cartes de réponse, les graphiques et la timeline d'outils. \\
     \bottomrule
   \end{tabularx}
+  \end{adjustbox}
 \end{table}
 
 \paragraph{Validation technique automatisée.}
-Sur le plan technique, la preuve automatisée principale a été exécutée via la commande \sourcecode{bun run test}. Cette exécution passe avec succès et valide 90 tests répartis sur 21 fichiers de test Vitest.
+Sur le plan technique, les preuves automatisées principales sont documentées en annexe. Dans l'état observé, \sourcecode{bun run lint}, \sourcecode{bun run build} et \sourcecode{bun run test} passent ; la suite Vitest complète valide 123 tests après alignement du harnais \sourcecode{ChatInput} avec le contrat de propriétés du composant.
 
 Les vérifications automatisées couvrent notamment :
 \begin{itemize}

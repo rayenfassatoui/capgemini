@@ -7,7 +7,7 @@ Ce premier chapitre pose le cadre organisationnel et métier du projet. Il prés
 \section{Présentation de l'entreprise d'accueil}
 
 \subsection{Présentation de Capgemini et de Capgemini Engineering}
-Capgemini se présente comme un acteur mondial du conseil, des services technologiques et de la transformation numérique. La marque \textit{Capgemini Engineering} regroupe plus spécifiquement les activités d'ingénierie, de développement logiciel et de transformation de produits numériques. Dans le contexte de ce projet, cette double identité est importante : le besoin traité est bien un besoin métier RH, mais la réponse attendue est une plateforme logicielle industrialisable, intégrant de la donnée, de l'IA et des interfaces adaptées à plusieurs profils utilisateurs.\footnote{Sources officielles : \url{https://www.capgemini.com/about-us/} et \url{https://www.capgemini.com/about-us/who-we-are/our-brands/capgemini-engineering/}. Dernier accès : 23 mai 2026.}
+Capgemini se présente comme un acteur mondial du conseil, des services technologiques et de la transformation numérique. La marque \textit{Capgemini Engineering} regroupe plus spécifiquement les activités d'ingénierie, de développement logiciel et de transformation de produits numériques. Dans le contexte de ce projet, cette double identité est importante : le besoin traité est bien un besoin métier RH, mais la réponse attendue est une plateforme logicielle industrialisable, intégrant de la donnée, de l'IA et des interfaces adaptées à plusieurs profils utilisateurs \netref{web:capgemini-about}\netref{web:capgemini-engineering}.
 
 \subsection{Structure organisationnelle pertinente pour le projet}
 À l'échelle du projet, l'organisation utile n'est pas une hiérarchie complète de l'entreprise, mais un ensemble d'acteurs qui collaborent sur la chaîne de recrutement :
@@ -17,7 +17,7 @@ Capgemini se présente comme un acteur mondial du conseil, des services technolo
   \item les \textbf{RH}, garants de la décision finale, de la communication et de la contractualisation ;
   \item les \textbf{Administrateurs}, qui supervisent les comptes, les tableaux de bord globaux et les traces d'activité.
 \end{itemize}
-Cette structuration est confirmée dans le projet par la documentation des rôles, par le module d'authentification et par l'organisation des espaces protégés.
+Cette structuration est confirmée dans le projet par la documentation des rôles, par le module d'authentification et par l'organisation des espaces protégés \netref{web:project-docs}.
 
 \subsection{Services et périmètre numérique concernés}
 Le projet s'inscrit dans un périmètre numérique combinant :
@@ -31,7 +31,7 @@ Autrement dit, il ne s'agit pas d'un simple ATS documentaire, mais d'un système
 
 \begin{figure}[H]
   \centering
-  \screenshotplaceholder{Landing page}
+  \appcapture{figures/screenshots/landing_pages.png}
   \caption{Page d'accueil institutionnelle de la plateforme.}
 \end{figure}
 
@@ -41,7 +41,7 @@ Autrement dit, il ne s'agit pas d'un simple ATS documentaire, mais d'un système
 Les recrutements d'entreprise rencontrent plusieurs difficultés récurrentes : multiplicité des candidatures, hétérogénéité des formats de CV, dispersion des informations, lenteur des validations intermédiaires, manque de visibilité sur le pipeline et difficulté à exploiter l'IA sans perdre la maîtrise métier. L'analyse fonctionnelle du projet montre que le besoin adressé par \projectname{} porte précisément sur cette chaîne complète : ingestion documentaire, structuration, assignation, évaluation multi-étapes, planification d'entretiens et pilotage analytique.
 
 \subsection{Étude synthétique des solutions existantes}
-Avant de construire une solution interne, il est pertinent de situer le projet par rapport à des plateformes largement diffusées comme LinkedIn Talent Solutions, Greenhouse et Workday Recruiting, dont les sites officiels sont référencés en netographie. L'objectif n'est pas d'établir un benchmark de performance absolu, mais d'identifier les écarts entre des offres ATS généralistes et le besoin spécifique du projet.
+Avant de construire une solution interne, il est pertinent de situer le projet par rapport à des plateformes largement diffusées comme LinkedIn Talent Solutions, Greenhouse et Workday Recruiting, dont les sites officiels sont référencés en bibliographie et webographie \netref{web:linkedin-talent}\netref{web:greenhouse-recruiting}\netref{web:workday-recruiting}. L'objectif n'est pas d'établir un benchmark de performance absolu, mais d'identifier les écarts entre des offres ATS généralistes et le besoin spécifique du projet.
 
 \begin{table}[H]
   \centering

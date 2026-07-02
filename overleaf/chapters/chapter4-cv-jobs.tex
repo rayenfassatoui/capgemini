@@ -2,7 +2,7 @@
 
 \section*{Introduction}
 \addcontentsline{toc}{section}{Introduction}
-Ce deuxième module matérialise le premier cœur opérationnel du produit. Après avoir sécurisé l'accès et structuré les rôles, il fallait construire la base documentaire et métier sur laquelle reposera toute la suite de la plateforme. Dans \projectname{}, cela signifie deux choses : constituer un vivier de CV exploitable et formaliser les besoins de recrutement à travers des offres structurées. Sans ce module, il n'y aurait ni pipeline candidat fiable, ni matching pertinent, ni recherche sémantique, ni pipeline RAG réellement utile.
+Ce deuxième module matérialise le premier c\oe{}ur opérationnel du produit. Après avoir sécurisé l'accès et structuré les rôles, il fallait construire la base documentaire et métier sur laquelle reposera toute la suite de la plateforme. Dans \projectname{}, cela signifie deux choses : constituer un vivier de CV exploitable et formaliser les besoins de recrutement à travers des offres structurées. Sans ce module, il n'y aurait ni pipeline candidat fiable, ni matching pertinent, ni recherche sémantique, ni pipeline RAG réellement utile.
 
 Ce chapitre marque le passage d'un système simplement authentifié à un système capable de manipuler une matière métier réelle. Les CV sont hétérogènes, souvent peu structurés et parfois redondants. Les offres doivent quant à elles rester lisibles pour les recruteurs tout en devenant suffisamment normalisées pour servir aux futurs traitements IA.
 
@@ -147,7 +147,7 @@ Autrement dit, l'embedding global répond surtout à la question : quel profil r
 \subsection{Création d'une offre et affectation vers le pipeline candidat}
 La création d'une offre passe par \sourcecode{createJobAction()} puis \sourcecode{createJob()}. Les données sont validées avant insertion. L'offre conserve une structure explicite : titre, description, compétences indispensables, compétences souhaitables, séniorité, business unit, statut et indicateur de template.
 
-Même si le cœur du pipeline candidat est traité dans le chapitre suivant, ce module prépare déjà le lien métier principal : le passage de \textit{CV dans le vivier} à \textit{candidat dans une offre}. Cette transition transforme un actif documentaire en objet de pipeline.
+Même si le c\oe{}ur du pipeline candidat est traité dans le chapitre suivant, ce module prépare déjà le lien métier principal : le passage de \textit{CV dans le vivier} à \textit{candidat dans une offre}. Cette transition transforme un actif documentaire en objet de pipeline.
 
 Elle rend aussi possible un futur matching crédible, car la plateforme dispose désormais de deux objets structurés pouvant être comparés selon des critères métier et sémantiques.
 
@@ -178,13 +178,13 @@ Cette interface montre ainsi que le vivier n'est pas une simple liste de fichier
 
 \begin{figure}[H]
   \centering
-  \screenshotplaceholder{CV pool}
+  \appcapture{figures/screenshots/cvpool-ta.png}
   \caption{Page de gestion du vivier de CV.}
 \end{figure}
 
 \begin{figure}[H]
   \centering
-  \screenshotplaceholder{CV detail dialog}
+  \appcapture{figures/screenshots/cvpool-details.png}
   \caption{Dialogue de consultation détaillée d'un CV.}
 \end{figure}
 
@@ -209,13 +209,13 @@ L'offre d'emploi n'est donc pas traitée comme un simple formulaire administrati
 
 \begin{figure}[H]
   \centering
-  \screenshotplaceholder{Job list}
+  \appcapture{figures/screenshots/job-management.png}
   \caption{Catalogue des offres d'emploi.}
 \end{figure}
 
 \begin{figure}[H]
   \centering
-  \screenshotplaceholder{Create/edit job area}
+  \appcapture{figures/screenshots/create-job.png}
   \caption{Zone de création ou d'édition d'une offre d'emploi.}
 \end{figure}
 
@@ -231,7 +231,7 @@ Ce point montre que ce module n'est pas isolé. Le détail d'une offre devient l
 
 \begin{figure}[H]
   \centering
-  \screenshotplaceholder{Job detail + matching}
+  \appcapture{figures/screenshots/job-cv-matching.png}
   \caption{Page détail d'une offre avec candidats associés et résultats de matching.}
 \end{figure}
 

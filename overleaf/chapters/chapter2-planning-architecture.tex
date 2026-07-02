@@ -2,7 +2,7 @@
 
 \section*{Introduction}
 \addcontentsline{toc}{section}{Introduction}
-Après avoir cadré le besoin métier, ce chapitre traduit la vision produit en exigences, en modèle de données et en architecture technique. Il s'appuie sur les artefacts techniques du projet : documentation d'architecture, schéma de données, couche de routage et services métier.
+Après avoir cadré le besoin métier, ce chapitre traduit la vision produit en exigences, en modèle de données et en architecture technique. Il s'appuie sur les artefacts techniques du projet : documentation d'architecture, schéma de données, couche de routage et services métier \netref{web:project-docs}.
 
 \section{Analyse des besoins et spécification}
 
@@ -50,10 +50,10 @@ Les exigences non fonctionnelles retenues pour la solution sont résumées ci-de
     \toprule
     Axe & Traduction dans la solution \\
     \midrule
-    Sécurité & Authentification \sourcecode{better-auth}, contrôle d'accès par rôle sur les routes, les actions serveur et les outils IA. \\
-    Validation & Validation \sourcecode{Zod} sur les entrées utilisateur et les arguments d'outils. \\
+    Sécurité & Authentification \sourcecode{better-auth}, contrôle d'accès par rôle sur les routes, les actions serveur et les outils IA \netref{web:better-auth-docs}. \\
+    Validation & Validation \sourcecode{Zod} sur les entrées utilisateur et les arguments d'outils \netref{web:zod-docs}. \\
     Performance & Sélection explicite des colonnes, limites de requêtes, embeddings asynchrones, streaming SSE côté chat. \\
-    Évolutivité & Architecture \textit{feature-driven}, services métier séparés, modules IA découplés, stockage \sourcecode{pgvector}. \\
+    Évolutivité & Architecture \textit{feature-driven}, services métier séparés, modules IA découplés, stockage \sourcecode{pgvector} \netref{web:pgvector-docs}. \\
     Traçabilité & Logs d'activité, email logs, notifications, conversations, messages, historique d'étapes candidat et confirmations d'actions IA stockés en base. \\
     Fiabilité IA & Guardrails sur le nombre d'étapes agentiques, les tokens, le timeout, les échecs d'outils et la confirmation des actions modifiant les données. \\
     \bottomrule
@@ -132,15 +132,15 @@ Cette planification montre une trajectoire progressive : d'abord sécuriser l'ac
 D'un point de vue externe, la plateforme peut être vue comme un ensemble de flux entre cinq blocs :
 \begin{itemize}
   \item le client web utilisé par les rôles \textbf{TA}, \textbf{Manager}, \textbf{HR} et \textbf{Admin} ;
-  \item l'application \sourcecode{Next.js 16}, qui gère l'interface, les routes, le rendu serveur, les Server Actions et l'API de chat ;
-  \item la base \sourcecode{Neon PostgreSQL}, qui stocke les entités métier, les conversations, les logs et les embeddings ;
+  \item l'application \sourcecode{Next.js 16}, qui gère l'interface, les routes, le rendu serveur, les Server Actions et l'API de chat \netref{web:nextjs-docs} ;
+  \item la base \sourcecode{Neon PostgreSQL}, qui stocke les entités métier, les conversations, les logs et les embeddings \netref{web:neon-docs}\netref{web:postgres-docs} ;
   \item les services IA externes appelés pour les générations, les réécritures de requêtes et les embeddings ;
   \item le service d'emailing utilisé pour les invitations, les décisions et certaines notifications.
 \end{itemize}
 
 Le flux typique est le suivant : un utilisateur agit depuis un dashboard, la requête est authentifiée, la logique métier est exécutée dans les services, les données sont lues ou écrites en base, puis un appel IA ou email est déclenché lorsque le cas d'usage l'exige. Pour le chat analytique, la réponse est renvoyée progressivement au client en streaming \sourcecode{SSE}.
 
-Cette vue externe permet de distinguer clairement ce qui appartient au produit et ce qui dépend de services tiers. Le cœur métier reste dans l'application et dans la base de données ; les services externes sont utilisés comme capacités spécialisées, sous contrôle des services applicatifs.
+Cette vue externe permet de distinguer clairement ce qui appartient au produit et ce qui dépend de services tiers. Le c\oe{}ur métier reste dans l'application et dans la base de données ; les services externes sont utilisés comme capacités spécialisées, sous contrôle des services applicatifs.
 
 \subsection{Architecture applicative globale}
 L'architecture adoptée n'est pas une architecture microservices. Le projet affirme explicitement une architecture \textit{Feature-Driven} : la couche de routage reste mince, les composants d'interface sont séparés, et la logique métier réside dans des services organisés par fonctionnalité. Cette décision est particulièrement adaptée à une application web monolithique moderne enrichie par l'IA.
@@ -202,10 +202,10 @@ Le sous-système IA articule plusieurs briques : génération de descriptions de
 \end{figure}
 
 \paragraph{Justification de \sourcecode{pgvector}.}
-L'usage de \sourcecode{pgvector} permet de conserver les embeddings dans la même base que les données métier. Ce choix s'appuie sur la documentation officielle de l'extension \sourcecode{pgvector}, référencée en netographie, et évite de déporter la recherche vectorielle vers une infrastructure séparée. Il maintient une forte proximité entre profils, chunks, candidats et services de retrieval. Dans un produit de recrutement où les données doivent rester gouvernées, traçables et liées aux mêmes règles d'accès, cette unification simplifie l'architecture sans empêcher les usages avancés de similarité sémantique.
+L'usage de \sourcecode{pgvector} permet de conserver les embeddings dans la même base que les données métier. Ce choix s'appuie sur la documentation officielle de l'extension \sourcecode{pgvector} \netref{web:pgvector-docs} et évite de déporter la recherche vectorielle vers une infrastructure séparée. Il maintient une forte proximité entre profils, chunks, candidats et services de retrieval. Dans un produit de recrutement où les données doivent rester gouvernées, traçables et liées aux mêmes règles d'accès, cette unification simplifie l'architecture sans empêcher les usages avancés de similarité sémantique.
 
 \paragraph{Justification du retrieval hybride.}
-Le retrieval hybride est retenu parce qu'aucun signal unique n'est suffisant dans un contexte RH. Le principe RAG renvoie aux travaux de Lewis et al. sur la génération augmentée par récupération, tandis que la recherche vectorielle s'inscrit dans les approches de similarité à grande échelle mentionnées en netographie. La recherche lexicale reste utile pour les intitulés exacts, les technologies nommées ou les mots-clés métier, tandis que la recherche vectorielle capte des proximités sémantiques moins littérales. Leur combinaison via RRF, complétée par un reranking, permet de limiter à la fois les faux négatifs liés au vocabulaire et les rapprochements trop flous liés à la seule similarité vectorielle.
+Le retrieval hybride est retenu parce qu'aucun signal unique n'est suffisant dans un contexte RH. Le principe RAG renvoie aux travaux de Lewis et al. sur la génération augmentée par récupération \netref{web:rag-lewis}, tandis que la recherche vectorielle s'inscrit dans les approches de similarité à grande échelle mentionnées en bibliographie \netref{web:vector-johnson}. La recherche lexicale reste utile pour les intitulés exacts, les technologies nommées ou les mots-clés métier, tandis que la recherche vectorielle capte des proximités sémantiques moins littérales. Leur combinaison via RRF, complétée par un reranking, permet de limiter à la fois les faux négatifs liés au vocabulaire et les rapprochements trop flous liés à la seule similarité vectorielle.
 
 \paragraph{Justification de l'agent outillé.}
 Le choix d'un agent outillé répond à une limite claire des chatbots génériques : produire une réponse fluide ne suffit pas lorsqu'il faut interroger des données sensibles, filtrer les accès et agir sur des objets métier réels. En s'appuyant sur un registre d'outils explicitement validés, l'agent peut raisonner sur plusieurs étapes tout en restant borné par les opérations autorisées. Il devient ainsi une interface d'accès au système, et non un simple générateur de texte détaché du contexte applicatif.
@@ -239,17 +239,17 @@ L'environnement de travail du projet s'appuie sur les artefacts présents dans l
 Cette organisation garde le rapport directement rattaché au projet réel : les choix décrits proviennent des fichiers, scripts, services, schémas et composants effectivement présents dans le dépôt.
 
 \subsection{Environnement d'exécution et de développement}
-Le projet est développé dans un environnement JavaScript / TypeScript moderne. \sourcecode{Bun} est utilisé comme runtime principal, gestionnaire de dépendances et orchestrateur de scripts. \sourcecode{Next.js 16} fournit le socle full-stack de développement et d'exécution. L'environnement local repose sur \sourcecode{bun dev}, tandis que les scripts de base de données, de seed, de réindexation, de benchmark et d'évaluation utilisent également Bun.
+Le projet est développé dans un environnement JavaScript / TypeScript moderne. \sourcecode{Bun} est utilisé comme runtime principal, gestionnaire de dépendances et orchestrateur de scripts \netref{web:bun-docs}. \sourcecode{Next.js 16} fournit le socle full-stack de développement et d'exécution \netref{web:nextjs-docs}. L'environnement local repose sur \sourcecode{bun dev}, tandis que les scripts de base de données, de seed, de réindexation, de benchmark et d'évaluation utilisent également Bun.
 
 Ce choix simplifie l'outillage : un même runtime permet d'exécuter l'application, les scripts techniques, les tests et les tâches liées à l'IA, sans multiplier les gestionnaires de paquets ni les conventions d'exécution.
 
 \subsection{Outils front-end}
 Le front-end du projet repose sur les technologies suivantes :
 \begin{itemize}
-  \item \sourcecode{Next.js 16} avec App Router pour le rendu, les layouts et l'orchestration des routes ;
-  \item \sourcecode{React} pour la composition de l'interface ;
-  \item \sourcecode{TypeScript} en mode strict pour la sécurité de typage ;
-  \item \sourcecode{Tailwind CSS v4} et \sourcecode{shadcn/ui} pour les composants et le design system ;
+  \item \sourcecode{Next.js 16} avec App Router pour le rendu, les layouts et l'orchestration des routes \netref{web:nextjs-docs} ;
+  \item \sourcecode{React} pour la composition de l'interface \netref{web:react-docs} ;
+  \item \sourcecode{TypeScript} en mode strict pour la sécurité de typage \netref{web:typescript-docs} ;
+  \item \sourcecode{Tailwind CSS v4} et \sourcecode{shadcn/ui} pour les composants et le design system \netref{web:tailwind-docs}\netref{web:shadcn-docs} ;
   \item \sourcecode{@tabler/icons-react} pour l'iconographie ;
   \item \sourcecode{React Hook Form} pour les formulaires complexes ;
   \item \sourcecode{TanStack Query} lorsque le cache client est utile ;
@@ -265,17 +265,17 @@ Le back-end est intégré dans la même application full-stack, mais organisé d
   \item les routes \sourcecode{Next.js} gèrent les points d'entrée HTTP et le streaming \sourcecode{SSE} ;
   \item les Server Actions servent de couche de mutation contrôlée ;
   \item les services métier concentrent la logique de traitement et les accès aux données ;
-  \item \sourcecode{better-auth} gère l'authentification, les sessions et les rôles ;
-  \item \sourcecode{Zod} valide les entrées utilisateur et les arguments des outils agentiques ;
+  \item \sourcecode{better-auth} gère l'authentification, les sessions et les rôles \netref{web:better-auth-docs} ;
+  \item \sourcecode{Zod} valide les entrées utilisateur et les arguments des outils agentiques \netref{web:zod-docs} ;
   \item \sourcecode{Nodemailer} assure l'envoi des emails d'entretien et de décision ;
   \item le SDK compatible \sourcecode{OpenAI} est utilisé avec des fournisseurs IA externes pour les appels LLM et embeddings ;
-  \item \sourcecode{Vitest} couvre les tests automatisés observables du projet.
+  \item \sourcecode{Vitest} couvre les tests automatisés observables du projet \netref{web:vitest-docs}.
 \end{itemize}
 
 Cette organisation permet de mélanger logique métier classique et logique IA sans éclater le projet en sous-systèmes difficiles à maintenir.
 
 \subsection{Architecture de la base de données}
-La persistance s'appuie sur \sourcecode{Neon PostgreSQL} et \sourcecode{Drizzle ORM}. Ce choix permet de garder dans la même base :
+La persistance s'appuie sur \sourcecode{Neon PostgreSQL} et \sourcecode{Drizzle ORM} \netref{web:neon-docs}\netref{web:postgres-docs}\netref{web:drizzle-docs}. Ce choix permet de garder dans la même base :
 \begin{itemize}
   \item les données métier du recrutement : utilisateurs, offres, CV, candidats, entretiens et rapports ;
   \item les données conversationnelles du chat IA ;
@@ -286,7 +286,7 @@ La persistance s'appuie sur \sourcecode{Neon PostgreSQL} et \sourcecode{Drizzle 
   \item les embeddings vectoriels via \sourcecode{pgvector}.
 \end{itemize}
 
-L'usage de \sourcecode{pgvector} évite l'introduction d'une base vectorielle externe. Les embeddings globaux des CV sont stockés dans le vivier, tandis que les embeddings orientés RAG sont stockés dans les chunks. Ces chunks sont aussi indexés en recherche plein texte, ce qui rend possible une recherche hybride combinant récupération vectorielle et récupération lexicale.
+L'usage de \sourcecode{pgvector} évite l'introduction d'une base vectorielle externe \netref{web:pgvector-docs}. Les embeddings globaux des CV sont stockés dans le vivier, tandis que les embeddings orientés RAG sont stockés dans les chunks. Ces chunks sont aussi indexés en recherche plein texte, ce qui rend possible une recherche hybride combinant récupération vectorielle et récupération lexicale.
 Les tables \sourcecode{candidate\_stage\_history} et \sourcecode{pending\_agent\_actions} renforcent la gouvernance du modèle. La première conserve les mouvements du pipeline avec l'étape précédente, la nouvelle étape, l'acteur, la raison, la source et l'horodatage. La seconde matérialise les actions IA sensibles avant exécution, avec leur statut, leur expiration et leur résultat d'exécution. Ces deux tables transforment les opérations critiques en preuves consultables et exportables.
 
 \section*{Conclusion}

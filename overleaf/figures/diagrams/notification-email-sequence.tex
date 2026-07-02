@@ -1,15 +1,21 @@
-\begin{tikzpicture}[node distance=0.9cm and 1cm, font=\small]
-  \node[box] (event) {Événement métier\\entretien / décision};
-  \node[box, right=of event] (notif) {Créer notification\\in-app};
-  \node[box, right=of notif] (mail) {Générer / envoyer\\email};
-  \node[database, below=of notif] (log) {notifications};
-  \node[database, below=of mail] (elog) {email\_logs};
-  \node[actor, above right=of mail] (user) {Utilisateur};
+\begin{tikzpicture}[
+  font=\small,
+  notifbox/.style={box, text width=2.55cm, minimum height=0.82cm},
+  notifact/.style={actor, minimum width=2.3cm},
+  notifdb/.style={database, minimum width=1.7cm},
+  notifline/.style={-{Latex[length=2.5mm]}, thick, draw=cgdeep}
+]
+  \node[notifbox] (event) at (0,0) {Événement métier\\entretien / décision};
+  \node[notifbox] (notif) at (3.25,0) {Créer notification\\in-app};
+  \node[notifbox] (mail) at (6.5,0) {Générer / envoyer\\email};
+  \node[notifact] (user) at (9.6,0) {Utilisateur};
+  \node[notifdb] (log) at (3.25,-2.05) {notifications};
+  \node[notifdb] (elog) at (6.5,-2.05) {email\_logs};
 
-  \draw[line] (event) -- (notif);
-  \draw[line] (event) |- (mail);
-  \draw[line] (notif) -- (log);
-  \draw[line] (mail) -- (elog);
-  \draw[line] (notif) -- (user);
-  \draw[line] (mail) -- (user);
+  \draw[notifline] (event.east) -- (notif.west);
+  \draw[notifline] (notif.east) -- (mail.west);
+  \draw[notifline] (mail.east) -- (user.west);
+  \draw[notifline] (notif.south) -- (log.north);
+  \draw[notifline] (mail.south) -- (elog.north);
+  \draw[notifline] (notif.north) -- ++(0,0.62) -| (user.north);
 \end{tikzpicture}

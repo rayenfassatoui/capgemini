@@ -1,28 +1,35 @@
-\begin{tikzpicture}[node distance=0.85cm and 1.0cm, font=\small]
-  \node[actor] (user) {Utilisateur};
-  \node[box, right=2.2cm of user] (route) {Route SSE\\\sourcecode{/api/chat/statistics}};
-  \node[box, right=of route] (context) {Contexte\\session + rôle\\historique nettoyé};
-  \node[box, below=of context] (tools) {Filtrage outils\\RBAC + Zod};
-  \node[box, below=of route] (llm) {Boucle agentique\\max 8 étapes};
-  \node[box, right=of llm] (confirm) {Confirmation\\actions sensibles};
-  \node[box, right=of confirm] (exec) {Exécution outil\\RBAC + Zod};
-  \node[database, below=of exec] (db) {Base\\données};
-  \node[box, below=of llm] (ground) {Sanitization\\grounding};
-  \node[box, left=of ground] (cards) {Métadonnées\\sources + graphiques\\cartes typées};
-  \node[box, below=of cards] (trace) {Trace par phases\\retrieval, analysis\\confirmation, execution};
-  \node[box, left=of trace] (ui) {Réponse UI\\source-backed\\actions de suivi};
+\begin{tikzpicture}[
+  font=\scriptsize,
+  flowbox/.style={box, text width=2.1cm, minimum height=0.86cm, inner sep=4pt, font=\scriptsize},
+  smallactor/.style={actor, minimum width=2.0cm, font=\scriptsize},
+  softline/.style={-{Latex[length=2.4mm]}, thick, draw=cgdeep}
+]
+  \node[smallactor] (user) at (0,0) {Utilisateur};
+  \node[flowbox] (route) at (2.95,0) {Route SSE\\\texttt{/api/chat/}\\\texttt{statistics}};
+  \node[flowbox] (context) at (5.9,0) {Contexte\\session + rôle\\historique nettoyé};
+  \node[flowbox] (tools) at (8.85,0) {Filtrage outils\\RBAC + Zod};
 
-  \draw[line] (user) -- (route);
-  \draw[line] (route) -- (context);
-  \draw[line] (context) -- (tools);
-  \draw[line] (tools) -- (llm);
-  \draw[line] (llm) -- (confirm);
-  \draw[line] (confirm) -- (exec);
-  \draw[line] (exec) -- (db);
-  \draw[line] (db.west) -| (llm.south);
-  \draw[line] (llm) -- (ground);
-  \draw[line] (ground) -- (cards);
-  \draw[line] (cards) -- (trace);
-  \draw[line] (trace) -- (ui);
-  \draw[line] (ui.west) -| (user.south);
+  \node[flowbox] (llm) at (5.9,-1.55) {Boucle agentique\\max. 8 étapes};
+  \node[flowbox] (confirm) at (8.85,-1.55) {Confirmation\\actions sensibles};
+  \node[flowbox] (exec) at (11.75,-1.55) {Exécution outil\\RBAC + Zod};
+  \node[database, font=\scriptsize, minimum width=1.65cm] (db) at (11.75,-3.18) {Base\\données};
+
+  \node[flowbox] (ground) at (5.9,-3.18) {Sanitization\\grounding};
+  \node[flowbox] (cards) at (2.95,-3.18) {Métadonnées\\sources + graphiques\\cartes typées};
+  \node[flowbox] (trace) at (2.95,-5.38) {Trace par phases\\retrieval, analysis\\confirmation, execution};
+  \node[flowbox] (ui) at (0,-5.38) {Réponse UI\\source-backed\\actions de suivi};
+
+  \draw[softline] (user.east) -- (route.west);
+  \draw[softline] (route.east) -- (context.west);
+  \draw[softline] (context.east) -- (tools.west);
+  \draw[softline] (tools.south west) -- (llm.north east);
+  \draw[softline] (llm.east) -- (confirm.west);
+  \draw[softline] (confirm.east) -- (exec.west);
+  \draw[softline] (exec.south) -- (db.north);
+  \draw[softline] (db.west) -- (ground.east);
+  \draw[softline] (llm.south) -- (ground.north);
+  \draw[softline] (ground.west) -- (cards.east);
+  \draw[softline] (cards.south) -- (trace.north);
+  \draw[softline] (trace.west) -- (ui.east);
+  \draw[softline] (ui.west) -- ++(-0.55,0) |- (user.west);
 \end{tikzpicture}

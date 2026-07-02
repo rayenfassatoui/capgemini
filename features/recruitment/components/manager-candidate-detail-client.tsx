@@ -606,9 +606,11 @@ export function ManagerCandidateDetailClient({
                 </div>
               ) : (
                 <Dialog>
-                  <DialogTrigger className={buttonVariants({ variant: 'outline' })}>
-                    <IconCalendar className="mr-2 h-4 w-4" /> Schedule Interview
-                  </DialogTrigger>
+                  <DialogTrigger render={
+                    <Button variant="outline">
+                      <IconCalendar className="mr-2 h-4 w-4" /> Schedule Interview
+                    </Button>
+                  } />
                   <DialogContent>
                     <DialogHeader>
                       <DialogTitle>Schedule Interview</DialogTitle>

@@ -50,6 +50,8 @@ describe('statistics chat runtime skills', () => {
     expect(toolNames).toContain('get_dashboard_stats');
     expect(toolNames).toContain('get_today_interviews');
     expect(toolNames).toContain('get_notifications');
+    expect(toolNames).toContain('get_candidates_by_stage');
+    expect(toolNames).toContain('get_screening');
     expect(skills.find((skill) => skill.id === 'proactive-operations')?.instructions).toContain(
       'Treat the response as a production operating workflow using role-scoped live data, not a staged walkthrough.',
     );
@@ -69,11 +71,43 @@ describe('statistics chat runtime skills', () => {
     ).toEqual([
       'get_dashboard_stats',
       'get_smart_insights',
+      'get_candidates_by_stage',
       'get_today_interviews',
       'get_notifications',
     ]);
   });
 
+
+  it('selects pipeline and screening tools for TA screening prioritization', () => {
+    const skills = selectAgentRuntimeSkills({
+      message:
+        'Show candidates in TA screening. Prioritize who needs attention first and explain why.',
+      role: 'ta',
+      hasAttachments: false,
+    });
+    const skillIds = skills.map((skill) => skill.id);
+    const toolNames = selectToolNamesForSkills(skills);
+    const prompt = buildAgentSkillPrompt(skills, toolNames);
+
+    expect(skillIds).toContain('proactive-operations');
+    expect(skillIds).toContain('cv-search');
+    expect(skillIds).toContain('job-matching');
+    expect(toolNames).toContain('get_candidates_by_stage');
+    expect(toolNames).toContain('get_screening');
+    expect(toolNames).toContain('get_candidate');
+    expect(prompt).toContain(
+      'For TA screening prioritization, call get_candidates_by_stage and then get_screening for visible candidates before recommending next action.',
+    );
+    expect(prompt).toContain(
+      'never report zero candidates if those tools returned rows.',
+    );
+    expect(prompt).toContain(
+      'Boss use case: if the user asks who needs attention in TA screening',
+    );
+    expect(prompt).toContain(
+      'execute the selected skill steps literally before writing the final answer.',
+    );
+  });
   it('does not activate admin-only governance tools for a TA request', () => {
     const skills = selectAgentRuntimeSkills({
       message: 'Find top React CVs and rank the best profiles',

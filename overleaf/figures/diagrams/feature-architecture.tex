@@ -1,13 +1,19 @@
-\begin{tikzpicture}[node distance=1cm, font=\small]
-  \node[box, minimum width=12cm] (app) {\textbf{Couche App Router}\\\sourcecode{app/} : routes publiques, auth, dashboards, endpoint SSE};
-  \node[box, minimum width=12cm, below=of app] (actions) {\textbf{Actions serveur}\\\sourcecode{features/recruitment/actions.ts} : auth, validation d'accès, revalidation};
-  \node[box, minimum width=12cm, below=of actions] (services) {\textbf{Services métier}\\\sourcecode{cv-pool.ts, jobs.ts, candidates.ts, interviews.ts, ai-features.ts, retrieval-pipeline.ts, admin.ts}};
-  \node[box, minimum width=12cm, below=of services] (tools) {\textbf{Outils agentiques}\\\sourcecode{agent-tools/} : registre, validation Zod, exécution RBAC};
-  \node[box, minimum width=12cm, below=of tools] (infra) {\textbf{Infrastructure partagée}\\\sourcecode{lib/auth.ts, lib/db.ts, db/schema.ts, Neon PostgreSQL, pgvector}};
+\begin{tikzpicture}[
+  node distance=0.72cm,
+  font=\scriptsize,
+  layer/.style={box, text width=10.7cm, minimum width=11.15cm, inner sep=5pt}
+]
+  \node[layer] (app) {\textbf{Couche App Router}\\\sourcecode{app/} : routes publiques, auth, dashboards, endpoint SSE};
+  \node[layer, below=of app] (actions) {\textbf{Actions serveur}\\\sourcecode{features/recruitment/actions.ts} : auth, validation d'accès, revalidation};
+  \node[layer, below=of actions] (services) {\textbf{Services métier}\\\sourcecode{cv-pool.ts, jobs.ts, candidates.ts, interviews.ts, ai-features.ts, retrieval-pipeline.ts, admin.ts}};
+  \node[layer, below=of services] (tools) {\textbf{Outils agentiques}\\\sourcecode{agent-tools/} : registre, validation Zod, exécution RBAC};
+  \node[layer, below=of tools] (infra) {\textbf{Infrastructure partagée}\\\sourcecode{lib/auth.ts, lib/db.ts, db/schema.ts, Neon PostgreSQL, pgvector}};
 
   \draw[line] (app) -- (actions);
   \draw[line] (actions) -- (services);
   \draw[line] (services) -- (tools);
   \draw[line] (tools) -- (infra);
-  \draw[dashedline] ($(app.east)+(0.4,0)$) to[bend left=18] node[right]{UI et SSE} ($(services.east)+(0.4,0)$);
+  \draw[dashedline] ($(app.east)+(0.22,0)$) to[bend left=16]
+    node[right, font=\scriptsize, fill=white, inner sep=1pt]{UI et SSE}
+    ($(services.east)+(0.22,0)$);
 \end{tikzpicture}

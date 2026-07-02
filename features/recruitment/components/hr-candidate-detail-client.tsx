@@ -460,9 +460,11 @@ export function HRCandidateDetailClient({
                 </div>
               ) : (
                 <Dialog open={showScheduleDialog} onOpenChange={setShowScheduleDialog}>
-                  <DialogTrigger className={buttonVariants({ variant: 'outline' })}>
-                    <IconCalendar className="mr-2 h-4 w-4" /> Schedule Meeting
-                  </DialogTrigger>
+                  <DialogTrigger render={
+                    <Button variant="outline">
+                      <IconCalendar className="mr-2 h-4 w-4" /> Schedule Meeting
+                    </Button>
+                  } />
                   <DialogContent>
                     <DialogHeader>
                       <DialogTitle>Schedule HR Meeting</DialogTitle>

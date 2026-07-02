@@ -17,6 +17,10 @@ function ChatInputHarness() {
       onStop={vi.fn()}
       onAttachFile={vi.fn()}
       onRemoveFile={vi.fn()}
+      references={[]}
+      onAddReference={vi.fn()}
+      onRemoveReference={vi.fn()}
+      onClearReferences={vi.fn()}
     />
   );
 }

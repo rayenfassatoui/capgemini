@@ -79,7 +79,7 @@ const DOMAIN_SKILLS: readonly AgentRuntimeSkill[] = [
     description:
       "Start from live operational signals, identify the biggest blocker, and propose the next best actions before the user has to enumerate them.",
     triggers: [
-      /\b(proactive|proactively|next\s+steps?|what\s+should\s+i\s+do|where\s+to\s+start|priority|priorities|urgent|blocker|bottleneck|risk|risks?|lobb|ghalta|ghalet|mochkol|problem|actions?|today|daily)\b/i,
+      /\b(proactive|proactively|next\s+steps?|what\s+should\s+i\s+do|where\s+to\s+start|prioriti[sz]e|prioriti[sz]ation|priority|priorities|urgent|blocker|bottleneck|risk|risks?|lobb|ghalta|ghalet|mochkol|problem|actions?|today|daily)\b/i,
       /\b(chbowa|chnowa|chneya|aamel|naamel|tawa|taw)\b.*\b(next|action|priority|audit|analyse|analyze)\b/i,
     ],
     toolNames: [
@@ -90,12 +90,20 @@ const DOMAIN_SKILLS: readonly AgentRuntimeSkill[] = [
       "get_jobs_stats",
       "get_cv_pool_stats",
       "get_recruitment_analytics",
+      "get_candidates_by_stage",
+      "get_candidates_by_job",
+      "get_candidate",
+      "get_screening",
     ],
     instructions: [
       "Fetch the smallest role-allowed live signal set before advising what to do next.",
+      "If the request is broad, fetch dashboard/insights first; if it mentions a stage, candidate, screening, or interview, fetch the matching pipeline records next.",
       "Treat the response as a production operating workflow using role-scoped live data, not a staged walkthrough.",
-      "Lead with the single biggest blocker, then explain why using observed counts or records.",
+      "Follow this mechanical playbook even when the model is uncertain: 1) Objective, 2) Evidence pulled, 3) lobb el ghalta / biggest blocker, 4) impact, 5) exactly 3 prioritized actions.",
+      "Boss use case: if the user asks who needs attention in TA screening, call get_candidates_by_stage, then get_screening for visible candidates with candidateId+jobId, rank by score/staleness, and give the first safe action.",
+      "Each action must include owner, action, and why-now; never output vague advice such as 'monitor the pipeline'.",
       "When analytics records exist, produce chart-friendly wording and ask for no extra confirmation unless a mutating action is needed.",
+      "If a draft answer conflicts with tool records, discard the draft and trust the deterministic tool evidence.",
       "End with exactly 3 prioritized actions the user can execute today.",
     ],
     requiresFreshTools: true,
@@ -142,7 +150,9 @@ const DOMAIN_SKILLS: readonly AgentRuntimeSkill[] = [
     instructions: [
       "Prefer rag_search_cvs for natural-language searches; fall back to semantic_search_cvs only if needed.",
       "Candidate table rows must come from current tool results only.",
+      "For pipeline candidate questions, get_candidates_by_stage and get_candidate are valid candidate evidence sources; never report zero candidates if those tools returned rows.",
       "Use get_cv_details or get_candidate when a single profile needs deeper evidence.",
+      "When the user asks for priority, rank by available screening score first, then stale workflow age, then missing evidence.",
     ],
     requiresFreshTools: true,
   },
@@ -161,6 +171,7 @@ const DOMAIN_SKILLS: readonly AgentRuntimeSkill[] = [
       "match_cvs_to_job_with_filters",
       "hybrid_search_cvs",
       "compare_candidates",
+      "get_candidates_by_stage",
       "get_candidates_by_job",
       "get_candidate",
       "generate_screening",
@@ -171,7 +182,9 @@ const DOMAIN_SKILLS: readonly AgentRuntimeSkill[] = [
     instructions: [
       "Resolve job IDs through list_jobs or get_job before match tools.",
       "Use match_cvs_to_job or hybrid_search_cvs before ranking fit.",
+      "For TA screening prioritization, call get_candidates_by_stage and then get_screening for visible candidates before recommending next action.",
       "Use compare_candidates for explicit comparisons instead of manually synthesizing rankings.",
+      "If score data is missing, say what is missing and still propose the next safe non-mutating diagnostic step.",
     ],
     requiresFreshTools: true,
   },
@@ -385,6 +398,7 @@ const MISSING_TOOL_RECOVERY_PLAN: Partial<
   "proactive-operations": [
     "get_dashboard_stats",
     "get_smart_insights",
+    "get_candidates_by_stage",
     "get_today_interviews",
     "get_notifications",
   ],
@@ -521,6 +535,7 @@ export function buildAgentSkillPrompt(
     "SECTION 11: DYNAMIC AGENT SKILLS",
     "═══════════════════════════════════════",
     "The application selected these runtime skills for this user request. Follow them in order; they are not optional style guidance.",
+    "If the model is unsure, weak, or tempted to answer generically, execute the selected skill steps literally before writing the final answer.",
     "",
     ...blocks,
   ].join("\n\n");
@@ -657,6 +672,6 @@ export function buildMissingToolRetryMessage(
     "The previous draft used no tools, so it is not grounded enough to send.",
     `Selected skills: ${requiredSkillNames.join(", ") || "Evidence-first reasoning"}.`,
     `Available tools: ${availableToolNames.join(", ")}.`,
-    "Call the smallest necessary tool set now, then answer from those results. Do not provide another final answer before tool evidence exists.",
+    "Call the smallest necessary tool set now, execute the selected skill steps literally, then answer from those results. Do not provide another final answer before tool evidence exists.",
   ].join("\n");
 }

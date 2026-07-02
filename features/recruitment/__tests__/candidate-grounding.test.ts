@@ -199,6 +199,73 @@ describe("candidate name grounding guard", () => {
       true,
     );
   });
+
+  it("grounds TA screening prioritization from pipeline rows and screening scores", () => {
+    const records: GroundingToolRecord[] = [
+      {
+        toolName: "get_candidates_by_stage",
+        result: {
+          success: true,
+          data: [
+            {
+              id: "candidate-ahmed-1",
+              fullName: "Ahmed Attafi",
+              stage: "ta_screening",
+              jobTitle: "Senior Backend Engineer",
+              createdAt: "2026-06-28T02:46:27.000Z",
+            },
+            {
+              id: "candidate-youssef-1",
+              fullName: "Youssef Mansour",
+              stage: "ta_screening",
+              jobTitle: "React Frontend Engineer",
+              createdAt: "2026-06-26T02:46:27.000Z",
+            },
+          ],
+        },
+      },
+      {
+        toolName: "get_screening",
+        result: {
+          success: true,
+          data: {
+            candidateId: "candidate-ahmed-1",
+            score: 91,
+            matchedMustHave: ["Node.js", "PostgreSQL", "TypeScript"],
+            matchedNiceToHave: ["Microservices"],
+            aiSummary:
+              "Ahmed matched 4/4 must-have requirements for Senior Backend Engineer.",
+          },
+        },
+      },
+    ];
+
+    const grounded = groundAssistantResponse(
+      "I couldn't find any accessible candidates in the current tool results.",
+      records,
+      {
+        userMessage:
+          "Show candidates in TA screening. Prioritize who needs attention first and explain why.",
+      },
+    );
+
+    expect(grounded.deterministic).toBe(true);
+    expect(grounded.candidateCount).toBe(2);
+    expect(grounded.text).not.toContain(
+      "I couldn’t find any accessible candidates",
+    );
+    expect(grounded.text).toContain("Ahmed Attafi");
+    expect(grounded.text).toContain("Youssef Mansour");
+    expect(grounded.text).toContain("| Rank | Name | Score | Stage | Job |");
+    expect(grounded.text).toContain(
+      "| 1 | Ahmed Attafi | 91% | TA Screening | Senior Backend Engineer | Node.js, PostgreSQL, TypeScript, Microservices |",
+    );
+    expect(grounded.text).toContain("screening score: 91%");
+    expect(grounded.sourceTools).toEqual([
+      "get_candidates_by_stage",
+      "get_screening",
+    ]);
+  });
   it("does not allow non-admin responses to reuse names absent from current user-scoped tool output", () => {
     const currentUserScopedRecords: GroundingToolRecord[] = [
       {

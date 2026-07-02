@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { CapgeminiIcons, CapgeminiLogo } from '@/components/shared/icons';
 import {
   IconArrowRight,
   IconBrain,
@@ -99,9 +100,7 @@ export default function LandingPage() {
       <nav className="fixed top-0 z-50 w-full border-b border-border/50 bg-background/75 backdrop-blur-xl">
         <div className="container mx-auto flex h-16 items-center justify-between px-6">
           <Link href="/" className="flex items-center gap-3" aria-label="Talent Intelligence home">
-            <div className="flex size-9 items-center justify-center rounded-xl bg-primary/10 text-primary">
-              <IconSparkles className="size-5" />
-            </div>
+            <CapgeminiLogo className="h-8 w-auto shrink-0" aria-hidden="true" />
             <div className="leading-tight">
               <span className="block text-sm font-bold tracking-tight">Talent Intelligence</span>
               <span className="block text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
@@ -385,7 +384,7 @@ export default function LandingPage() {
       <footer className="border-t border-border/50 py-10">
         <div className="container mx-auto flex flex-col items-center justify-between gap-4 px-6 text-sm text-muted-foreground md:flex-row">
           <div className="flex items-center gap-2 font-semibold text-foreground">
-            <IconSparkles className="size-4 text-primary" />
+            <CapgeminiIcons className="size-4 shrink-0" aria-hidden="true" />
             Talent Intelligence
           </div>
           <p>Capgemini Engineering recruitment operating system.</p>

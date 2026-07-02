@@ -231,12 +231,12 @@ export default function JobsClient({ initialJobs, stats }: JobsClientProps) {
         </div>
         <div className="flex items-center gap-2">
            <Dialog open={isOpen} onOpenChange={setIsOpen}>
-            <DialogTrigger>
-              <div className={cn(buttonVariants(), "rounded-full px-6 shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all cursor-pointer")}>
+            <DialogTrigger render={
+              <Button className="rounded-full px-6 shadow-lg shadow-primary/20 transition-all hover:shadow-primary/30">
                 <IconPlus className="mr-2 h-4 w-4" />
                 Create New Job
-              </div>
-            </DialogTrigger>
+              </Button>
+            } />
             <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Create New Job Position</DialogTitle>

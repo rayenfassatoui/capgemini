@@ -123,6 +123,10 @@ describe('agent evaluation suite', () => {
     expect(prompt).toContain('ALL numeric tool arguments (limit, count, threshold, score) must be passed as numbers');
     expect(prompt).toContain('Distinguish CV pool from pipeline candidates');
     expect(prompt).toContain('get_cv_pool_stats (CV pool size and skills)');
+    expect(prompt).toContain('SECTION 2.5: PROACTIVE OPERATING MODE');
+    expect(prompt).toContain('Boss use-case example');
+    expect(prompt).toContain('rank by screening score first and stale workflow age second');
+    expect(prompt).toContain('Fetch the smallest evidence set, decide, and propose 3 safe actions');
   });
 
   it('blocks creative off-topic work while preserving recruitment requests', () => {

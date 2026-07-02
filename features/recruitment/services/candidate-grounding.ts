@@ -12,6 +12,9 @@ export interface GroundedCandidate {
   cvId?: string;
   candidateId?: string;
   score?: number;
+  stage?: string;
+  jobTitle?: string;
+  createdAt?: string;
   skills: string[];
   languages: string[];
   experience?: string;
@@ -55,6 +58,10 @@ const GROUNDED_CANDIDATE_TOOL_NAMES = new Set([
   "match_cvs_to_job_with_filters",
   "hybrid_search_cvs",
   "compare_candidates",
+  "get_candidates_by_stage",
+  "get_candidates_by_job",
+  "get_candidate",
+  "get_screening",
   "direct_named_search",
   "direct_compare_candidates",
 ]);
@@ -180,9 +187,20 @@ export function buildAllowedCandidatesFromToolRecords(
     }
   }
 
-  const candidates = Array.from(byIdentity.values()).sort(
-    (left, right) => (right.score ?? -1) - (left.score ?? -1),
-  );
+  for (const record of records) {
+    if (
+      record.result.success &&
+      GROUNDED_CANDIDATE_TOOL_NAMES.has(record.toolName)
+    ) {
+      mergeScreeningSignalsFromToolData(
+        byIdentity,
+        record.toolName,
+        record.result.data,
+      );
+    }
+  }
+
+  const candidates = Array.from(byIdentity.values()).sort(compareCandidatePriority);
   const normalizedNames = new Set<string>();
   const punctuationInsensitiveNames = new Set<string>();
 
@@ -347,21 +365,38 @@ export function buildDeterministicGroundedCandidateResponse(
             ? "run a focused screening before shortlisting"
             : "keep them as a backup unless the target role matches their skills closely";
 
+  const hasPipelineContext = rows.some((candidate) => candidate.stage || candidate.jobTitle);
   const table = [
-    "| Rank | Name | Score | Key Skills | Experience | Languages |",
-    "|------|------|-------|------------|------------|-----------|",
+    hasPipelineContext
+      ? "| Rank | Name | Score | Stage | Job | Key Skills | Experience | Languages |"
+      : "| Rank | Name | Score | Key Skills | Experience | Languages |",
+    hasPipelineContext
+      ? "|------|------|-------|-------|-----|------------|------------|-----------|"
+      : "|------|------|-------|------------|------------|-----------|",
     ...rows
       .map((candidate, index) => {
         const skills = safeList(candidate.skills, 5);
         const languages = safeList(candidate.languages, 4);
-        return [
-          String(index + 1),
-          escapeMarkdownTableCell(candidate.name),
-          formatScore(candidate.score),
-          escapeMarkdownTableCell(skills || "Not provided"),
-          escapeMarkdownTableCell(candidate.experience ?? "Not provided"),
-          escapeMarkdownTableCell(languages || "Not provided"),
-        ].join(" | ");
+        const cells = hasPipelineContext
+          ? [
+              String(index + 1),
+              escapeMarkdownTableCell(candidate.name),
+              formatScore(candidate.score),
+              escapeMarkdownTableCell(formatStageLabel(candidate.stage) ?? "N/A"),
+              escapeMarkdownTableCell(candidate.jobTitle ?? "N/A"),
+              escapeMarkdownTableCell(skills || "Not provided"),
+              escapeMarkdownTableCell(candidate.experience ?? "Not provided"),
+              escapeMarkdownTableCell(languages || "Not provided"),
+            ]
+          : [
+              String(index + 1),
+              escapeMarkdownTableCell(candidate.name),
+              formatScore(candidate.score),
+              escapeMarkdownTableCell(skills || "Not provided"),
+              escapeMarkdownTableCell(candidate.experience ?? "Not provided"),
+              escapeMarkdownTableCell(languages || "Not provided"),
+            ];
+        return cells.join(" | ");
       })
       .map((row) => `| ${row} |`),
   ].join("\n");
@@ -389,7 +424,8 @@ export function buildDeterministicGroundedCandidateResponse(
     "",
     "### Risks / missing info",
     `- ${typeof topScore === "number" && topScore < 60 ? `The score is **${scoreText}**, so I would not treat this as an automatic shortlist.` : "The score should still be checked against the exact job requirements."}`,
-    "- Parsed CV data can miss context, so validate the must-have skills in screening.",
+    `- ${topCandidate.stage ? `Current stage is **${formatStageLabel(topCandidate.stage)}**; choose the next action that moves this workflow, not a generic CV-pool action.` : "Parsed CV data can miss context, so validate the must-have skills in screening."}`,
+    "- Missing fields stay caveats; do not infer hidden experience, languages, or interview outcomes.",
     "",
     "### Decision table",
     table,
@@ -446,6 +482,16 @@ function extractCandidatesFromToolData(
     return Array.isArray(data)
       ? data.flatMap((item) => candidateFromSearchItem(item, toolName))
       : [];
+  }
+
+  if (toolName === "get_candidates_by_stage" || toolName === "get_candidates_by_job") {
+    return Array.isArray(data)
+      ? data.flatMap((item) => candidateFromPipelineItem(item, toolName))
+      : [];
+  }
+
+  if (toolName === "get_candidate") {
+    return candidateFromPipelineItem(data, toolName);
   }
 
   if (toolName === "compare_candidates" && isRecord(data)) {
@@ -584,6 +630,61 @@ function candidateFromRagCitation(
   ];
 }
 
+function candidateFromPipelineItem(
+  value: unknown,
+  sourceTool: string,
+): GroundedCandidate[] {
+  if (!isRecord(value)) return [];
+
+  const name = readStringField(value, [
+    "fullName",
+    "candidateName",
+    "displayName",
+    "extractedName",
+    "name",
+  ]);
+  if (!isUsableCandidateName(name)) return [];
+
+  const stage = readStringField(value, ["stage", "candidateStage", "status"]);
+  const jobTitle = readStringField(value, ["jobTitle", "title"]);
+  const evidence = [
+    stage ? `stage: ${formatStageLabel(stage)}` : undefined,
+    jobTitle ? `job: ${jobTitle}` : undefined,
+  ].filter((item): item is string => Boolean(item));
+
+  return [
+    {
+      name,
+      cvId: readStringField(value, ["cvId"]),
+      candidateId: readStringField(value, ["candidateId", "id"]),
+      score: readNumberField(value, [
+        "matchScore",
+        "screeningScore",
+        "score",
+        "overallFit",
+      ]),
+      stage,
+      jobTitle,
+      createdAt: readDateField(value, ["createdAt", "updatedAt"]),
+      skills: readStringArrayField(value, [
+        "skills",
+        "extractedSkills",
+        "candidateSkills",
+        "matchedMustHave",
+        "matchedNiceToHave",
+      ]),
+      languages: readStringArrayField(value, [
+        "languages",
+        "extractedLanguages",
+        "candidateLanguages",
+      ]),
+      experience: formatExperience(value),
+      evidence: evidence.length > 0 ? evidence : ["candidate pipeline result"],
+      sourceTools: [sourceTool],
+    },
+  ];
+}
+
 function candidateFromComparisonItem(
   value: unknown,
   sourceTool: string,
@@ -666,6 +767,9 @@ function mergeCandidate(
 
   existing.score = Math.max(existing.score ?? -1, candidate.score ?? -1);
   if (existing.score < 0) existing.score = undefined;
+  existing.stage = existing.stage ?? candidate.stage;
+  existing.jobTitle = existing.jobTitle ?? candidate.jobTitle;
+  existing.createdAt = existing.createdAt ?? candidate.createdAt;
   existing.skills = uniqueStrings([...existing.skills, ...candidate.skills]);
   existing.languages = uniqueStrings([
     ...existing.languages,
@@ -681,6 +785,79 @@ function mergeCandidate(
   ]);
   existing.experience = existing.experience ?? candidate.experience;
 }
+
+function mergeScreeningSignalsFromToolData(
+  byIdentity: Map<string, GroundedCandidate>,
+  toolName: string,
+  data: unknown,
+): void {
+  if (toolName !== "get_screening") return;
+
+  const items = Array.isArray(data) ? data : [data];
+  for (const item of items) {
+    if (!isRecord(item)) continue;
+
+    const candidate = findCandidateByIdentity(byIdentity, {
+      candidateId: readStringField(item, ["candidateId"]),
+      cvId: readStringField(item, ["cvId"]),
+    });
+    if (!candidate) continue;
+
+    const score = readNumberField(item, ["score", "screeningScore"]);
+    if (typeof score === "number") {
+      candidate.score = Math.max(candidate.score ?? -1, score);
+      if (candidate.score < 0) candidate.score = undefined;
+    }
+
+    candidate.skills = uniqueStrings([
+      ...candidate.skills,
+      ...readStringArrayField(item, ["matchedMustHave", "matchedNiceToHave"]),
+    ]);
+    candidate.evidence = uniqueStrings([
+      score === undefined ? undefined : `screening score: ${formatScore(score)}`,
+      readStringField(item, ["aiSummary"]),
+      ...candidate.evidence,
+    ].filter((value): value is string => Boolean(value)));
+    candidate.sourceTools = uniqueStrings([...candidate.sourceTools, toolName]);
+  }
+}
+
+function findCandidateByIdentity(
+  byIdentity: Map<string, GroundedCandidate>,
+  identity: { candidateId?: string; cvId?: string },
+): GroundedCandidate | undefined {
+  for (const candidate of byIdentity.values()) {
+    if (identity.candidateId && candidate.candidateId === identity.candidateId) {
+      return candidate;
+    }
+    if (identity.cvId && candidate.cvId === identity.cvId) {
+      return candidate;
+    }
+  }
+
+  return undefined;
+}
+
+function compareCandidatePriority(
+  left: GroundedCandidate,
+  right: GroundedCandidate,
+): number {
+  const leftScore = normalizeScore(left.score);
+  const rightScore = normalizeScore(right.score);
+
+  if (typeof leftScore === "number" || typeof rightScore === "number") {
+    return (rightScore ?? -1) - (leftScore ?? -1);
+  }
+
+  const leftTime = parseDateMs(left.createdAt);
+  const rightTime = parseDateMs(right.createdAt);
+  if (typeof leftTime === "number" && typeof rightTime === "number") {
+    return leftTime - rightTime;
+  }
+
+  return left.name.localeCompare(right.name);
+}
+
 
 function extractCandidateLikeNames(
   text: string,
@@ -891,6 +1068,25 @@ function formatScore(score: number | undefined): string {
   return `${Math.round(normalizedScore)}%`;
 }
 
+function formatStageLabel(stage: string | undefined): string | undefined {
+  if (!stage) return undefined;
+  const acronyms = new Map([
+    ["ai", "AI"],
+    ["cv", "CV"],
+    ["hr", "HR"],
+    ["ta", "TA"],
+  ]);
+
+  return stage
+    .split("_")
+    .filter(Boolean)
+    .map((segment) => {
+      const lower = segment.toLowerCase();
+      return acronyms.get(lower) ?? lower.charAt(0).toUpperCase() + lower.slice(1);
+    })
+    .join(" ");
+}
+
 function safeList(values: string[], limit: number): string {
   return uniqueStrings(values).slice(0, limit).join(", ");
 }
@@ -935,6 +1131,29 @@ function readNumberField(
   }
 
   return undefined;
+}
+
+function readDateField(
+  value: Record<string, unknown>,
+  keys: string[],
+): string | undefined {
+  for (const key of keys) {
+    const nestedValue = value[key];
+    if (nestedValue instanceof Date) {
+      return nestedValue.toISOString();
+    }
+    if (typeof nestedValue === "string" && Number.isFinite(Date.parse(nestedValue))) {
+      return nestedValue;
+    }
+  }
+
+  return undefined;
+}
+
+function parseDateMs(value: string | undefined): number | undefined {
+  if (!value) return undefined;
+  const parsed = Date.parse(value);
+  return Number.isFinite(parsed) ? parsed : undefined;
 }
 
 function readStringArrayField(
