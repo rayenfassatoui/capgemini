@@ -22,11 +22,12 @@ L'objectif est de transformer un CV affecté à une offre en un candidat piloté
 Cette partie est essentielle, car les screenings, les guides d'entretien, l'autopilot et les futurs \textit{insights} n'ont de sens que s'ils s'insèrent dans un pipeline métier clairement défini.
 
 Le sprint répond aussi à un enjeu de gouvernance humaine : plusieurs rôles interviennent successivement sur un même dossier, et chacun doit pouvoir agir dans un cadre clair sans perdre l'historique des décisions déjà prises.
+Le tableau \ref{tab:pipeline-backlog} détaille les user stories qui couvrent cette circulation du candidat.
 
 \subsection{Backlog du sprint}
 \begin{table}[H]
   \centering
-  \caption{Backlog fonctionnel du module pipeline candidat et entretiens}
+  \caption{\label{tab:pipeline-backlog}Backlog fonctionnel du module pipeline candidat et entretiens}
   \begin{tabularx}{\textwidth}{>{\bfseries}p{1.3cm}p{3cm}X>{\raggedright\arraybackslash}p{2cm}}
     \toprule
     ID & Thème & User Story & Statut \\
@@ -88,11 +89,11 @@ Le pipeline est formalisé dans le schéma de données via une suite d'états ex
 Elle permet également d'éviter l'ambiguïté organisationnelle : lorsqu'un candidat se trouve dans un état donné, la plateforme sait quels acteurs sont concernés, quelles actions sont permises et quelles informations doivent être affichées.
 Chaque mouvement est maintenant doublé d'une trace dans \sourcecode{candidate\_stage\_history}. Cette table conserve l'étape précédente, la nouvelle étape, l'acteur, la raison, la source du changement et la date. Elle complète donc le statut courant du candidat par une mémoire chronologique, indispensable pour comprendre comment une décision a été atteinte.
 \paragraph{Tableau de transitions du pipeline candidat.}
-La logique d'état peut être synthétisée par le tableau suivant :
+La logique d'état peut être synthétisée par le tableau \ref{tab:pipeline-transitions}.
 
 \begin{table}[H]
   \centering
-  \caption{Transitions principales du pipeline candidat}
+  \caption{\label{tab:pipeline-transitions}Transitions principales du pipeline candidat}
   \begin{tabularx}{\textwidth}{>{\bfseries}p{2.4cm}p{2.8cm}X X}
     \toprule
     État courant & Acteur responsable & Action principale & État suivant possible \\
@@ -111,12 +112,13 @@ La logique d'état peut être synthétisée par le tableau suivant :
 \end{table}
 
 Ce tableau rend explicite un point important : chaque transition correspond à une responsabilité humaine identifiable. Le pipeline n'est donc pas seulement une suite de statuts techniques, mais une représentation formalisée du processus de décision du recrutement.
+La figure \ref{fig:candidate-state-diagram} complète cette lecture sous forme de diagramme d'états.
 
 
 \begin{figure}[H]
   \centering
   \diagraminput{figures/diagrams/candidate-state-diagram}
-  \caption{Diagramme d'états du pipeline candidat}
+  \caption{\label{fig:candidate-state-diagram}Diagramme d'états du pipeline candidat}
 \end{figure}
 
 \subsection{Affectation progressive des responsabilités}
@@ -124,11 +126,11 @@ Le service \sourcecode{assignManagerToCandidate()} positionne explicitement \sou
 
 Cette approche réduit le risque de zone grise fréquent dans les recrutements, où un candidat change de main sans que la responsabilité opérationnelle soit clairement matérialisée dans l'outil.
 \paragraph{Matrice synthétique des rôles.}
-La répartition des responsabilités peut être résumée de la manière suivante :
+La répartition des responsabilités peut être résumée par le tableau \ref{tab:pipeline-role-matrix}.
 
 \begin{table}[H]
   \centering
-  \caption{Rôles et responsabilités dans le pipeline candidat}
+  \caption{\label{tab:pipeline-role-matrix}Rôles et responsabilités dans le pipeline candidat}
   \begin{tabularx}{\textwidth}{>{\bfseries}p{2cm}X X X}
     \toprule
     Rôle & Données principalement visibles & Décisions possibles & Responsabilité principale \\
@@ -149,11 +151,12 @@ Le service \sourcecode{scheduleInterview()} valide les données d'entrée, crée
 Le flux général est le suivant : choix du candidat et de l'étape, saisie de la date, de l'heure et du lien de réunion, création de l'entretien, éventuelle mise à jour du stage, envoi de l'invitation puis suivi jusqu'à \sourcecode{completed} ou \sourcecode{cancelled}.
 
 Ce flux couple donc opérationnel et traçabilité : chaque entretien planifié est à la fois un événement métier, un objet d'agenda et une source future de reporting.
+La figure \ref{fig:interview-sequence} formalise cette séquence de planification, notification et reporting.
 
 \begin{figure}[H]
   \centering
   \diagraminput{figures/diagrams/interview-sequence}
-  \caption{Séquence de planification, notification et reporting d'un entretien}
+  \caption{\label{fig:interview-sequence}Séquence de planification, notification et reporting d'un entretien}
 \end{figure}
 
 \subsection{Rapports d'entretien et transition vers l'onboarding}
@@ -185,12 +188,12 @@ La vue manager charge uniquement les candidats affectés au manager courant dans
 Le composant \sourcecode{ManagerCandidateDetailClient} organise l'évaluation en étapes successives : génération des questions d'entretien, édition et sauvegarde des questions, planification de l'entretien, envoi de l'email, marquage de l'entretien comme complété, saisie du rapport puis décision finale de rejet ou de transfert vers un RH identifié.
 La fiche manager intègre en plus un panneau d'\textit{evidence readiness} qui expose le score de screening disponible, le dernier état d'entretien, la décision antérieure, les éléments manquants et les risques avant tout raisonnement IA. Les actions \textit{Ask Agent}, \textit{Explain score}, \textit{Summarize feedback} et \textit{Decision risks} réutilisent ensuite ce contexte de preuve pour produire des prompts plus sûrs et plus situés.
 La fiche affiche également la timeline \sourcecode{Stage history}, qui permet au manager de replacer son évaluation dans la chronologie complète du dossier sans perdre la séparation des responsabilités.
-Cette logique reflète bien le rôle du manager dans le produit : il ne se contente pas de visualiser un profil, il produit une décision structurée sur la base d'un dossier enrichi et explicitement qualifié.
+Cette logique reflète bien le rôle du manager dans le produit : il ne se contente pas de visualiser un profil, il produit une décision structurée sur la base d'un dossier enrichi et explicitement qualifié. La figure \ref{fig:manager-candidate-review} illustre cette fiche côté Manager.
 
 \begin{figure}[H]
   \centering
   \appcapture{figures/screenshots/manager-candidate-review.png}
-  \caption{Fiche candidat côté Manager.}
+  \caption{\label{fig:manager-candidate-review}Fiche candidat côté Manager.}
 \end{figure}
 
 \subsection{Vue RH}
@@ -198,29 +201,30 @@ La vue RH charge les candidats assignés au RH courant dans les états \sourceco
 Le composant \sourcecode{HRCandidateDetailClient} ouvre alors plusieurs actions : consultation des rapports antérieurs, planification optionnelle d'une réunion RH, marquage de la réunion comme complétée, décision \sourcecode{hr\_accepted} ou \sourcecode{hr\_rejected}, génération IA d'un email de décision, envoi de cet email et passage au statut \sourcecode{hired}.
 Comme côté manager, un panneau d'\textit{evidence readiness} résume les faits observés, les trous documentaires et les signaux de risque avant la décision finale. Les actions agentiques RH réinjectent ce contexte pour produire des rapports de décision et des analyses de risque séparant mieux les constats des recommandations.
 La fiche RH reprend la même logique d'historique afin de vérifier le chemin déjà parcouru par le candidat avant la décision finale. Cette lecture réduit le risque de décision isolée, car l'étape RH s'appuie sur les traces TA et Manager déjà enregistrées.
-Cette étape montre bien que le RH joue à la fois un rôle décisionnel et un rôle de communication formelle avec le candidat, avec un niveau de justification plus explicite qu'une simple lecture de notes brutes.
+Cette étape montre bien que le RH joue à la fois un rôle décisionnel et un rôle de communication formelle avec le candidat, avec un niveau de justification plus explicite qu'une simple lecture de notes brutes. Les figures \ref{fig:hr-decision-page} et \ref{fig:interview-scheduling} montrent la fiche RH et l'interface de planification.
 
 \begin{figure}[H]
   \centering
   \appcapture{figures/screenshots/hr-decision-page.png}
-  \caption{Fiche candidat côté RH.}
+  \caption{\label{fig:hr-decision-page}Fiche candidat côté RH.}
 \end{figure}
 
 \begin{figure}[H]
   \centering
   \appcapture{figures/screenshots/interview-scheduling.png}
-  \caption{Interface de planification d'entretien.}
+  \caption{\label{fig:interview-scheduling}Interface de planification d'entretien.}
 \end{figure}
 
 \subsection{Calendrier et coordination transverse}
 La vue calendrier donne accès à \sourcecode{CalendarView}, qui fournit une vue consolidée des entretiens. Le service \sourcecode{getInterviewCalendar()} récupère les entretiens d'un utilisateur sur une plage de dates, ce qui permet une lecture plus large que la simple liste journalière. Cette vue complète les pages de détail candidat et offre une lecture transversale de la charge de recrutement.
 
 Elle apporte une vision organisationnelle souvent absente des outils simplifiés : voir le recrutement non seulement candidat par candidat, mais aussi comme une activité collective à synchroniser entre plusieurs agendas et plusieurs étapes.
+La figure \ref{fig:calendar-view} montre cette coordination transverse sous forme de calendrier.
 
 \begin{figure}[H]
   \centering
   \appcapture{figures/screenshots/calendar-ta.png}
-  \caption{Vue calendrier des entretiens.}
+  \caption{\label{fig:calendar-view}Vue calendrier des entretiens.}
 \end{figure}
 
 \subsection{Mémoire opérationnelle du processus}

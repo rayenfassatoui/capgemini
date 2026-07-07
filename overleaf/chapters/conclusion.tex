@@ -8,12 +8,12 @@ Sur le plan technique, le projet montre la pertinence d'une architecture \textit
 La contribution la plus distinctive réside dans l'industrialisation raisonnée de l'intelligence artificielle. Le projet ne s'appuie pas sur un modèle unique utilisé de manière opaque ; il combine extraction structurée, matching, génération guidée, autopilot d'entretien, conversation outillée, garde-fous d'exécution et validation des sorties. L'évaluation comparative du pipeline RAG sur 40 requêtes, avec 85\% de couverture de vérité terrain, montre un gain de pertinence mesurable : amélioration de Precision@5, Precision@10, MRR@10 et NDCG@10, tout en maintenant un taux d'erreur nul.
 
 \section*{Validation fonctionnelle et technique}
-La validation retenue pour ce rapport combine deux niveaux complémentaires : d'une part une validation fonctionnelle par scénarios couvrant les principaux parcours utilisateurs du produit, et d'autre part une validation technique fondée sur les preuves automatisées documentées dans les artefacts du projet. Cette approche permet de ne pas limiter la démonstration à la seule couche IA, mais d'élargir la vérification au fonctionnement global de la plateforme.
+La validation retenue pour ce rapport combine deux niveaux complémentaires : d'une part une validation fonctionnelle par scénarios couvrant les principaux parcours utilisateurs du produit, et d'autre part une validation technique fondée sur les preuves automatisées documentées dans les artefacts du projet. Cette approche permet de ne pas limiter la démonstration à la seule couche IA, mais d'élargir la vérification au fonctionnement global de la plateforme. Le tableau \ref{tab:functional-validation} synthétise cette validation fonctionnelle.
 
 \begin{table}[H]
   \centering
   \scriptsize
-  \caption{Synthèse de validation fonctionnelle}
+  \caption{\label{tab:functional-validation}Synthèse de validation fonctionnelle}
   \setlength{\tabcolsep}{3pt}
   \noindent\begin{adjustbox}{max width=\linewidth,center}
   \begin{tabularx}{\textwidth}{>{\bfseries\raggedright\arraybackslash}p{2.4cm}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X}
@@ -32,7 +32,7 @@ La validation retenue pour ce rapport combine deux niveaux complémentaires : d'
 \end{table}
 
 \paragraph{Validation technique automatisée.}
-Sur le plan technique, les preuves automatisées principales sont documentées en annexe. Dans l'état observé, \sourcecode{bun run lint}, \sourcecode{bun run build} et \sourcecode{bun run test} passent ; la suite Vitest complète valide 123 tests après alignement du harnais \sourcecode{ChatInput} avec le contrat de propriétés du composant.
+Sur le plan technique, les preuves automatisées principales sont documentées dans les artefacts du projet. Dans l'état observé, \sourcecode{bun run lint}, \sourcecode{bun run build} et \sourcecode{bun run test} passent ; la suite Vitest complète valide 123 tests après alignement du harnais \sourcecode{ChatInput} avec le contrat de propriétés du composant.
 
 Les vérifications automatisées couvrent notamment :
 \begin{itemize}
@@ -50,6 +50,31 @@ Les vérifications automatisées couvrent notamment :
 \end{itemize}
 
 Enfin, la couche de retrieval fait l'objet d'une validation quantitative spécifique déjà documentée dans le projet. Le rapport d'évaluation RAG de phase 2 couvre 40 requêtes avec 85\% de couverture \textit{ground truth} et montre une amélioration mesurable de Precision@5, Precision@10, MRR@10 et NDCG@10. Cette mesure complète utilement la validation fonctionnelle, car elle montre non seulement que le produit fonctionne, mais aussi que sa couche de recherche augmentée est évaluée de manière chiffrée.
+
+\section*{Atteinte des objectifs initiaux}
+L'évaluation finale doit être reliée aux objectifs formulés au départ du projet. Le tableau \ref{tab:objective-achievement} synthétise cette lecture : il ne s'agit pas seulement de vérifier que des écrans existent, mais de montrer que chaque objectif produit une preuve fonctionnelle, technique ou expérimentale.
+
+\begin{table}[H]
+  \centering
+  \scriptsize
+  \caption{\label{tab:objective-achievement}Évaluation de l'atteinte des objectifs initiaux}
+  \begin{adjustbox}{max width=\linewidth,center}
+  \begin{tabularx}{\textwidth}{>{\bfseries\raggedright\arraybackslash}p{2.8cm}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}p{2cm}}
+    \toprule
+    Objectif initial & Preuve de réalisation & Limite identifiée & Statut \\
+    \midrule
+    Centraliser les données RH & CV, offres, candidats, entretiens, notifications, logs et onboarding sont regroupés dans une base PostgreSQL commune. & La qualité dépend encore de la complétude des CV et des champs renseignés. & Atteint \\
+    Structurer le pipeline candidat & États explicites, affectations TA/Manager/HR, rapports et historique immuable des transitions. & Des scénarios end-to-end production seraient utiles pour mesurer les délais réels par étape. & Atteint \\
+    Accélérer le matching & Matching explicite, recherche sémantique, hybrid search et bulk assignment. & Le RAG avancé améliore la pertinence mais augmente fortement la latence. & Partiellement optimisé \\
+    Rendre l'IA explicable & Sources, grounding, cartes typées, trace outillée, confirmations et résultats RAG mesurés. & L'explicabilité doit être testée avec des utilisateurs métier réels. & Atteint \\
+    Gouverner les actions sensibles & RBAC, validation Zod, pending actions, logs d'activité, gouvernance admin et exports. & Une politique de rétention et d'audit long terme reste à définir selon les contraintes organisationnelles. & Atteint \\
+    Produire une base évolutive & Architecture feature-driven, services métier, composants réutilisables et tests automatisés. & Les modules IA devront être profilés avant passage à un volume de données plus important. & Atteint avec réserves \\
+    \bottomrule
+  \end{tabularx}
+  \end{adjustbox}
+\end{table}
+
+Cette lecture montre que les objectifs fonctionnels majeurs sont atteints, tandis que l'optimisation de performance et la validation métier en conditions réelles restent les deux axes les plus importants pour transformer le prototype avancé en solution industrialisée.
 \section*{Discussion des résultats}
 Les résultats observés permettent de tirer plusieurs enseignements utiles au-delà du simple constat chiffré. D'abord, l'amélioration de la pertinence du pipeline RAG s'explique par le passage d'une récupération trop limitée à une récupération hybride plus riche. La combinaison entre réécriture de requête, recherche vectorielle, recherche lexicale, fusion par RRF, reranking et assemblage de contexte donne au système davantage de chances de retrouver des passages réellement alignés avec l'intention métier de la requête.
 
@@ -72,10 +97,41 @@ Malgré les résultats obtenus, plusieurs limites doivent être soulignées. La 
 
 Une autre limite concerne la qualité des données d'entrée. La valeur produite par le matching, le screening, le RAG et l'agent conversationnel dépend directement de la qualité des CV importés, de la cohérence des offres d'emploi et de la richesse des informations renseignées dans le pipeline candidat. Enfin, la validation automatisée observable couvre désormais le grounding, l'isolation de périmètre, les confirmations agentiques, les transitions candidat, les panneaux d'évidence, les cartes de réponse typées, la trace d'outils par phases, le centre de gouvernance et l'évaluation RAG ; elle gagnerait encore à être complétée par davantage de scénarios end-to-end métier exécutés dans un environnement proche production.
 
-\section*{Perspectives}
-Plusieurs prolongements peuvent être envisagés. La première perspective consiste à optimiser le pipeline RAG afin de réduire la latence tout en conservant les gains de pertinence, par exemple en affinant la stratégie de \textit{topK}, la politique de cache, les seuils de réécriture ou le coût du reranking.
+\section*{Menaces à la validité et risques éthiques}
+Dans un projet de recrutement augmenté par l'IA, la validation ne peut pas se limiter à la réussite technique des fonctionnalités. Les résultats doivent être lus avec prudence, car ils dépendent du corpus de CV, des requêtes choisies, du comportement des utilisateurs et du cadre éthique dans lequel l'outil est utilisé. Cette précaution est particulièrement importante dans le domaine RH, où une recommandation algorithmique peut influencer une décision humaine sensible. Les travaux sur les algorithmes de recrutement soulignent d'ailleurs que les promesses de réduction du biais doivent être évaluées de manière critique et non acceptées comme un effet automatique de l'automatisation \netref{web:raghavan-hiring}.
 
-La deuxième perspective porte sur l'évaluation. Il serait pertinent d'élargir le protocole à davantage de requêtes, à plusieurs profils utilisateurs et à plusieurs catégories de besoins métier. Une troisième perspective concerne l'enrichissement des profils par d'autres sources documentaires ou signaux structurés, lorsque ces données sont disponibles et gouvernées. Enfin, l'observabilité des usages IA peut être renforcée par des indicateurs dédiés aux échecs de retrieval, à la qualité des réponses générées et aux performances des outils agentiques.
+\begin{table}[H]
+  \centering
+  \scriptsize
+  \caption{\label{tab:validity-ethics-risks}Menaces à la validité et mesures de maîtrise éthique}
+  \begin{adjustbox}{max width=\linewidth,center}
+  \begin{tabularx}{\textwidth}{>{\bfseries\raggedright\arraybackslash}p{2.6cm}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X}
+    \toprule
+    Dimension & Menace ou risque & Impact possible & Mesure de maîtrise \\
+    \midrule
+    Validité interne & Les résultats RAG dépendent du jeu de données local, des chunks générés et des requêtes retenues. & Une amélioration mesurée peut refléter le corpus testé plus qu'une supériorité générale. & Comparaison baseline/phase 2 sur le même protocole, conservation des métriques et extension future du jeu de requêtes. \\
+    Validité externe & Le système n'est pas encore évalué dans un environnement de production avec plusieurs recruteurs réels. & Les gains observés peuvent différer selon les pratiques métier, les volumes et les profils traités. & Prévoir une expérimentation utilisateur avec TA, Manager et HR, puis mesurer temps, satisfaction et qualité perçue. \\
+    Validité de construction & Precision@K, MRR et NDCG mesurent la pertinence de retrieval, pas directement la qualité d'une décision RH. & Un bon score informationnel ne garantit pas une décision juste ou acceptable métier. & Compléter les métriques IR par feedback utilisateur, audit des décisions et indicateurs de qualité d'entretien. \\
+    Validité statistique & Le protocole couvre 40 requêtes avec 85\% de vérité terrain. & La variance reste possible, surtout par catégorie de requête ou niveau de difficulté. & Augmenter le nombre de requêtes, équilibrer les catégories et documenter les intervalles de confiance. \\
+    Biais algorithmique & Les CV et historiques peuvent contenir des biais sociaux, linguistiques ou de parcours. & Le score IA pourrait reproduire ou amplifier des déséquilibres existants. & Conserver une décision humaine, afficher les critères, auditer les écarts et éviter les décisions automatiques finales. \\
+    Hallucination et opacité & Un agent génératif peut citer un candidat absent ou formuler une justification non fondée. & Perte de confiance et risque de décision sur information incorrecte. & Grounding des candidats, citations, sources, cartes typées, trace d'outils et fallback lorsque les données sont insuffisantes. \\
+    Données personnelles & Les CV contiennent des informations sensibles ou indirectement identifiantes. & Risque de fuite, de consultation hors rôle ou de conservation excessive. & RBAC, séparation des rôles, journaux d'activité, minimisation des sorties et politique future de rétention. \\
+    Sur-confiance utilisateur & Un score ou une synthèse IA peut être perçu comme plus objectif qu'il ne l'est réellement. & L'utilisateur peut déléguer trop vite son jugement au système. & Présenter les limites, les gaps, les preuves et les recommandations comme aide à la décision, jamais comme décision automatique. \\
+    \bottomrule
+  \end{tabularx}
+  \end{adjustbox}
+\end{table}
+
+Le tableau \ref{tab:validity-ethics-risks} montre que la contribution du projet ne réside pas seulement dans l'ajout de fonctions IA, mais aussi dans leur encadrement. Les mécanismes de grounding, de confirmation, de RBAC, de logs et d'explication ne sont donc pas secondaires : ils conditionnent la possibilité d'utiliser l'IA dans un contexte RH sans transformer l'assistance en automatisation opaque.
+
+\section*{Perspectives}
+Plusieurs prolongements peuvent être envisagés. La première perspective consiste à améliorer les métriques et la mesure de complexité : augmenter le nombre de requêtes d'évaluation, distinguer les métriques par type de besoin métier, suivre la latence par étape du pipeline, mesurer le coût financier par requête et intégrer des indicateurs de satisfaction utilisateur. Cette évolution permettrait de comparer objectivement plusieurs stratégies : SQL seul, vectoriel seul, RAG hybride, RAG avec reranking et agent multi-outils.
+
+La deuxième perspective concerne l'optimisation du pipeline RAG. Les pistes prioritaires sont la réduction du \textit{topK} lorsque la requête est simple, le cache des embeddings et des résultats, l'activation conditionnelle de la réécriture, la mesure séparée du coût de reranking et l'étude d'index vectoriels plus adaptés aux volumes importants. Un fine-tuning ciblé peut aussi être envisagé, non pour mémoriser les CV, mais pour stabiliser des tâches répétitives : classification d'intention, extraction d'exigences, reformulation de requêtes ou normalisation des compétences.
+
+La troisième perspective porte sur le recrutement prédictif. À partir d'un historique suffisant et gouverné, la plateforme pourrait estimer les risques de blocage dans le pipeline, prédire les délais de passage entre étapes, recommander les profils avec une probabilité de réussite contextualisée et détecter les écarts entre demande métier et disponibilité du vivier. Cette évolution devra cependant rester explicable et contrôlée, car une prédiction RH non justifiée peut introduire des biais de décision.
+
+Enfin, l'intégration de modèles multimodaux représente une perspective de recherche intéressante. Elle permettrait d'exploiter non seulement le texte des CV et offres, mais aussi des documents scannés, portfolios, certificats, tableaux ou supports d'entretien. Cette ouverture doit être accompagnée de règles de gouvernance renforcées : consentement, minimisation des données, filtrage des informations sensibles et séparation claire entre aide à l'analyse et décision humaine.
 \section*{Apports personnels}
 Au regard des réalisations présentées dans ce mémoire, les apports personnels du travail mené peuvent être synthétisés autour de plusieurs axes complémentaires. Le premier apport réside dans la structuration d'une architecture cohérente, capable d'articuler authentification, services métier, persistance, interfaces multi-rôles et composants IA dans un même produit full-stack.
 

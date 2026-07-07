@@ -24,10 +24,11 @@ L'objectif est d'intégrer l'intelligence artificielle au c\oe{}ur du processus 
 
 Le sprint répond aussi à une exigence de crédibilité : l'IA ne doit pas être cosmétique. Elle doit améliorer la pertinence des recherches, accélérer les évaluations, enrichir les entretiens et rester contrôlable dans ses entrées comme dans ses sorties.
 
+Le tableau \ref{tab:ai-backlog} détaille les capacités IA livrées dans ce sprint.
 \subsection{Backlog du sprint}
 \begin{table}[H]
   \centering
-  \caption{Backlog fonctionnel du module intelligence artificielle}
+  \caption{\label{tab:ai-backlog}Backlog fonctionnel du module intelligence artificielle}
   \begin{tabularx}{\textwidth}{>{\bfseries}p{1.3cm}p{3.2cm}X>{\raggedright\arraybackslash}p{2cm}}
     \toprule
     ID & Thème & User Story & Statut \\
@@ -91,12 +92,12 @@ Le projet distingue plusieurs formes de matching : un matching par critères exp
 
 Le screening complète ce matching en ajoutant une lecture décisionnelle : score global, écarts, correspondances \textit{must-have} et \textit{nice-to-have}, puis résumé synthétique. Les services de guides d'entretien produisent quant à eux un guide de questions éditable et un \textit{Auto-Pilot Interview Guide} plus riche, incluant briefing, questions techniques, questions de mitigation des écarts et questions comportementales adaptées au niveau de séniorité.
 
-Cette combinaison évite de dépendre d'un seul mécanisme. Certaines requêtes bénéficient d'une lecture très structurée, d'autres d'une lecture sémantique plus souple, et les cas complexes profitent de la fusion de plusieurs signaux.
+Cette combinaison évite de dépendre d'un seul mécanisme. Certaines requêtes bénéficient d'une lecture très structurée, d'autres d'une lecture sémantique plus souple, et les cas complexes profitent de la fusion de plusieurs signaux. La figure \ref{fig:ai-screening-autopilot} illustre cette chaîne IA de screening et de préparation d'entretien.
 
 \begin{figure}[H]
   \centering
   \diagraminput{figures/diagrams/ai-screening-autopilot}
-  \caption{Chaîne IA de screening et de génération de guide d'entretien}
+  \caption{\label{fig:ai-screening-autopilot}Chaîne IA de screening et de génération de guide d'entretien}
 \end{figure}
 
 \subsection{Agent conversationnel, réponses exploitables et garde-fous}
@@ -120,11 +121,11 @@ Ce point est essentiel : la génération n'est pas réalisée à vide. Le systè
 
 Le RAG n'est donc pas utilisé comme un effet de mode. Il sert à réintroduire une base de justification dans les réponses IA, notamment pour les recherches complexes où une simple liste de profils ne suffit plus.
 \paragraph{Comparaison des modes de recherche et d'assistance.}
-Pour bien situer les apports du sprint, il est utile de distinguer les principaux niveaux d'accès à l'information :
+Pour bien situer les apports du sprint, il est utile de distinguer les principaux niveaux d'accès à l'information, comme le fait le tableau \ref{tab:search-mode-comparison}.
 
 \begin{table}[H]
   \centering
-  \caption{Comparaison entre recherche simple, recherche sémantique, RAG et chat agentique}
+  \caption{\label{tab:search-mode-comparison}Comparaison entre recherche simple, recherche sémantique, RAG et chat agentique}
   \begin{tabularx}{\textwidth}{>{\bfseries}p{2.8cm}p{2.8cm}X X}
     \toprule
     Mode & Base principale & Type de résultat & Usage métier dominant \\
@@ -139,11 +140,36 @@ Pour bien situer les apports du sprint, il est utile de distinguer les principau
 
 Ce tableau montre une progression de complexité mais aussi de valeur. Plus le niveau monte, plus la plateforme s'éloigne d'une simple recherche documentaire pour devenir un système d'assistance à la décision branché sur ses propres données métier.
 
+\paragraph{Justification critique des choix IA.}
+Le choix du RAG, du retrieval hybride et de l'agent outillé résulte d'un compromis entre pertinence, explicabilité, coût et gouvernance. Un modèle génératif seul serait plus simple à appeler, mais il ne pourrait pas garantir que la réponse s'appuie sur les CV, offres et historiques réellement présents dans la plateforme. À l'inverse, une recherche SQL classique serait rapide et déterministe, mais elle resterait insuffisante pour des formulations métiers proches sans mots-clés identiques. Le RAG hybride est donc retenu parce qu'il combine une réponse contextualisée avec des sources récupérées, tandis que l'agent outillé est retenu uniquement pour les demandes qui nécessitent plusieurs opérations métier contrôlées.
+
+\begin{table}[H]
+  \centering
+  \scriptsize
+  \caption{\label{tab:ai-choice-rationale}Justification analytique des choix IA}
+  \begin{adjustbox}{max width=\linewidth,center}
+  \begin{tabularx}{\textwidth}{>{\bfseries\raggedright\arraybackslash}p{2.9cm}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X}
+    \toprule
+    Choix & Pourquoi ce choix & Compromis observé & Mécanisme de maîtrise \\
+    \midrule
+    RAG plutôt que génération seule & Les travaux sur le RAG montrent l'intérêt d'ancrer la génération dans des documents récupérés \netref{web:rag-lewis}\netref{web:rag-survey-ieee}. & Latence plus élevée et dépendance à la qualité de l'index. & Chunks par section, citations, cache, fallback et évaluation quantitative. \\
+    Hybrid Search plutôt que vectoriel seul & Les compétences exactes, certifications et technologies nommées exigent un signal lexical ; les synonymes et formulations proches exigent un signal dense. & Deux listes doivent être fusionnées et rerankées. & RRF, inspiré de la fusion de rangs \netref{web:rrf-cormack}, puis reranking et seuils. \\
+    Réécriture de requête ciblée & Les requêtes longues de recruteurs mélangent souvent besoin, contexte et contraintes. & Appel LLM supplémentaire, donc coût et latence. & Activation seulement si la complexité le justifie, timeout et fallback lexical. \\
+    Agent outillé plutôt que chatbot libre & Les approches ReAct et Toolformer montrent l'intérêt de coupler raisonnement et actions outillées \netref{web:react-yao}\netref{web:toolformer}. & Risque d'action non désirée ou de réponse hors périmètre. & Registre d'outils, RBAC, validation Zod, confirmations et grounding. \\
+    Pas de fine-tuning initial & Les données CV et offres changent fréquemment ; les faits doivent rester actualisables sans réentraîner un modèle. & Moins de spécialisation linguistique qu'un modèle ajusté. & Prompts spécialisés, retrieval contextualisé et perspectives de fine-tuning ciblé. \\
+    \bottomrule
+  \end{tabularx}
+  \end{adjustbox}
+\end{table}
+
+Le tableau \ref{tab:ai-choice-rationale} montre que la performance attendue n'est pas seulement une performance algorithmique. Elle dépend aussi de la capacité à expliquer, limiter et vérifier l'IA dans un domaine sensible. Le projet privilégie donc des mécanismes réversibles et auditables : récupérer avant de générer, fusionner plusieurs signaux plutôt qu'en absolutiser un seul, confirmer avant de modifier, et mesurer les gains au lieu de les affirmer.
+La figure \ref{fig:rag-pipeline} représente ensuite le pipeline RAG hybride retenu dans le projet.
+
 
 \begin{figure}[H]
   \centering
   \diagraminput{figures/diagrams/rag-pipeline}
-  \caption{Pipeline RAG hybride du projet}
+  \caption{\label{fig:rag-pipeline}Pipeline RAG hybride du projet}
 \end{figure}
 
 \subsection{Réécriture de requête et gestion de la complexité}
@@ -156,12 +182,12 @@ Cette décision illustre une approche pragmatique de l'IA : améliorer la pertin
 \subsection{IA dans le détail d'une offre}
 Le composant \sourcecode{JobDetailClient} constitue l'un des premiers points où l'IA est exposée directement au recruteur. Il permet de générer un screening pour un candidat sur un poste, de consulter le score et les écarts, de préparer les questions d'entretien et d'orienter la suite du processus. L'IA intervient donc au moment de la décision, là où elle produit le plus de valeur métier.
 
-Cette intégration directe évite de créer une zone IA déconnectée du reste de l'application. Les suggestions et scores apparaissent au moment où le recruteur doit réellement arbitrer.
+Cette intégration directe évite de créer une zone IA déconnectée du reste de l'application. Les suggestions et scores apparaissent au moment où le recruteur doit réellement arbitrer, comme l'illustre la figure \ref{fig:ai-score-view}.
 
 \begin{figure}[H]
   \centering
   \appcapture{figures/screenshots/ai-score-view.png}
-  \caption{Vue de score IA d'un candidat sur une offre.}
+  \caption{\label{fig:ai-score-view}Vue de score IA d'un candidat sur une offre.}
 \end{figure}
 
 \subsection{Recherche sémantique et services IA avancés}
@@ -179,22 +205,22 @@ Cette chaîne montre que la valeur du module IA ne tient pas à une seule géné
 \subsection{Autopilot d'entretien}
 Les composants \sourcecode{InterviewAutoPilotGuideView} et \sourcecode{interview-autopilot-guide.tsx} exposent les guides générés pour les étapes TA, Manager et HR. Cette fonctionnalité aide à homogénéiser la qualité des entretiens et à mieux exploiter les informations déjà présentes dans le CV, le poste et l'historique du pipeline.
 
-L'IA n'est donc pas utilisée seulement pour retrouver ou classer, mais aussi pour préparer une interaction humaine plus pertinente avec le candidat.
+L'IA n'est donc pas utilisée seulement pour retrouver ou classer, mais aussi pour préparer une interaction humaine plus pertinente avec le candidat. La figure \ref{fig:autopilot-guide} montre cette interface d'accompagnement.
 
 \begin{figure}[H]
   \centering
   \appcapture{figures/screenshots/autopilot-guide.png}
-  \caption{Interface d'Auto-Pilot d'entretien.}
+  \caption{\label{fig:autopilot-guide}Interface d'Auto-Pilot d'entretien.}
 \end{figure}
 
 \subsection{Page statistiques, workspace agentique et réponses sourcées}
 La page statistique du recruteur charge les statistiques du vivier, les statistiques des jobs et les \textit{smart insights}. Le composant \sourcecode{StatisticsChat} complète cette vue par une interaction conversationnelle SSE, mais il n'est plus seul : la navigation expose aussi une page \sourcecode{/agent} plein écran conçue pour les analyses longues, la consultation de l'historique et les traces détaillées.
 Cette couche conversationnelle n'est pas décorative. Elle ouvre un accès agentique aux données du système, avec mémoire conversationnelle, outils filtrés par rôle, exécution traçable et prompts contextuels injectés depuis les pages métier. Les boutons \textit{Ask Agent} disséminés dans le vivier, les offres, les fiches Manager, les fiches RH et les surfaces Admin réutilisent les données du contexte courant pour préremplir la demande.
-Du point de vue métier, l'apport du sprint est concret. La recherche sémantique réduit l'effort de repérage des profils proches, le RAG améliore la justification des réponses complexes, et le chat agentique réduit le coût de navigation entre plusieurs écrans spécialisés. Le recruteur ne gagne donc pas seulement en rapidité ; il gagne aussi en lisibilité sur les raisons qui conduisent à une recommandation, un classement ou une synthèse.
+Du point de vue métier, l'apport du sprint est concret. La recherche sémantique réduit l'effort de repérage des profils proches, le RAG améliore la justification des réponses complexes, et le chat agentique réduit le coût de navigation entre plusieurs écrans spécialisés. Le recruteur ne gagne donc pas seulement en rapidité ; il gagne aussi en lisibilité sur les raisons qui conduisent à une recommandation, un classement ou une synthèse. La figure \ref{fig:agent-workspace} montre cette restitution sourcée.
 \begin{figure}[H]
   \centering
   \appcapture{figures/screenshots/statistics-ai-chat.png}
-  \caption{Workspace agentique et réponse sourcée dans le chat.}
+  \caption{\label{fig:agent-workspace}Workspace agentique et réponse sourcée dans le chat.}
 \end{figure}
 \subsection{Fonctionnement détaillé du chat analytique}
 Le chat du projet n'est pas un simple champ de texte connecté à un LLM. Il constitue une interface de pilotage qui permet à l'utilisateur autorisé de poser des questions métier directement sur l'état réel de la plateforme. Un recruteur peut par exemple demander un résumé du vivier, interroger la répartition des jobs, rechercher des candidats correspondant à un besoin précis ou demander une comparaison appuyée sur les données disponibles.
@@ -222,7 +248,7 @@ Les graphiques produits par l'assistant ne sont pas des images libres dessinées
 
 \begin{table}[H]
   \centering
-  \caption{Restitutions visuelles générées par le chat analytique}
+  \caption{\label{tab:chat-visual-restitution}Restitutions visuelles générées par le chat analytique}
   \begin{tabularx}{\textwidth}{>{\bfseries}p{3.2cm}p{3.6cm}X}
     \toprule
     Type de question & Source de données & Restitution attendue \\
@@ -239,14 +265,14 @@ Les graphiques produits par l'assistant ne sont pas des images libres dessinées
   \end{tabularx}
 \end{table}
 
-Cette évolution complète la logique de grounding : les graphiques et les cartes ne sont pas des illustrations décoratives générées librement, mais une autre forme de restitution des mêmes faits observés. Elle répond aussi à un besoin d'usage très concret : pour une question d'analytics, une courbe ou une barre comparative est souvent plus lisible qu'un paragraphe, tandis qu'une carte typée rend plus immédiatement visibles les métriques, les risques et les actions disponibles.
+Le tableau \ref{tab:chat-visual-restitution} montre que cette évolution complète la logique de grounding : les graphiques et les cartes ne sont pas des illustrations décoratives générées librement, mais une autre forme de restitution des mêmes faits observés. Elle répond aussi à un besoin d'usage très concret : pour une question d'analytics, une courbe ou une barre comparative est souvent plus lisible qu'un paragraphe, tandis qu'une carte typée rend plus immédiatement visibles les métriques, les risques et les actions disponibles.
 
 \section{Évaluation et résultats}
 Le projet contient une preuve quantitative d'amélioration du pipeline RAG dans le rapport d'évaluation RAG de phase 2. L'évaluation couvre 40 requêtes avec une couverture \textit{ground truth} de 85\%. Les résultats comparatifs entre le baseline et la phase 2 sont les suivants.
 
 \begin{table}[H]
   \centering
-  \caption{Résultats de l'évaluation RAG phase 2}
+  \caption{\label{tab:rag-eval-results}Résultats de l'évaluation RAG phase 2}
   \begin{tabular}{lccc}
     \toprule
     Métrique & Baseline & Phase 2 & Variation \\
@@ -261,6 +287,14 @@ Le projet contient une preuve quantitative d'amélioration du pipeline RAG dans 
   \end{tabular}
 \end{table}
 
+\begin{figure}[H]
+  \centering
+  \diagraminput{figures/diagrams/rag-eval-bars}
+  \caption{\label{fig:rag-eval-bars}Visualisation des métriques RAG et du compromis de latence}
+\end{figure}
+
+Comme le montrent le tableau \ref{tab:rag-eval-results} et la figure \ref{fig:rag-eval-bars}, la phase 2 améliore les métriques de pertinence mais rend visible un coût temporel majeur. Cette représentation graphique évite de présenter l'IA comme un gain univoque : elle montre simultanément l'amélioration de qualité et le prix opérationnel de cette amélioration.
+
 \paragraph{Lecture des métriques.}
 Les métriques utilisées ne mesurent pas toutes la même dimension. \textit{Precision@5} et \textit{Precision@10} indiquent la proportion de résultats pertinents dans les premiers éléments retournés. \textit{MRR@10} évalue la position du premier résultat pertinent, ce qui est important pour l'expérience recruteur. \textit{NDCG@10} prend en compte l'ordre des résultats pertinents dans le classement. Enfin, la latence moyenne mesure le coût opérationnel de la chaîne de retrieval. Ces définitions permettent de lire les résultats comme un compromis entre pertinence et temps de réponse, et non comme un score unique.
 
@@ -270,7 +304,32 @@ L'interprétation est claire : la phase 2 améliore nettement la pertinence des 
 
 Cette mesure a une forte valeur méthodologique dans le rapport. Elle prouve que le projet ne se contente pas d'affirmer que l'IA fonctionne mieux ; il cherche à objectiver les gains et à rendre visibles les coûts associés.
 
-En complément de cette évaluation retrieval, le projet contient désormais une suite d'évaluation agentique déterministe. Elle vérifie les politiques de prompt anti-hallucination, le blocage des demandes créatives hors périmètre, le grounding des classements candidats, la confirmation obligatoire des mutations, la génération des cartes candidat/pipeline/gouvernance, le masquage des traces sensibles et le regroupement de la timeline d'outils. L'état de validation observé est détaillé en annexe : 123 tests passent sur la suite Vitest complète.
+En complément de cette évaluation retrieval, le projet contient désormais une suite d'évaluation agentique déterministe. Elle vérifie les politiques de prompt anti-hallucination, le blocage des demandes créatives hors périmètre, le grounding des classements candidats, la confirmation obligatoire des mutations, la génération des cartes candidat/pipeline/gouvernance, le masquage des traces sensibles et le regroupement de la timeline d'outils. L'état de validation observé est détaillé dans les artefacts du projet : 123 tests passent sur la suite Vitest complète.
+
+\subsection{Analyse de complexité, coût et pistes d'optimisation}
+L'étude expérimentale doit être complétée par une lecture de complexité, car un pipeline IA utile en démonstration peut devenir difficile à exploiter si son coût croît trop rapidement avec le volume de CV, de chunks ou d'appels modèle. Dans ce projet, les principaux coûts proviennent de quatre sources : génération d'embeddings, recherche vectorielle, réécriture/reranking LLM et boucle agentique multi-outils.
+
+\begin{table}[H]
+  \centering
+  \scriptsize
+  \caption{\label{tab:complexity-analysis}Analyse de complexité et de coût du sous-système IA}
+  \begin{adjustbox}{max width=\linewidth,center}
+  \begin{tabularx}{\textwidth}{>{\bfseries\raggedright\arraybackslash}p{2.7cm}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X}
+    \toprule
+    Opération & Complexité dominante & Coût ou risque & Optimisation retenue ou proposée \\
+    \midrule
+    Embedding CV et chunks & Proportionnelle au nombre de textes indexés et à la dimension vectorielle $d=1024$. & Coût API et stockage d'environ $1024$ valeurs par embedding, soit environ 4 Ko hors métadonnées si valeurs flottantes 32 bits. & Traitement asynchrone après upload, batch embeddings, cache et réindexation ciblée. \\
+    Recherche vectorielle & Dépend du nombre de chunks $N$, de la dimension $d$ et du type d'index. & Temps de recherche et mémoire augmentent avec le corpus. & pgvector, seuil de similarité, topK limité et invalidation par version d'index. \\
+    Recherche lexicale & Dépend de la taille de l'index textuel et du nombre de résultats candidats. & Peut manquer les synonymes, mais reste rapide pour termes exacts. & Index \sourcecode{tsvector}, extraction de mots-clés et fusion avec le signal vectoriel. \\
+    Fusion RRF et reranking & RRF est linéaire dans les listes récupérées ; le reranking dépend du nombre final de candidats. & Gain de pertinence au prix d'un traitement supplémentaire. & Limitation des listes vectorielle et lexicale, constante RRF et finalTopK maîtrisé. \\
+    Réécriture de requête & Un appel LLM supplémentaire pour les requêtes complexes. & Latence et coût financier variables. & Déclenchement conditionnel, timeout, circuit breaker et fallback déterministe. \\
+    Agent multi-outils & Dépend du nombre d'étapes, des appels d'outils et de la génération finale. & Risque de lenteur, d'échec d'outil ou de mutation excessive. & Limites d'étapes, confirmations, seuil d'échecs, streaming SSE et trace par phases. \\
+    \bottomrule
+  \end{tabularx}
+  \end{adjustbox}
+\end{table}
+
+Le tableau \ref{tab:complexity-analysis} montre que l'optimisation prioritaire ne consiste pas à supprimer les étapes avancées, mais à mieux les déclencher. Les pistes les plus pertinentes sont donc : mettre en cache les embeddings et résultats de retrieval, réserver la réécriture aux requêtes ambiguës, diminuer le \textit{topK} quand la question est simple, réutiliser les résultats récents dans une même conversation, mesurer séparément latence vectorielle, latence lexicale, latence de reranking et latence de génération, puis envisager un fine-tuning léger uniquement sur des tâches stables comme la classification d'intention ou la normalisation des exigences.
 
 \section{Apport du module}
 Ce module apporte la dimension la plus distinctive du projet :

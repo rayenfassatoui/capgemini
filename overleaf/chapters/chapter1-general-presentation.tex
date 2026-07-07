@@ -28,11 +28,12 @@ Le projet s'inscrit dans un périmètre numérique combinant :
   \item l'expérience utilisateur multi-rôles, avec des tableaux de bord différenciés.
 \end{itemize}
 Autrement dit, il ne s'agit pas d'un simple ATS documentaire, mais d'un système de travail partagé entre équipes de recrutement et décideurs.
+La figure \ref{fig:landing-institutional} illustre ce positionnement institutionnel et l'entrée publique de la plateforme.
 
 \begin{figure}[H]
   \centering
   \appcapture{figures/screenshots/landing_pages.png}
-  \caption{Page d'accueil institutionnelle de la plateforme.}
+  \caption{\label{fig:landing-institutional}Page d'accueil institutionnelle de la plateforme.}
 \end{figure}
 
 \section{Présentation du projet}
@@ -42,10 +43,11 @@ Les recrutements d'entreprise rencontrent plusieurs difficultés récurrentes : 
 
 \subsection{Étude synthétique des solutions existantes}
 Avant de construire une solution interne, il est pertinent de situer le projet par rapport à des plateformes largement diffusées comme LinkedIn Talent Solutions, Greenhouse et Workday Recruiting, dont les sites officiels sont référencés en bibliographie et webographie \netref{web:linkedin-talent}\netref{web:greenhouse-recruiting}\netref{web:workday-recruiting}. L'objectif n'est pas d'établir un benchmark de performance absolu, mais d'identifier les écarts entre des offres ATS généralistes et le besoin spécifique du projet.
+Le tableau \ref{tab:existing-solutions-comparison} synthétise cette comparaison fonctionnelle selon les besoins propres au projet.
 
 \begin{table}[H]
   \centering
-  \caption{Comparaison fonctionnelle orientée besoins du projet}
+  \caption{\label{tab:existing-solutions-comparison}Comparaison fonctionnelle orientée besoins du projet}
   \begin{tabularx}{\textwidth}{>{\bfseries}p{4.2cm}XXX}
     \toprule
     Critère & LinkedIn Talent Solutions & Greenhouse & Workday Recruiting \\
@@ -66,12 +68,38 @@ Ainsi, l'écart principal ne concerne pas une fonctionnalité unique, mais l'int
 
 Cette synthèse justifie le choix d'une plateforme dédiée : le besoin ne porte pas seulement sur la publication d'offres ou le suivi d'entretien, mais sur l'orchestration d'un processus complet enrichi par l'IA, avec une forte maîtrise interne des données, des rôles et des règles de décision.
 
-\subsection{Objectifs du projet}
-Les objectifs fonctionnels et techniques peuvent être résumés comme suit.
+\subsection{État de l'art scientifique et positionnement}
+Au-delà des plateformes commerciales, l'état de l'art montre que le recrutement numérique se situe au croisement de plusieurs familles de travaux : les systèmes de recommandation CV--offre, la recherche d'information, les architectures RAG, les agents outillés et l'audit des risques algorithmiques. Les travaux sur le matching de CV, comme RésuMatcher publié dans \textit{Expert Systems with Applications} \netref{web:resumatcher}, montrent l'intérêt d'un score personnalisé entre profil et poste. Les travaux sur les algorithmes de recrutement rappellent cependant que l'automatisation doit rester gouvernée, documentée et auditable, notamment pour éviter de transformer un gain de productivité en risque de biais ou d'opacité \netref{web:raghavan-hiring}.
+
+La littérature récente sur le RAG met en avant un principe important : un modèle génératif devient plus fiable lorsqu'il est contraint par des documents récupérés et citables plutôt que par sa seule mémoire paramétrique \netref{web:rag-lewis}\netref{web:rag-survey-ieee}. La recherche d'information rappelle aussi que les signaux lexicaux et sémantiques sont complémentaires. BM25 reste robuste pour les termes exacts \netref{web:bm25-robertson}, tandis que la fusion de rangs par RRF permet de combiner plusieurs listes classées sans imposer une normalisation fragile des scores \netref{web:rrf-cormack}. Enfin, les travaux sur les agents LLM et l'utilisation d'outils montrent qu'un assistant devient plus utile lorsqu'il peut raisonner, appeler des fonctions et restituer des preuves, mais seulement si son action reste bornée par un cadre de contrôle \netref{web:react-yao}\netref{web:toolformer}\netref{web:llm-agents-survey}.
 
 \begin{table}[H]
   \centering
-  \caption{Objectifs structurants de \projectname{}}
+  \scriptsize
+  \caption{\label{tab:state-of-art-positioning}Synthèse de l'état de l'art et positionnement du projet}
+  \begin{adjustbox}{max width=\linewidth,center}
+  \begin{tabularx}{\textwidth}{>{\bfseries\raggedright\arraybackslash}p{2.8cm}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X}
+    \toprule
+    Approche & Principe dominant & Limite observée & Positionnement de \projectname{} \\
+    \midrule
+    ATS et recherche SQL & Filtres structurés, statuts et mots-clés exacts. & Faible tolérance aux synonymes, aux formulations différentes et aux profils incomplets. & Conserver les filtres métier, mais les compléter par des embeddings, des chunks et un ranking hybride. \\
+    Matching CV--offre & Calcul d'un score de similarité entre exigences et profil candidat. & Score souvent isolé du workflow complet et difficile à expliquer sans traces. & Relier le score aux exigences du poste, aux écarts, aux guides d'entretien et à l'historique candidat. \\
+    Recherche sémantique dense & Projection des CV et requêtes dans un espace vectoriel. & Risque de rapprochements trop flous et difficulté à citer précisément l'origine de la réponse. & Utiliser l'embedding global pour explorer, puis les chunks RAG pour justifier les réponses complexes. \\
+    RAG hybride & Récupération de passages puis génération contrôlée par contexte. & Latence et coût plus élevés si chaque requête déclenche toutes les étapes. & Activer réécriture, RRF et reranking surtout pour les requêtes complexes, avec cache et fallback. \\
+    Agentic AI & Agent capable d'appeler des outils et de raisonner en plusieurs étapes. & Risque d'action non maîtrisée, d'hallucination ou de fuite de données si les outils ne sont pas filtrés. & Filtrage RBAC, validation Zod, grounding des candidats, confirmations explicites et trace outillée par phases. \\
+    \bottomrule
+  \end{tabularx}
+  \end{adjustbox}
+\end{table}
+
+Comme le montre le tableau \ref{tab:state-of-art-positioning}, la contribution du projet n'est pas de proposer un nouveau modèle fondationnel. Elle consiste à intégrer des techniques connues dans une architecture métier cohérente : données RH centralisées, recherche hybride, RAG cité, agent outillé, contrôle d'accès, confirmation humaine et évaluation quantitative. Cette contribution est donc principalement systémique et applicative : rendre l'IA exploitable dans un processus de recrutement gouverné, plutôt que démontrer une IA isolée du contexte métier.
+
+\subsection{Objectifs du projet}
+Les objectifs fonctionnels et techniques peuvent être résumés comme le montre le tableau \ref{tab:project-objectives}.
+
+\begin{table}[H]
+  \centering
+  \caption{\label{tab:project-objectives}Objectifs structurants de \projectname{}}
   \begin{tabularx}{\textwidth}{>{\bfseries}p{4cm}X}
     \toprule
     Axe & Objectif \\
@@ -104,11 +132,11 @@ La solution proposée est une application web full-stack appelée \projectname{}
 La structure du projet et la livraison progressive de ses modules rendent une méthodologie itérative particulièrement adaptée. La plateforme n'a pas été construite comme un livrable unique et figé ; elle a évolué par incréments successifs couvrant le contrôle d'accès, la gestion du vivier de CV, les offres, la progression des candidats, les capacités IA, la communication et la gouvernance.
 
 \subsection{Comparaison entre approches de gestion de projet}
-Deux grandes approches peuvent être envisagées pour ce type de projet : l'approche classique, qui définit les besoins en détail dès le départ puis exécute le projet de manière séquentielle, et l'approche agile, qui livre la valeur de façon incrémentale, intègre le retour d'expérience au fil du développement et permet d'ajuster le périmètre lorsque les priorités métier se précisent.
+Deux grandes approches peuvent être envisagées pour ce type de projet : l'approche classique, qui définit les besoins en détail dès le départ puis exécute le projet de manière séquentielle, et l'approche agile, qui livre la valeur de façon incrémentale, intègre le retour d'expérience au fil du développement et permet d'ajuster le périmètre lorsque les priorités métier se précisent. Le tableau \ref{tab:methodology-comparison} précise ce choix méthodologique.
 
 \begin{table}[H]
   \centering
-  \caption{Comparaison entre approche agile et approche classique}
+  \caption{\label{tab:methodology-comparison}Comparaison entre approche agile et approche classique}
   \begin{tabularx}{\textwidth}{>{\bfseries}p{3.4cm}XX}
     \toprule
     Critère & Approche agile & Approche classique \\

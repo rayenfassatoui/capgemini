@@ -7,11 +7,11 @@ Après avoir cadré le besoin métier, ce chapitre traduit la vision produit en 
 \section{Analyse des besoins et spécification}
 
 \subsection{Identification des acteurs}
-Le système distingue quatre acteurs principaux, définis à partir de la spécification fonctionnelle et de la couche de contrôle d'accès.
+Le système distingue quatre acteurs principaux, définis à partir de la spécification fonctionnelle et de la couche de contrôle d'accès. Le tableau \ref{tab:system-actors} synthétise leurs responsabilités.
 
 \begin{table}[H]
   \centering
-  \caption{Acteurs du système}
+  \caption{\label{tab:system-actors}Acteurs du système}
   \begin{tabularx}{\textwidth}{>{\bfseries}p{3cm}X}
     \toprule
     Acteur & Responsabilités principales \\
@@ -41,11 +41,11 @@ Les exigences fonctionnelles les plus structurantes sont les suivantes :
 \end{itemize}
 
 \subsection{Exigences non fonctionnelles}
-Les exigences non fonctionnelles retenues pour la solution sont résumées ci-dessous.
+Les exigences non fonctionnelles retenues pour la solution sont résumées dans le tableau \ref{tab:nonfunctional-requirements}.
 
 \begin{table}[H]
   \centering
-  \caption{Exigences non fonctionnelles clés}
+  \caption{\label{tab:nonfunctional-requirements}Exigences non fonctionnelles clés}
   \begin{tabularx}{\textwidth}{>{\bfseries}p{3.2cm}X}
     \toprule
     Axe & Traduction dans la solution \\
@@ -63,13 +63,24 @@ Les exigences non fonctionnelles retenues pour la solution sont résumées ci-de
 \section{Étude analytique}
 
 \subsection{Diagramme global des cas d'utilisation}
-La figure suivante synthétise les interactions majeures entre les quatre acteurs et les grands sous-systèmes métier.
+La figure \ref{fig:global-use-case} synthétise les interactions majeures entre les quatre acteurs et les grands sous-systèmes métier.
 
 \begin{figure}[H]
   \centering
   \diagraminput{figures/diagrams/global-use-case}
-  \caption{Cas d'utilisation global de la plateforme \projectname{}}
+  \caption{\label{fig:global-use-case}Cas d'utilisation global de la plateforme \projectname{}}
 \end{figure}
+
+\subsection{Processus métier cible}
+Le diagramme de cas d'utilisation identifie les capacités du système, mais il ne suffit pas à montrer la circulation réelle d'une candidature entre les rôles. Pour répondre à cette limite, la figure \ref{fig:business-bpmn} formalise un processus métier de type BPMN simplifié : le TA initialise le besoin et le vivier, l'IA assiste le classement, le Manager évalue la compétence opérationnelle, puis HR arbitre la décision finale et déclenche l'onboarding ou la notification.
+
+\begin{figure}[H]
+  \centering
+  \diagraminput{figures/diagrams/recruitment-bpmn}
+  \caption{\label{fig:business-bpmn}Processus métier cible du recrutement, sous forme BPMN simplifiée}
+\end{figure}
+
+Cette lecture métier justifie ensuite les choix de conception : chaque étape doit posséder un responsable, un état observable, une trace et une règle de transition. Le pipeline candidat et l'historique des changements ne sont donc pas des détails techniques ; ils matérialisent le besoin de gouvernance visible dans le processus.
 
 \subsection{Diagramme de classes global}
 Le schéma Drizzle du projet est reformulé en diagramme de classes UML afin de montrer les classes métier, leurs attributs principaux et leurs multiplicités. La figure \ref{fig:domain-model} relie ainsi les objets centraux du recrutement : comptes utilisateurs, postes, CV, candidats, évaluations, entretiens, rapports et événements de gouvernance.
@@ -81,14 +92,14 @@ Le schéma Drizzle du projet est reformulé en diagramme de classes UML afin de 
 \end{figure}
 
 \subsection{Vue d'ensemble du Product Backlog}
-Le \textit{Product Backlog} constitue la passerelle entre le besoin métier décrit au chapitre précédent et la réalisation par sprints présentée dans la suite du rapport. Il ne s'agit pas seulement d'une liste de fonctionnalités : il ordonne les capacités du produit selon leur valeur pour les équipes de recrutement, leurs dépendances techniques et leur rôle dans la constitution progressive des données exploitables par l'IA.
+Le \textit{Product Backlog} constitue la passerelle entre le besoin métier décrit au chapitre précédent et la réalisation par sprints présentée dans la suite du rapport. Il ne s'agit pas seulement d'une liste de fonctionnalités : il ordonne les capacités du produit selon leur valeur pour les équipes de recrutement, leurs dépendances techniques et leur rôle dans la constitution progressive des données exploitables par l'IA, comme le montre le tableau \ref{tab:product-backlog}.
 
 \paragraph{Logique de priorisation.}
 La priorité a été donnée aux éléments qui débloquent les autres modules. Le socle d'accès arrive en premier parce qu'aucune donnée RH ne peut être exposée sans authentification et contrôle de rôle. Le vivier de CV et les offres viennent ensuite, car ils produisent les objets métier fondamentaux. Le pipeline candidat transforme ces objets en processus opérationnel. L'IA intervient lorsque suffisamment de données structurées existent pour produire des scores, des synthèses et des réponses contextualisées. Enfin, la gouvernance consolide les traces, les notifications et les indicateurs nécessaires au pilotage.
 
 \begin{table}[H]
   \centering
-  \caption{Product Backlog synthétique du projet}
+  \caption{\label{tab:product-backlog}Product Backlog synthétique du projet}
   \begin{tabularx}{\textwidth}{>{\bfseries}p{1.2cm}p{3cm}p{3.2cm}X}
     \toprule
     ID & Epic produit & Valeur métier & Items principaux \\
@@ -106,11 +117,11 @@ La priorité a été donnée aux éléments qui débloquent les autres modules. 
 Ce backlog permet une lecture produit du projet : chaque epic correspond à une capacité visible par un utilisateur final, mais aussi à une brique de données réutilisable par les modules suivants. Par exemple, les offres structurées alimentent le matching ; les rapports d'entretien enrichissent la traçabilité ; les logs et notifications rendent possible une supervision administrateur crédible.
 
 \subsection{Découpage en sprints et objectifs}
-Le backlog est découpé en cinq sprints de réalisation. Chaque sprint possède un objectif explicite, afin que la progression du rapport reste lisible et que chaque chapitre d'implémentation puisse être évalué par rapport à une intention produit précise.
+Le backlog est découpé en cinq sprints de réalisation. Chaque sprint possède un objectif explicite, afin que la progression du rapport reste lisible et que chaque chapitre d'implémentation puisse être évalué par rapport à une intention produit précise. Le tableau \ref{tab:sprint-objectives} formalise ce découpage.
 
 \begin{table}[H]
   \centering
-  \caption{Objectifs des sprints de réalisation}
+  \caption{\label{tab:sprint-objectives}Objectifs des sprints de réalisation}
   \begin{tabularx}{\textwidth}{>{\bfseries}p{1.7cm}p{3.2cm}X}
     \toprule
     Sprint & Module & Objectif principal \\
@@ -144,11 +155,12 @@ Cette vue externe permet de distinguer clairement ce qui appartient au produit e
 
 \subsection{Architecture applicative globale}
 L'architecture adoptée n'est pas une architecture microservices. Le projet affirme explicitement une architecture \textit{Feature-Driven} : la couche de routage reste mince, les composants d'interface sont séparés, et la logique métier réside dans des services organisés par fonctionnalité. Cette décision est particulièrement adaptée à une application web monolithique moderne enrichie par l'IA.
+La figure \ref{fig:feature-architecture} présente cette organisation interne et ses principales frontières.
 
 \begin{figure}[H]
   \centering
   \diagraminput{figures/diagrams/feature-architecture}
-  \caption{Architecture interne \textit{feature-driven} de la solution}
+  \caption{\label{fig:feature-architecture}Architecture interne \textit{feature-driven} de la solution}
 \end{figure}
 
 Les frontières de couches sont les suivantes :
@@ -162,11 +174,11 @@ Les frontières de couches sont les suivantes :
 \end{itemize}
 
 \paragraph{Tableau de correspondance besoin / module / solution technique.}
-La cohérence de l'architecture se comprend mieux lorsqu'on relie directement les besoins métier aux modules fonctionnels et aux choix techniques qui y répondent.
+La cohérence de l'architecture se comprend mieux lorsqu'on relie directement les besoins métier aux modules fonctionnels et aux choix techniques qui y répondent, comme le montre le tableau \ref{tab:business-architecture-correspondence}.
 
 \begin{table}[H]
   \centering
-  \caption{Correspondance entre besoins métier et réponses architecturales}
+  \caption{\label{tab:business-architecture-correspondence}Correspondance entre besoins métier et réponses architecturales}
   \begin{tabularx}{\textwidth}{>{\bfseries}p{3.1cm}p{3.1cm}X}
     \toprule
     Besoin métier & Module principal & Solution technique retenue \\
@@ -194,11 +206,12 @@ Le projet n'appelle pas naturellement une architecture microservices. Les module
 
 \subsection{Architecture du sous-système IA}
 Le sous-système IA articule plusieurs briques : génération de descriptions de poste, extraction de CV, matching, génération de guides d'entretien, débriefing, assistant conversationnel et pipeline RAG. L'agent statistique est exposé via l'API du chat analytique, qui assemble le contexte, filtre les outils selon le rôle, diffuse la réponse en SSE et restitue les preuves sous forme de sources, graphiques, cartes typées et trace d'exécution par phases.
+La figure \ref{fig:ai-orchestration} illustre cette orchestration entre le chat, les outils métier, les garde-fous et les preuves restituées.
 
 \begin{figure}[H]
   \centering
   \diagraminput{figures/diagrams/ai-orchestration}
-  \caption{Orchestration de l'agent conversationnel et de ses outils}
+  \caption{\label{fig:ai-orchestration}Orchestration de l'agent conversationnel et de ses outils}
 \end{figure}
 
 \paragraph{Justification de \sourcecode{pgvector}.}
@@ -288,6 +301,34 @@ La persistance s'appuie sur \sourcecode{Neon PostgreSQL} et \sourcecode{Drizzle 
 
 L'usage de \sourcecode{pgvector} évite l'introduction d'une base vectorielle externe \netref{web:pgvector-docs}. Les embeddings globaux des CV sont stockés dans le vivier, tandis que les embeddings orientés RAG sont stockés dans les chunks. Ces chunks sont aussi indexés en recherche plein texte, ce qui rend possible une recherche hybride combinant récupération vectorielle et récupération lexicale.
 Les tables \sourcecode{candidate\_stage\_history} et \sourcecode{pending\_agent\_actions} renforcent la gouvernance du modèle. La première conserve les mouvements du pipeline avec l'étape précédente, la nouvelle étape, l'acteur, la raison, la source et l'horodatage. La seconde matérialise les actions IA sensibles avant exécution, avec leur statut, leur expiration et leur résultat d'exécution. Ces deux tables transforment les opérations critiques en preuves consultables et exportables.
+
+\subsection{Justification synthétique des choix technologiques}
+Les technologies retenues ne sont pas uniquement des préférences de développement. Elles répondent à des contraintes mesurables du projet : rapidité d'itération, typage strict, gouvernance des données RH, capacité de streaming pour l'agent, recherche hybride et maintien d'un périmètre déployable par une petite équipe. Le tableau \ref{tab:tech-choice-justification} synthétise cette logique de décision.
+
+\begin{table}[H]
+  \centering
+  \scriptsize
+  \caption{\label{tab:tech-choice-justification}Justification des principaux choix technologiques}
+  \begin{adjustbox}{max width=\linewidth,center}
+  \begin{tabularx}{\textwidth}{>{\bfseries\raggedright\arraybackslash}p{2.5cm}>{\raggedright\arraybackslash}p{2.8cm}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X}
+    \toprule
+    Choix retenu & Alternatives possibles & Justification pour le projet & Risque maîtrisé \\
+    \midrule
+    Next.js 16 App Router & SPA séparée, API backend isolée & Unifie rendu, routes, actions serveur et streaming SSE dans un même produit full-stack. & Réduit la dispersion entre front-end, API et logique d'orchestration. \\
+    TypeScript strict & JavaScript simple & Rend explicites les contrats entre composants, services, actions et outils agentiques. & Diminue les erreurs d'intégration dans les workflows multi-rôles. \\
+    Bun & npm, yarn, pnpm, Node scripts dispersés & Accélère les scripts locaux et garde une convention unique pour développement, tests, seed et évaluation. & Évite la fragmentation de l'outillage. \\
+    Architecture feature-driven & Découpage par couches techniques ou microservices & Aligne chaque module sur une capacité métier : accès, vivier, jobs, pipeline, IA, gouvernance. & Évite un microservice prématuré et maintient une cohérence transactionnelle. \\
+    Better Auth + RBAC & Authentification maison & Fournit sessions et rôles sans réimplémenter une couche sensible. & Limite les failles liées à une authentification artisanale. \\
+    Zod & Validation implicite ou types compile-time seuls & Valide les entrées utilisateur et les arguments d'outils à l'exécution. & Empêche l'agent ou les formulaires de déclencher des mutations mal formées. \\
+    Neon PostgreSQL + Drizzle & Base NoSQL ou ORM plus opaque & Garde données RH, logs, conversations, états et embeddings dans un modèle relationnel typé. & Préserve traçabilité, cohérence et requêtage analytique. \\
+    pgvector & Base vectorielle externe & Ajoute la similarité sémantique sans séparer les embeddings des règles métier et d'accès. & Réduit la complexité d'infrastructure et les risques de divergence des droits. \\
+    Tailwind CSS + shadcn/ui & CSS ad hoc ou bibliothèque fermée & Combine rapidité d'interface, accessibilité des primitives et personnalisation visuelle. & Évite de reconstruire des composants interactifs sensibles comme les dialogues. \\
+    \bottomrule
+  \end{tabularx}
+  \end{adjustbox}
+\end{table}
+
+Cette matrice rend explicite le critère principal de conception : préférer une architecture intégrée, typée et gouvernée à une architecture plus distribuée mais plus coûteuse à fiabiliser. Ce choix est cohérent avec la nature du projet : une plateforme de recrutement interne où la cohérence des données, la sécurité des rôles et la traçabilité des décisions priment sur une scalabilité horizontale prématurée.
 
 \section*{Conclusion}
 \addcontentsline{toc}{section}{Conclusion}

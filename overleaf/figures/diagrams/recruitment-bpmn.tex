@@ -1,0 +1,63 @@
+\begin{tikzpicture}[
+  font=\scriptsize,
+  task/.style={draw=cgblue, rounded corners=3pt, thick, fill=cglight, minimum width=3.1cm, minimum height=0.78cm, align=center},
+  decision/.style={draw=cgdeep, diamond, aspect=2.4, thick, fill=white, minimum width=1.95cm, minimum height=0.85cm, inner sep=1pt, align=center},
+  event/.style={draw=cgdeep, circle, thick, fill=white, minimum size=0.45cm},
+  role/.style={draw=cgdeep, rounded corners=2pt, thick, fill=blue!4, minimum width=1.95cm, minimum height=0.62cm, align=center},
+  reject/.style={draw=red!55!black, rounded corners=3pt, thick, fill=red!5, minimum width=2.75cm, minimum height=0.7cm, align=center},
+  flow/.style={-{Latex[length=2.4mm]}, thick, draw=cgdeep},
+  noflow/.style={-{Latex[length=2.4mm]}, thick, draw=red!60!black},
+  note/.style={font=\tiny, fill=white, inner sep=1.5pt}
+]
+
+% Role column
+\node[role] at (0,0) (role-ta) {Talent\\Acquisition};
+\node[role] at (0,-1.35) (role-ai) {Système\\IA};
+\node[role] at (0,-4.15) (role-manager) {Manager};
+\node[role] at (0,-6.95) (role-hr) {Human\\Resources};
+\node[role] at (0,-9.75) (role-onboarding) {Onboarding};
+\node[role] at (8.65,-5.55) (role-candidate) {Candidat};
+
+% Main vertical process
+\node[event] at (2.05,0) (start) {};
+\node[task] at (4.55,0) (upload) {Importer le CV\\et créer l'offre};
+\node[task] at (4.55,-1.35) (matching) {Matching IA\\et screening};
+\node[decision] at (4.55,-2.75) (shortlist) {Profil\\retenu ?};
+\node[task] at (4.55,-4.15) (manager) {Évaluation\\Manager};
+\node[decision] at (4.55,-5.55) (managerDecision) {Avis\\favorable ?};
+\node[task] at (4.55,-6.95) (hr) {Entretien final\\HR};
+\node[decision] at (4.55,-8.35) (hrDecision) {Décision\\finale ?};
+\node[task] at (4.55,-9.75) (onboarding) {Déclencher\\l'onboarding};
+\node[event] at (4.55,-11.05) (end) {};
+
+% Rejection branch kept on a separated right column
+\node[reject] at (8.65,-2.75) (reject1) {Notifier\\le rejet};
+\node[reject] at (8.65,-5.55) (reject2) {Notifier\\le rejet};
+\node[reject] at (8.65,-8.35) (reject3) {Notifier\\le rejet};
+\node[event] at (10.65,-5.55) (rejectEnd) {};
+
+% Flow arrows
+\draw[flow] (start) -- (upload);
+\draw[flow] (upload) -- (matching);
+\draw[flow] (matching) -- (shortlist);
+\draw[flow] (shortlist) -- node[note, right] {oui} (manager);
+\draw[flow] (manager) -- (managerDecision);
+\draw[flow] (managerDecision) -- node[note, right] {oui} (hr);
+\draw[flow] (hr) -- (hrDecision);
+\draw[flow] (hrDecision) -- node[note, right] {embauche} (onboarding);
+\draw[flow] (onboarding) -- (end);
+
+\draw[noflow] (shortlist) -- node[note, above] {non} (reject1);
+\draw[noflow] (managerDecision) -- node[note, above] {non} (reject2);
+\draw[noflow] (hrDecision) -- node[note, above] {rejet} (reject3);
+\draw[noflow] (reject1.east) -| (rejectEnd.north);
+\draw[noflow] (reject2.east) -- (rejectEnd);
+\draw[noflow] (reject3.east) -| (rejectEnd.south);
+
+% Light separators improve readability without adding visual noise.
+\draw[gray!25] (-1.25,-0.68) -- (10.95,-0.68);
+\draw[gray!25] (-1.25,-3.45) -- (10.95,-3.45);
+\draw[gray!25] (-1.25,-6.25) -- (10.95,-6.25);
+\draw[gray!25] (-1.25,-9.05) -- (10.95,-9.05);
+
+\end{tikzpicture}

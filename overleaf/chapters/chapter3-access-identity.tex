@@ -21,11 +21,12 @@ L'objectif principal est de construire la couche d'accès du produit. Dans le co
 Cette séparation entre \textbf{TA}, \textbf{Manager}, \textbf{HR} et \textbf{Admin} n'est pas cosmétique. Elle est réutilisée ensuite dans les pages métiers, dans les Server Actions, dans les services IA et dans l'agent conversationnel, qui doivent tous respecter le périmètre de l'utilisateur connecté.
 
 Au-delà de l'authentification, ce sprint vise aussi trois garanties durables : une confidentialité minimale des données RH, une cohérence de navigation selon le rôle métier et une extensibilité suffisante pour brancher les futurs modules sur un shell commun sans redéfinir la logique d'accès.
+Le tableau \ref{tab:access-identity-backlog} détaille les user stories qui traduisent ces objectifs dans le sprint.
 
 \subsection{Backlog du sprint}
 \begin{table}[H]
   \centering
-  \caption{Backlog fonctionnel du module d'accès et d'identité}
+  \caption{\label{tab:access-identity-backlog}Backlog fonctionnel du module d'accès et d'identité}
   \begin{tabularx}{\textwidth}{>{\bfseries}p{1.3cm}p{3cm}X>{\raggedright\arraybackslash}p{2cm}}
     \toprule
     ID & Thème & User Story & Statut \\
@@ -84,11 +85,12 @@ L'écran de connexion contient la logique de connexion. Lors de la soumission du
 La même logique existe côté serveur grâce à \sourcecode{getRoleHome()} et \sourcecode{requireRole()}, ce qui évite que la sécurité repose uniquement sur le client.
 
 Le fait de disposer d'un équivalent serveur est essentiel. Même si l'interface connaît la destination à prendre, la plateforme ne fait pas confiance à la seule navigation du navigateur. Les routes sensibles restent protégées par une lecture réelle de la session et des rôles.
+La figure \ref{fig:auth-role-sequence} formalise cette séquence d'authentification et de redirection par rôle.
 
 \begin{figure}[H]
   \centering
   \diagraminput{figures/diagrams/auth-role-sequence}
-  \caption{Séquence d'authentification et de redirection par rôle}
+  \caption{\label{fig:auth-role-sequence}Séquence d'authentification et de redirection par rôle}
 \end{figure}
 
 \subsection{Protection du shell et contrôle d'accès}
@@ -118,23 +120,23 @@ La cohérence du module d'accès peut être vérifiée par trois scénarios simp
 \subsection{Landing page publique}
 La landing page publique positionne la plateforme comme un moteur de recrutement intelligent. Elle met en avant plusieurs axes : le matching intelligent, l'automatisation des workflows, l'analytique prédictive, la collaboration d'équipe et la sécurité d'entreprise. Des appels à l'action comme \textit{Sign In}, \textit{Access Platform} et \textit{Sign In to Continue} orientent immédiatement l'utilisateur vers le point d'entrée authentifié.
 
-Cette page joue aussi un rôle de clarification stratégique. Avant même la connexion, elle pose le positionnement du produit comme une plateforme de recrutement augmentée par l'IA et non comme un simple portail de candidatures.
+Cette page joue aussi un rôle de clarification stratégique. Avant même la connexion, elle pose le positionnement du produit comme une plateforme de recrutement augmentée par l'IA et non comme un simple portail de candidatures, comme le montre la figure \ref{fig:landing-public}.
 
 \begin{figure}[H]
   \centering
   \appcapture{figures/screenshots/landing_pages.png}
-  \caption{Page d'accueil publique de la plateforme.}
+  \caption{\label{fig:landing-public}Page d'accueil publique de la plateforme.}
 \end{figure}
 
 \subsection{Page de connexion}
 La page de connexion propose un formulaire simple et robuste : champ email, champ mot de passe, affichage ou masquage du mot de passe, état de chargement, message d'erreur et lien \textit{Forgot password?}. La phrase \textit{Account creation is managed by your administrator} est particulièrement significative : elle confirme que le produit n'est pas pensé comme un portail ouvert, mais comme une plateforme d'entreprise gouvernée.
 
-Sur le plan UX, le formulaire reste volontairement direct. L'objectif est de réduire l'ambiguïté au moment de l'entrée dans la plateforme et de rendre visible le caractère administré de l'accès.
+Sur le plan UX, le formulaire reste volontairement direct. L'objectif est de réduire l'ambiguïté au moment de l'entrée dans la plateforme et de rendre visible le caractère administré de l'accès. La figure \ref{fig:sign-in-page} présente cette interface de connexion.
 
 \begin{figure}[H]
   \centering
   \appcapture{figures/screenshots/sign-in.png}
-  \caption{Page de connexion sécurisée de la plateforme.}
+  \caption{\label{fig:sign-in-page}Page de connexion sécurisée de la plateforme.}
 \end{figure}
 
 \subsection{Shell de dashboard partagé}
@@ -146,11 +148,12 @@ En pratique, ce shell joue le rôle de charnière entre sécurité et productivi
 La page de tableau de bord TA illustre la première exploitation de ce socle. Elle exige le rôle \sourcecode{ta} ou \sourcecode{admin}, puis charge les statistiques globales via \sourcecode{getDashboardStatsAction()} et le planning d'entretiens du jour via \sourcecode{getTodayInterviewScheduleAction()}. Ce tableau de bord montre que le sprint ne s'arrête pas à l'identité : il ouvre déjà la porte au pilotage métier réel.
 
 Ce point est important pour la lecture du rapport : l'accès protégé n'est pas une fin en soi. Il débouche immédiatement sur une valeur métier visible, ce qui prouve que le socle construit est déjà exploitable dans l'usage quotidien.
+La figure \ref{fig:ta-dashboard} montre cette première surface métier après authentification.
 
 \begin{figure}[H]
   \centering
   \appcapture{figures/screenshots/dashboard-ta.png}
-  \caption{Tableau de bord TA après authentification.}
+  \caption{\label{fig:ta-dashboard}Tableau de bord TA après authentification.}
 \end{figure}
 
 \subsection{Gestion des utilisateurs côté administration}

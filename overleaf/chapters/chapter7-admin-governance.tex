@@ -21,11 +21,12 @@ L'objectif est de donner aux utilisateurs et aux administrateurs les moyens de s
 \end{itemize}
 
 Il répond à une contrainte réaliste des outils d'entreprise : une bonne automatisation n'a de valeur durable que si elle laisse des preuves, des historiques et des points de pilotage lisibles pour les équipes responsables.
+Le tableau \ref{tab:governance-backlog} détaille les user stories de ce sprint de gouvernance.
 
 \subsection{Backlog du sprint}
 \begin{table}[H]
   \centering
-  \caption{Backlog fonctionnel du module gouvernance et administration}
+  \caption{\label{tab:governance-backlog}Backlog fonctionnel du module gouvernance et administration}
   \begin{tabularx}{\textwidth}{>{\bfseries}p{1.3cm}p{3cm}X>{\raggedright\arraybackslash}p{2cm}}
     \toprule
     ID & Thème & User Story & Statut \\
@@ -98,12 +99,12 @@ Deux cas métier sont particulièrement importants : \sourcecode{notifyStageChan
 
 Le service \sourcecode{email.ts} ne se contente pas d'envoyer des messages. Il trace aussi ces envois dans \sourcecode{email\_logs}, ce qui garantit qu'une communication importante du recrutement reste auditée et restituable.
 
-Cette couche améliore la réactivité du produit et réduit le risque qu'une étape importante reste invisible, en particulier dans un processus où plusieurs rôles interviennent sur des moments différents.
+Cette couche améliore la réactivité du produit et réduit le risque qu'une étape importante reste invisible, en particulier dans un processus où plusieurs rôles interviennent sur des moments différents. La figure \ref{fig:notification-email-sequence} illustre cette chaîne de notification et de journalisation.
 
 \begin{figure}[H]
   \centering
   \diagraminput{figures/diagrams/notification-email-sequence}
-  \caption{Chaîne de notification et de journalisation des emails}
+  \caption{\label{fig:notification-email-sequence}Chaîne de notification et de journalisation des emails}
 \end{figure}
 
 \subsection{Supervision administrateur}
@@ -137,11 +138,11 @@ Le consentement et la finalité du traitement doivent être compris comme des pr
 
 La conservation des données doit être pilotée par une politique interne : durée de conservation des CV non retenus, durée de maintien des candidats recrutés, purge des pièces jointes obsolètes et archivage des traces nécessaires à l'audit. Dans l'état actuel, le produit fournit les bases techniques de cette gouvernance à travers les logs, les exports et les statuts de pipeline ; la définition exacte des durées relève de la politique RH de l'organisation.
 
-Le risque principal concerne la présence de texte brut et de fichiers CV dans la base. Ce choix facilite l'extraction, la recherche et la justification, mais il impose des garde-fous : accès par rôle, filtrage des outils, masquage des données sensibles dans les traces, limitation des exports et audit des consultations ou modifications importantes. Les services de gouvernance et les sanitizers de l'agent réduisent l'exposition dans les réponses, mais la donnée source reste une donnée à protéger.
+Le risque principal concerne la présence de texte brut et de fichiers CV dans la base. Ce choix facilite l'extraction, la recherche et la justification, mais il impose des garde-fous : accès par rôle, filtrage des outils, masquage des données sensibles dans les traces, limitation des exports et audit des consultations ou modifications importantes. Les services de gouvernance et les sanitizers de l'agent réduisent l'exposition dans les réponses, mais la donnée source reste une donnée à protéger. Le tableau \ref{tab:data-protection-measures} synthétise ces mesures.
 
 \begin{table}[H]
   \centering
-  \caption{Mesures de protection des données personnelles}
+  \caption{\label{tab:data-protection-measures}Mesures de protection des données personnelles}
   \begin{tabularx}{\textwidth}{>{\bfseries}p{3.3cm}X X}
     \toprule
     Risque & Mesure intégrée & Complément organisationnel attendu \\
@@ -163,12 +164,12 @@ L'expérience utilisateur a été conçue pour rester exploitable par les quatre
 
 La validation responsive repose sur une lecture mobile-first des écrans : les listes, cartes, panneaux et tableaux doivent rester utilisables sur petit écran, tablette et desktop. Les parcours critiques à vérifier sont la connexion, l'upload CV, la consultation du vivier, la création d'offre, le détail candidat, la planification d'entretien, la réponse agentique et les vues administrateur.
 
-Sur le plan clavier et lecteur d'écran, les éléments importants sont les champs labellisés, les boutons avec texte ou nom accessible, les dialogues qui conservent le focus, les états d'erreur compréhensibles et la présence d'un lien de saut vers le contenu principal. Le projet embarque aussi une logique de thème clair/sombre et d'internationalisation, ce qui améliore la lisibilité et l'adaptation au contexte utilisateur.
+Sur le plan clavier et lecteur d'écran, les éléments importants sont les champs labellisés, les boutons avec texte ou nom accessible, les dialogues qui conservent le focus, les états d'erreur compréhensibles et la présence d'un lien de saut vers le contenu principal. Le projet embarque aussi une logique de thème clair/sombre et d'internationalisation, ce qui améliore la lisibilité et l'adaptation au contexte utilisateur. Le tableau \ref{tab:ux-accessibility-validation} formalise ces contrôles.
 
 \begin{table}[H]
   \centering
   \scriptsize
-  \caption{Validation UX et accessibilité}
+  \caption{\label{tab:ux-accessibility-validation}Validation UX et accessibilité}
   \setlength{\tabcolsep}{3pt}
   \begin{adjustbox}{width=0.92\linewidth,center}
   \begin{tabularx}{\linewidth}{>{\bfseries\raggedright\arraybackslash}p{2.7cm}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X}
@@ -194,56 +195,56 @@ Cette validation ne prétend pas remplacer un audit WCAG complet outillé. Elle 
 \subsection{Cloche de notification et communication in-app}
 Le composant \sourcecode{notification-bell.tsx}, injecté dans \sourcecode{DashboardShell}, matérialise la couche de notification côté interface. Il permet de charger les notifications à l'ouverture du panneau, d'afficher le compteur d'éléments non lus, de marquer une notification individuellement et de tout marquer comme lu. Cette intégration rend la gouvernance visible dans l'expérience quotidienne.
 
-Elle renforce aussi la dimension temps réel du produit : les événements importants remontent au plus près du point d'usage, au lieu de rester enfouis dans des vues administratives.
+Elle renforce aussi la dimension temps réel du produit : les événements importants remontent au plus près du point d'usage, au lieu de rester enfouis dans des vues administratives. La figure \ref{fig:notification-bell} montre cette matérialisation côté interface.
 
 \begin{figure}[H]
   \centering
   \appcapture{figures/screenshots/notification.png}
-  \caption{Cloche de notification et état de lecture.}
+  \caption{\label{fig:notification-bell}Cloche de notification et état de lecture.}
 \end{figure}
 
 \subsection{Tableau de bord administrateur}
 La page de tableau de bord administrateur appelle \sourcecode{getSystemOverviewAction()} et alimente \sourcecode{AdminDashboardClient}. Cette page donne une vision d'ensemble sur l'état du produit avec un discours orienté supervision : volumes, activité et santé fonctionnelle du pipeline.
 Elle combine maintenant les cartes KPI avec un panneau \textit{Governance snapshot} source-backed et plusieurs CTAs agentiques dédiés à la synthèse d'activité, à la revue des rôles, aux anomalies opérationnelles et au brief de gouvernance.
-C'est le point de contrôle macro du système, là où l'administrateur peut comprendre rapidement la situation globale de la plateforme puis basculer, si nécessaire, vers une analyse agentique plus approfondie.
+C'est le point de contrôle macro du système, là où l'administrateur peut comprendre rapidement la situation globale de la plateforme puis basculer, si nécessaire, vers une analyse agentique plus approfondie, comme le montre la figure \ref{fig:admin-dashboard}.
 
 \begin{figure}[H]
   \centering
   \appcapture{figures/screenshots/admin-dashboard.png}
-  \caption{Tableau de bord administrateur.}
+  \caption{\label{fig:admin-dashboard}Tableau de bord administrateur.}
 \end{figure}
 
 \subsection{Analytique administrateur}
 La page analytique administrateur repose sur \sourcecode{getRecruitmentAnalyticsAction()} et sur \sourcecode{AdminAnalyticsClient}. Elle transforme les données opérationnelles en indicateurs lisibles : performance du pipeline, répartition des volumes, tendances de recrutement et signaux utiles au pilotage global.
 Elle ne se limite plus aux graphiques. Un panneau d'évidence dédié récapitule désormais les faits observés, les limites de mesure et les risques d'interprétation, tandis que des actions \textit{Explain trends}, \textit{Find bottlenecks} et \textit{Governance risks} ouvrent l'agent avec un contexte déjà cadré.
 La restitution analytique combine ainsi deux niveaux complémentaires : des graphiques de page pour la supervision globale et des réponses agentiques capables de produire des visualisations ciblées lorsque l'utilisateur demande une courbe, une répartition ou une comparaison demande--offre.
-Elle donne ainsi à l'administration la possibilité de lire les flux de recrutement comme un ensemble dynamique, et non comme une simple accumulation de dossiers.
+Elle donne ainsi à l'administration la possibilité de lire les flux de recrutement comme un ensemble dynamique, et non comme une simple accumulation de dossiers. La figure \ref{fig:admin-analytics} illustre cette lecture analytique.
 
 \begin{figure}[H]
   \centering
   \appcapture{figures/screenshots/admin-analytics.png}
-  \caption{Vue analytique administrateur.}
+  \caption{\label{fig:admin-analytics}Vue analytique administrateur.}
 \end{figure}
 
 \subsection{Centre de gouvernance}
 La page \sourcecode{/admin/governance} charge \sourcecode{getGovernanceAuditReportAction()} puis affiche \sourcecode{AdminGovernanceClient}. Elle présente des compteurs dédiés aux lignes d'audit, aux changements d'étape, aux actions IA, aux logs d'activité, aux actions IA en attente et aux actions IA échouées.
 
-L'interface permet de filtrer par date, acteur, candidat, action ou statut. Chaque ligne ouvre un panneau de détail contenant une preuve sanitizée, avec les arguments d'outil nettoyés lorsque l'événement provient de l'agent. L'administrateur peut aussi exporter le résultat courant en CSV via \sourcecode{exportGovernanceAuditCsvAction()}.
+L'interface permet de filtrer par date, acteur, candidat, action ou statut. Chaque ligne ouvre un panneau de détail contenant une preuve sanitizée, avec les arguments d'outil nettoyés lorsque l'événement provient de l'agent. L'administrateur peut aussi exporter le résultat courant en CSV via \sourcecode{exportGovernanceAuditCsvAction()}. La figure \ref{fig:admin-governance} montre cette surface de contrôle.
 
 \begin{figure}[H]
   \centering
   \appcapture{figures/screenshots/admin-governance.png}
-  \caption{Centre de gouvernance administrateur.}
+  \caption{\label{fig:admin-governance}Centre de gouvernance administrateur.}
 \end{figure}
 
 \subsection{Historique d'activité et logs d'emails}
 La page du journal d'activité exploite \sourcecode{getActivityLogEnrichedAction(100)} et le composant \sourcecode{AdminActivityClient}. L'objectif est d'exposer une lecture enrichie du journal d'activité afin de reconstituer les séquences d'action importantes. Un panneau d'évidence et des actions \textit{Agent} permettent en parallèle de synthétiser les lignes chargées, de signaler les actions destructrices et de rappeler les limites de couverture de l'audit courant.
 Cette fonctionnalité est centrale pour l'audit interne, l'analyse d'incident, la compréhension des décisions et la justification d'un enchaînement métier. Dans une plateforme de recrutement augmentée par l'IA, cette traçabilité a encore plus de valeur, car elle permet d'observer ce qui a été automatisé, ce qui a été décidé et dans quel ordre.
-Le journal d'activité ne sert donc pas seulement à voir ce qui s'est passé. Il sert aussi à rendre le système explicable lorsqu'une décision, une communication ou un changement de statut doit être revu.
+Le journal d'activité ne sert donc pas seulement à voir ce qui s'est passé. Il sert aussi à rendre le système explicable lorsqu'une décision, une communication ou un changement de statut doit être revu. La figure \ref{fig:admin-activity} montre cette vue d'audit.
 \begin{figure}[H]
   \centering
   \appcapture{figures/screenshots/admin-activity.png}
-  \caption{Journal d'activité.}
+  \caption{\label{fig:admin-activity}Journal d'activité.}
 \end{figure}
 La page des logs d'emails charge \sourcecode{getEmailLogsAction()} puis transmet les données au composant \sourcecode{AdminEmailsClient}. Cette vue constitue l'\textit{audit trail} des communications sortantes de la plateforme, mais elle bénéficie à présent des mêmes principes : panneau \textit{Communication evidence readiness}, CTAs agentiques dédiés aux risques de livraison et liens profonds vers les entrées auditées.
 Elle est particulièrement importante dans le contexte RH, où les invitations, confirmations, refus et communications de décision doivent rester consultables et vérifiables. La consultation centralisée de ces logs évite qu'une partie sensible du processus reste cachée dans une boîte noire extérieure au produit.
@@ -252,12 +253,12 @@ Cette séparation entre journal d'activité et logs d'emails clarifie la gouvern
 \subsection{Suivi détaillé de l'onboarding}
 La page de suivi détaillé de l'onboarding s'appuie sur \sourcecode{getHiredCandidatesOnboardingDetailedAction()} et \sourcecode{AdminOnboardingClient}. Elle ne montre pas seulement une liste de candidats embauchés ; elle expose aussi l'état détaillé des tâches d'intégration, ce qui prolonge le recrutement après la décision finale.
 Le tableau embarque désormais un panneau d'évidence consacré aux anomalies d'onboarding : checklists absentes, coordonnées incomplètes, profils pauvres en signaux et autres trous de couverture. Les CTAs \textit{Find anomalies}, \textit{Summarize readiness} et \textit{Risk review} transmettent ensuite ces constats à l'agent sans réintroduire de génération libre.
-Ce prolongement vers l'onboarding est important pour la cohérence globale du produit : le cycle de vie géré par la plateforme ne s'arrête pas à la validation finale, mais continue jusqu'au suivi de l'entrée effective dans l'organisation.
+Ce prolongement vers l'onboarding est important pour la cohérence globale du produit : le cycle de vie géré par la plateforme ne s'arrête pas à la validation finale, mais continue jusqu'au suivi de l'entrée effective dans l'organisation, comme le montre la figure \ref{fig:admin-onboarding}.
 
 \begin{figure}[H]
   \centering
   \appcapture{figures/screenshots/admin-onboarding.png}
-  \caption{Suivi de l'onboarding.}
+  \caption{\label{fig:admin-onboarding}Suivi de l'onboarding.}
 \end{figure}
 
 \subsection{Exports et interopérabilité}

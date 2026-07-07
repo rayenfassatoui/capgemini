@@ -18,11 +18,12 @@ L'objectif de ce sprint est de transformer deux objets bruts en objets intelligi
 Le sprint met donc en place une page de gestion du vivier, l'import de CV avec extraction automatique, l'indexation sémantique, la détection des doublons, la recherche et l'export du vivier, la création et la gestion des offres ainsi que la préparation du matching et du futur pipeline candidat.
 
 Ce module est stratégique parce qu'il constitue la jonction entre l'interface et l'intelligence. C'est à partir d'ici que les données commencent à devenir une matière première exploitable pour le matching, le RAG et l'agent conversationnel.
+Le tableau \ref{tab:cv-jobs-backlog} présente les user stories qui concrétisent ce périmètre.
 
 \subsection{Backlog du sprint}
 \begin{table}[H]
   \centering
-  \caption{Backlog fonctionnel du module vivier de CV et offres}
+  \caption{\label{tab:cv-jobs-backlog}Backlog fonctionnel du module vivier de CV et offres}
   \begin{tabularx}{\textwidth}{>{\bfseries}p{1.3cm}p{3cm}X>{\raggedright\arraybackslash}p{2cm}}
     \toprule
     ID & Thème & User Story & Statut \\
@@ -68,11 +69,11 @@ L'un des enjeux majeurs du sprint concerne la qualité de la donnée d'entrée. 
 Cette contrainte explique plusieurs choix du module : conservation du texte brut, extraction progressive, enrichissement différé, détection des doublons et séparation entre stockage principal et indexation sémantique. Dans la logique du rapport, ce point est essentiel, car la qualité du matching et du RAG dépend directement de la qualité documentaire initiale. Une base bruitée, redondante ou mal structurée affaiblit mécaniquement la pertinence des traitements IA qui s'appuient ensuite sur elle.
 
 \paragraph{Tableau de transformation documentaire.}
-Le passage du document brut à l'objet métier exploitable peut être résumé ainsi :
+Le passage du document brut à l'objet métier exploitable peut être résumé par le tableau \ref{tab:document-transformation}.
 
 \begin{table}[H]
   \centering
-  \caption{Transformation documentaire du CV et de l'offre}
+  \caption{\label{tab:document-transformation}Transformation documentaire du CV et de l'offre}
   \begin{tabularx}{\textwidth}{>{\bfseries}p{3cm}X X}
     \toprule
     Entrée brute & Traitement & Sortie métier \\
@@ -87,7 +88,7 @@ Le passage du document brut à l'objet métier exploitable peut être résumé a
   \end{tabularx}
 \end{table}
 
-Ce tableau montre que le CV n'est plus un simple fichier et que l'offre n'est plus un simple formulaire. Tous deux deviennent des objets métier progressivement transformés pour être réutilisables par les recruteurs, comparables par les services de matching et mobilisables par les couches RAG et agentiques.
+Le tableau \ref{tab:document-transformation} montre que le CV n'est plus un simple fichier et que l'offre n'est plus un simple formulaire. Tous deux deviennent des objets métier progressivement transformés pour être réutilisables par les recruteurs, comparables par les services de matching et mobilisables par les couches RAG et agentiques.
 
 
 \subsection{Vue fonctionnelle globale}
@@ -117,12 +118,12 @@ Le flux d'upload est l'un des plus importants du sprint. Il passe par \sourcecod
 Cette architecture traduit un choix de robustesse : l'utilisateur n'attend pas que tout le pipeline IA soit terminé pour bénéficier de l'import principal. Elle traduit aussi un choix de qualité progressive : le CV devient d'abord exploitable, puis s'enrichit ensuite avec une profondeur sémantique plus fine.
 
 \paragraph{Lecture opérationnelle du parcours.}
-Un parcours représentatif illustre l'apport du module : un recruteur dépose un CV, le système extrait d'abord le texte et les métadonnées principales, puis le profil devient consultable dans le vivier. Les traitements plus lourds, comme l'embedding et le découpage en chunks, enrichissent ensuite le document pour les usages de recherche sémantique et de RAG. Cette séparation entre disponibilité rapide et enrichissement progressif évite de confondre ingestion documentaire et calcul IA complet.
+Un parcours représentatif illustre l'apport du module : un recruteur dépose un CV, le système extrait d'abord le texte et les métadonnées principales, puis le profil devient consultable dans le vivier. Les traitements plus lourds, comme l'embedding et le découpage en chunks, enrichissent ensuite le document pour les usages de recherche sémantique et de RAG. Cette séparation entre disponibilité rapide et enrichissement progressif évite de confondre ingestion documentaire et calcul IA complet, comme le montre la figure \ref{fig:cv-upload-pipeline}.
 
 \begin{figure}[H]
   \centering
   \diagraminput{figures/diagrams/cv-upload-pipeline}
-  \caption{Séquence d'upload, d'extraction et d'indexation d'un CV}
+  \caption{\label{fig:cv-upload-pipeline}Séquence d'upload, d'extraction et d'indexation d'un CV}
 \end{figure}
 
 \subsection{Indexation sémantique et préparation du RAG}
@@ -150,11 +151,12 @@ La création d'une offre passe par \sourcecode{createJobAction()} puis \sourceco
 Même si le c\oe{}ur du pipeline candidat est traité dans le chapitre suivant, ce module prépare déjà le lien métier principal : le passage de \textit{CV dans le vivier} à \textit{candidat dans une offre}. Cette transition transforme un actif documentaire en objet de pipeline.
 
 Elle rend aussi possible un futur matching crédible, car la plateforme dispose désormais de deux objets structurés pouvant être comparés selon des critères métier et sémantiques.
+La figure \ref{fig:job-assignment-sequence} illustre cette création d'offre et son lien avec le pipeline candidat.
 
 \begin{figure}[H]
   \centering
   \diagraminput{figures/diagrams/job-assignment-sequence}
-  \caption{Création d'un poste et affectation d'un CV au pipeline candidat}
+  \caption{\label{fig:job-assignment-sequence}Création d'un poste et affectation d'un CV au pipeline candidat}
 \end{figure}
 
 \section{Réalisation}
@@ -174,18 +176,18 @@ La page du vivier de CV charge la liste des CV ainsi que les statistiques du viv
 
 La page présente aussi un niveau de synthèse à travers \sourcecode{CvPoolStats} : nombre total de CV, top compétences, distribution des langues et tendance d'upload sur les sept derniers jours.
 La version actuelle va plus loin qu'une simple revue documentaire : le dialogue de consultation détaillée embarque désormais un bloc d'\textit{evidence readiness} qui explicite les faits observés, les données manquantes et les risques documentaires avant toute action IA. Les actions \textit{Explain CV with Agent} et \textit{Draft Questions with Agent} ouvrent ensuite le workspace \sourcecode{/agent} avec un prompt prérempli qui réinjecte ce contexte de preuve plutôt que de repartir d'une page blanche.
-Cette interface montre ainsi que le vivier n'est pas une simple liste de fichiers. C'est une base de profils analysés, consultables et réexploitables, avec une lecture à la fois opérationnelle, analytique et déjà branchée sur l'assistance agentique.
+Cette interface montre ainsi que le vivier n'est pas une simple liste de fichiers. C'est une base de profils analysés, consultables et réexploitables, avec une lecture à la fois opérationnelle, analytique et déjà branchée sur l'assistance agentique. Les figures \ref{fig:cv-pool-page} et \ref{fig:cv-pool-details} illustrent respectivement la gestion du vivier et la consultation détaillée d'un profil.
 
 \begin{figure}[H]
   \centering
   \appcapture{figures/screenshots/cvpool-ta.png}
-  \caption{Page de gestion du vivier de CV.}
+  \caption{\label{fig:cv-pool-page}Page de gestion du vivier de CV.}
 \end{figure}
 
 \begin{figure}[H]
   \centering
   \appcapture{figures/screenshots/cvpool-details.png}
-  \caption{Dialogue de consultation détaillée d'un CV.}
+  \caption{\label{fig:cv-pool-details}Dialogue de consultation détaillée d'un CV.}
 \end{figure}
 
 \subsection{Upload en arrière-plan et robustesse d'ingestion}
@@ -205,18 +207,18 @@ Les statistiques associées incluent le total des jobs, la répartition par sén
 
 Elle joue aussi un rôle de normalisation : en imposant une structure cohérente à la formulation des postes, elle facilite les analyses globales et la réutilisation ultérieure dans les traitements IA.
 
-L'offre d'emploi n'est donc pas traitée comme un simple formulaire administratif. Elle devient un objet de décision qui articule besoin métier, contraintes de recrutement et future lecture algorithmique. C'est précisément cette structuration qui permet ensuite de comparer de manière cohérente un poste, un profil, un screening et un résultat de matching.
+L'offre d'emploi n'est donc pas traitée comme un simple formulaire administratif. Elle devient un objet de décision qui articule besoin métier, contraintes de recrutement et future lecture algorithmique. C'est précisément cette structuration qui permet ensuite de comparer de manière cohérente un poste, un profil, un screening et un résultat de matching. Les figures \ref{fig:job-management} et \ref{fig:create-job} montrent cette gestion des offres côté interface.
 
 \begin{figure}[H]
   \centering
   \appcapture{figures/screenshots/job-management.png}
-  \caption{Catalogue des offres d'emploi.}
+  \caption{\label{fig:job-management}Catalogue des offres d'emploi.}
 \end{figure}
 
 \begin{figure}[H]
   \centering
   \appcapture{figures/screenshots/create-job.png}
-  \caption{Zone de création ou d'édition d'une offre d'emploi.}
+  \caption{\label{fig:create-job}Zone de création ou d'édition d'une offre d'emploi.}
 \end{figure}
 
 \subsection{Templates et fermeture contrôlée des offres}
@@ -227,12 +229,12 @@ Elle illustre une approche importante du projet : une action d'administration si
 \subsection{Page détail d'une offre}
 La page de détail d'une offre charge l'offre, les candidats qui lui sont liés et la liste des managers. Le composant \sourcecode{JobDetailClient} transforme ensuite cette page en espace de pilotage avancé, avec génération de screening IA, consultation du score, génération et édition des questions d'entretien, planification, envoi d'emails, mise à jour des étapes candidat, assignation à un manager et matching \textit{inline} de CV.
 L'interface distingue désormais explicitement les actions directes des actions de raisonnement IA. L'ouverture du matching de CV et celle des entretiens reposent sur des onglets pilotés par l'URL, ce qui rend les liens profonds robustes et permet au recruteur d'atterrir directement sur le bon sous-espace. À côté de cela, les entrées agentiques restent dédiées à l'explication du matching, à la revue d'exigences et à la synthèse raisonnée.
-Ce point montre que ce module n'est pas isolé. Le détail d'une offre devient le point de convergence entre la demande de recrutement, la base documentaire des profils, les parcours directs du produit et les futurs mécanismes de décision.
+Ce point montre que ce module n'est pas isolé. Le détail d'une offre devient le point de convergence entre la demande de recrutement, la base documentaire des profils, les parcours directs du produit et les futurs mécanismes de décision, comme le montre la figure \ref{fig:job-cv-matching}.
 
 \begin{figure}[H]
   \centering
   \appcapture{figures/screenshots/job-cv-matching.png}
-  \caption{Page détail d'une offre avec candidats associés et résultats de matching.}
+  \caption{\label{fig:job-cv-matching}Page détail d'une offre avec candidats associés et résultats de matching.}
 \end{figure}
 
 \section{Apport du module}
