@@ -54,6 +54,14 @@ interface MissingCreateJobRecoveryParams {
   step: number;
 }
 
+interface MissingCloseJobRecoveryParams {
+  message: string;
+  skills: readonly AgentRuntimeSkill[];
+  availableToolNames: readonly string[];
+  records: readonly ToolExecutionRecord[];
+  step: number;
+}
+
 const RECRUITMENT_TRIAGE_RE =
   /\b(recruit(?:ment|ing)?|talent|candidate|candidates|cv|cvs|resume|resumes|job|jobs|pipeline|screening|interview|interviews|hire|hiring|onboarding|offer|skills?|seniority|profile|profiles)\b/i;
 
@@ -213,6 +221,7 @@ const DOMAIN_SKILLS: readonly AgentRuntimeSkill[] = [
       "Generate a job description before create_job when the user asks for a new job from a short brief.",
       "Before create_job, convert mustHave and niceToHave into atomic skill labels such as Figma, Accessibility, User research; never send full requirement sentences.",
       "For optimization, fetch the existing job before recommending edits.",
+      "To close a named job, resolve its exact ID from list_jobs or get_job, then call close_job. The runtime presents a confirmation before any change; never substitute a candidate lookup.",
     ],
     requiresFreshTools: true,
   },
@@ -658,6 +667,70 @@ export function buildMissingCreateJobToolCall({
       }),
     },
   };
+}
+
+const CLOSE_JOB_REQUEST_RE =
+  /\bclose\b(?:\s+(?:the|this|that))?\s+["“]([^"”]+)["”]\s+(?:job|requirement|role|position)\b/i;
+
+export function buildMissingCloseJobToolCall({
+  message,
+  skills,
+  availableToolNames,
+  records,
+  step,
+}: MissingCloseJobRecoveryParams): ResponseToolCall | null {
+  const requestedTitle = message.match(CLOSE_JOB_REQUEST_RE)?.[1]?.trim();
+  if (
+    !requestedTitle ||
+    !availableToolNames.includes("close_job") ||
+    !skills.some((skill) => skill.id === "job-authoring") ||
+    records.some((record) => record.toolName === "close_job")
+  ) {
+    return null;
+  }
+
+  const normalizedTitle = requestedTitle.toLocaleLowerCase();
+  for (const record of [...records].reverse()) {
+    if (
+      !record.result.success ||
+      (record.toolName !== "list_jobs" && record.toolName !== "get_job")
+    ) {
+      continue;
+    }
+
+    const jobs = Array.isArray(record.result.data)
+      ? record.result.data
+      : record.result.data === undefined
+        ? []
+        : [record.result.data];
+    const exactMatches = jobs.filter(
+      (job): job is Record<string, unknown> =>
+        typeof job === "object" &&
+        job !== null &&
+        !Array.isArray(job) &&
+        typeof job.id === "string" &&
+        job.id.trim().length > 0 &&
+        typeof job.title === "string" &&
+        job.title.trim().toLocaleLowerCase() === normalizedTitle &&
+        typeof job.status === "string" &&
+        job.status.toLocaleLowerCase() === "open",
+    );
+
+    if (exactMatches.length !== 1) {
+      continue;
+    }
+
+    return {
+      id: `missing-close-job-recovery-${step}`,
+      type: "function",
+      function: {
+        name: "close_job",
+        arguments: JSON.stringify({ jobId: exactMatches[0].id }),
+      },
+    };
+  }
+
+  return null;
 }
 
 export function buildMissingToolRetryMessage(

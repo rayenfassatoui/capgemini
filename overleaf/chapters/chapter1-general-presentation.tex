@@ -12,12 +12,18 @@ Capgemini se présente comme un acteur mondial du conseil, des services technolo
 \subsection{Structure organisationnelle pertinente pour le projet}
 À l'échelle du projet, l'organisation utile n'est pas une hiérarchie complète de l'entreprise, mais un ensemble d'acteurs qui collaborent sur la chaîne de recrutement :
 \begin{itemize}
-  \item les équipes \textbf{Talent Acquisition (TA)}, responsables du sourcing, du vivier de CV et du pilotage des postes ;
+  \item les équipes \textbf{Talent Acquisition (TA)}, responsables du sourcing, du catalogue de CV et du pilotage des postes ;
   \item les \textbf{Managers}, impliqués dans l'évaluation technique ou métier des candidats ;
   \item les \textbf{RH}, garants de la décision finale, de la communication et de la contractualisation ;
   \item les \textbf{Administrateurs}, qui supervisent les comptes, les tableaux de bord globaux et les traces d'activité.
 \end{itemize}
-Cette structuration est confirmée dans le projet par la documentation des rôles, par le module d'authentification et par l'organisation des espaces protégés \netref{web:project-docs}.
+Cette structuration est confirmée dans le projet par la documentation des rôles, par le module d'authentification et par l'organisation des espaces protégés \netref{web:project-docs}. La figure \ref{fig:organization-positioning} représente le positionnement des quatre acteurs dans le projet et leurs responsabilités principales, sans prétendre reproduire l'organigramme institutionnel complet de Capgemini Engineering Tunisie.
+
+\begin{figure}[H]
+  \centering
+  \diagraminput{figures/diagrams/organization-positioning}
+  \caption{\label{fig:organization-positioning}Positionnement organisationnel des acteurs impliqués dans le projet}
+\end{figure}
 
 \subsection{Services et périmètre numérique concernés}
 Le projet s'inscrit dans un périmètre numérique combinant :
@@ -28,13 +34,6 @@ Le projet s'inscrit dans un périmètre numérique combinant :
   \item l'expérience utilisateur multi-rôles, avec des tableaux de bord différenciés.
 \end{itemize}
 Autrement dit, il ne s'agit pas d'un simple ATS documentaire, mais d'un système de travail partagé entre équipes de recrutement et décideurs.
-La figure \ref{fig:landing-institutional} illustre ce positionnement institutionnel et l'entrée publique de la plateforme.
-
-\begin{figure}[H]
-  \centering
-  \appcapture{figures/screenshots/landing_pages.png}
-  \caption{\label{fig:landing-institutional}Page d'accueil institutionnelle de la plateforme.}
-\end{figure}
 
 \section{Présentation du projet}
 
@@ -52,8 +51,8 @@ Le tableau \ref{tab:existing-solutions-comparison} synthétise cette comparaison
     \toprule
     Critère & LinkedIn Talent Solutions & Greenhouse & Workday Recruiting \\
     \midrule
-    Vivier de CV interne structuré & Partiel & Oui & Oui \\
-    Matching IA directement relié au vivier & Limité & Partiel & Limité \\
+    Catalogue de CV interne structuré & Partiel & Oui & Oui \\
+    Matching IA directement relié au catalogue & Limité & Partiel & Limité \\
     Pipeline multi-rôles TA / Manager / HR & Partiel & Oui & Oui \\
     Assistant conversationnel outillé & Non natif & Non natif & Non natif \\
     Recherche sémantique sur CV avec citations & Non mise en avant & Non mise en avant & Non mise en avant \\
@@ -62,7 +61,7 @@ Le tableau \ref{tab:existing-solutions-comparison} synthétise cette comparaison
     \bottomrule
   \end{tabularx}
 \end{table}
-La lecture de cette comparaison met en évidence trois constats. LinkedIn Talent Solutions est surtout fort pour la visibilité et le sourcing, mais ne répond pas directement au besoin d'un vivier interne entièrement gouverné. Greenhouse couvre mieux les workflows ATS, mais reste moins orienté vers une recherche sémantique interne avec citations et agent conversationnel outillé. Workday Recruiting est pertinent dans une suite RH globale, mais il répond moins directement à un projet ciblé sur un pipeline interne, modulaire et fortement branché sur les données de recrutement du projet.
+La lecture de cette comparaison met en évidence trois constats. LinkedIn Talent Solutions est surtout fort pour la visibilité et le sourcing, mais ne répond pas directement au besoin d'un catalogue interne entièrement gouverné. Greenhouse couvre mieux les workflows ATS, mais reste moins orienté vers une recherche sémantique interne avec citations et agent conversationnel outillé. Workday Recruiting est pertinent dans une suite RH globale, mais il répond moins directement à un projet ciblé sur un catalogue interne, modulaire et fortement branché sur les données de recrutement du projet.
 
 Ainsi, l'écart principal ne concerne pas une fonctionnalité unique, mais l'intégration complète entre données internes, workflow multi-rôles, IA contrôlée et gouvernance. C'est précisément cet écart que \projectname{} cherche à couvrir.
 
@@ -104,7 +103,7 @@ Les objectifs fonctionnels et techniques peuvent être résumés comme le montre
     \toprule
     Axe & Objectif \\
     \midrule
-    Centralisation & Unifier le vivier de CV, les postes, les candidats, les entretiens et les notifications dans une même plateforme. \\
+    Centralisation & Unifier le catalogue de CV, les postes, les candidats, les entretiens et les notifications dans une même plateforme. \\
     Accélération & Réduire le temps de tri et de passage entre étapes grâce à l'automatisation et à l'IA. \\
     Fiabilisation & Encadrer les décisions via des rôles explicites, des états de pipeline, des logs et des exports. \\
     Assistance intelligente & Générer des screenings, guides d'entretien, analyses et recherches avancées à partir des données du système. \\
@@ -117,19 +116,25 @@ Les objectifs fonctionnels et techniques peuvent être résumés comme le montre
 \subsection{Solution proposée}
 La solution proposée est une application web full-stack appelée \projectname{}, organisée autour de quatre rôles métier et d'un noyau de services métier regroupés par fonctionnalité. L'application repose sur :
 \begin{itemize}
-  \item une page d'accueil et une authentification par email/mot de passe ;
+  \item un point d'accès sécurisé avec authentification par email/mot de passe ;
   \item des espaces de travail spécifiques pour TA, Manager, HR et Admin ;
-  \item un vivier de CV avec extraction automatique des données ;
+  \item un catalogue de CV avec extraction automatique des données ;
   \item des offres d'emploi structurées, réutilisables sous forme de modèles ;
   \item un pipeline candidat à douze états ;
   \item des modules d'entretien, de reporting et d'onboarding ;
   \item une couche IA combinant matching, génération et agent conversationnel outillé.
 \end{itemize}
 
+\begin{figure}[H]
+  \centering
+  \diagraminput{figures/diagrams/product-surfaces}
+  \caption{\label{fig:product-surfaces}Surfaces fonctionnelles de \projectname{} et rôles utilisateurs}
+\end{figure}
+
 \section{Méthodologie adoptée}
 
 \subsection{Choix de la méthodologie}
-La structure du projet et la livraison progressive de ses modules rendent une méthodologie itérative particulièrement adaptée. La plateforme n'a pas été construite comme un livrable unique et figé ; elle a évolué par incréments successifs couvrant le contrôle d'accès, la gestion du vivier de CV, les offres, la progression des candidats, les capacités IA, la communication et la gouvernance.
+La structure du projet et la livraison progressive de ses modules rendent une méthodologie itérative particulièrement adaptée. La plateforme n'a pas été construite comme un livrable unique et figé ; elle a évolué par incréments successifs couvrant le contrôle d'accès, la gestion du catalogue de CV, les offres, la progression des candidats, les capacités IA, la communication et la gouvernance.
 
 \subsection{Comparaison entre approches de gestion de projet}
 Deux grandes approches peuvent être envisagées pour ce type de projet : l'approche classique, qui définit les besoins en détail dès le départ puis exécute le projet de manière séquentielle, et l'approche agile, qui livre la valeur de façon incrémentale, intègre le retour d'expérience au fil du développement et permet d'ajuster le périmètre lorsque les priorités métier se précisent. Le tableau \ref{tab:methodology-comparison} précise ce choix méthodologique.
@@ -145,17 +150,17 @@ Deux grandes approches peuvent être envisagées pour ce type de projet : l'appr
     Intégration du feedback & Continue, à chaque module livré & Tardive, souvent concentrée en fin de cycle \\
     Adaptation au changement & Élevée, adaptée aux ajustements métier et IA & Faible, car les changements perturbent le plan initial \\
     Visibilité sur l'avancement & Fréquente grâce aux incréments fonctionnels & Limitée entre les jalons majeurs \\
-    Adéquation à ce projet & Forte, car le produit combine workflows métier, interfaces et expérimentation IA & Moyenne, car le besoin évolue avec les résultats techniques observés \\
+    Adéquation à ce projet & Forte, car le produit combine workflows métier, interfaces, validation progressive et assistance IA & Moyenne, car le besoin évolue avec les retours métier et les résultats observés \\
     \bottomrule
   \end{tabularx}
 \end{table}
 
-Comme ce projet combine conception produit, workflows d'entreprise et expérimentation autour de l'IA, l'approche agile apparaît plus adaptée qu'un processus strictement séquentiel. Elle permet de stabiliser d'abord le socle métier, puis d'enrichir progressivement le produit avec l'analytique, l'aide à la décision, l'outillage conversationnel et les modules de gouvernance.
+Le choix agile est justifié par la nature même du projet. Les besoins de recrutement ne se résument pas à une liste figée d'écrans : ils impliquent plusieurs rôles, des règles de transition, des données hétérogènes et une couche d'assistance intelligente qui doit être évaluée progressivement. Une approche incrémentale permet donc de valider d'abord le socle d'accès, puis de construire le catalogue de CV et les offres, avant d'ajouter le pipeline candidat, les entretiens, l'IA et la gouvernance.
 
 \subsection{Méthodologie retenue}
 Une méthode agile et incrémentale a donc été retenue. Le travail a été organisé en modules fonctionnels livrés progressivement, chaque incrément apportant une valeur métier visible à la plateforme. Cette méthodologie est également cohérente avec l'architecture du projet : comme l'application est organisée par fonctionnalités, chaque itération pouvait se concentrer sur une tranche métier cohérente, sans disperser les changements dans des couches techniques déconnectées.
 
-Ce choix présente trois avantages : il rend visible la progression de la valeur métier, il permet d'associer chaque incrément à des routes, composants et services identifiables, et il isole clairement la montée en complexité de la couche IA, qui n'intervient qu'après la mise en place du socle documentaire et opérationnel.
+Ce choix présente trois avantages : il rend visible la progression de la valeur métier, il permet de vérifier chaque module avant de passer au suivant et il isole clairement la montée en complexité de la couche IA, qui n'intervient qu'après la mise en place du socle documentaire et opérationnel.
 
 \section*{Conclusion}
 \addcontentsline{toc}{section}{Conclusion}

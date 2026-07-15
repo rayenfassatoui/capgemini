@@ -37,8 +37,8 @@
   linkcolor=blue!50!black,
   urlcolor=blue!50!black,
   citecolor=blue!50!black,
-  pdftitle={Capgemini Talent Intelligence - Rapport de projet},
-  pdfauthor={Auteur à compléter}
+  pdftitle={Système d'évaluation des candidats et de préparation d'entretiens assisté par IA},
+  pdfauthor={Rayen Fassatoui}
 }
 
 \pagestyle{fancy}
@@ -51,6 +51,7 @@
 \definecolor{cgdeep}{HTML}{0B1F33}
 \definecolor{cglight}{HTML}{EAF4FB}
 \definecolor{boxgray}{HTML}{F5F7FA}
+\definecolor{coverline}{HTML}{9E1B32}
 
 \tikzset{
   box/.style={draw=cgblue, rounded corners, thick, fill=cglight, align=center, minimum height=1cm, inner sep=6pt},
@@ -62,10 +63,13 @@
 }
 
 \newcommand{\projectname}{Capgemini Talent Intelligence}
-\newcommand{\reportinstitution}{\textit{Établissement universitaire à compléter}}
-\newcommand{\reportauthor}{\textit{À compléter}}
-\newcommand{\reportacademicadvisor}{\textit{À compléter}}
-\newcommand{\reportcompanyadvisor}{\textit{À compléter}}
+\newcommand{\pfeprojecttitle}{Système d'évaluation des candidats et de préparation d'entretiens assisté par IA}
+\newcommand{\pfeauthor}{RAYEN FASSATOUI}
+\newcommand{\pfecompany}{Capgemini}
+\newcommand{\pfeacademicadvisor}{Aymen Louati}
+\newcommand{\pfecompanyadvisor}{Ahmed Attafi}
+\newcommand{\pfepresident}{Ahlem Tayachi}
+\newcommand{\pfereviewer}{Imen Msakni}
 \newcommand{\appcapture}[2][0.42\textheight]{%
   \noindent\adjustbox{max width=0.96\linewidth,max totalheight=#1,center}{%
     \includegraphics{#2}%
@@ -82,28 +86,64 @@
 \begin{document}
 \selectlanguage{french}
 
+\newgeometry{top=1.3cm,bottom=1cm,left=2cm,right=2cm}
 \begin{titlepage}
+  \thispagestyle{empty}
+  \begin{tikzpicture}[remember picture, overlay]
+    \node[inner sep=0pt] at (current page.center)
+      {\includegraphics[width=\paperwidth,height=\paperheight]{figures/coverpage/cover-bg.png}};
+  \end{tikzpicture}%
   \centering
-  {\Large République Tunisienne\par}
-  \vspace{0.4cm}
-  {\large \reportinstitution\par}
-  \vspace{1.5cm}
-  {\Huge\bfseries Rapport de projet de fin d'études\par}
-  \vspace{0.8cm}
-  {\LARGE Conception et développement d'une plateforme de recrutement augmentée par l'IA\par}
-  \vspace{0.4cm}
-  {\Large \textbf{\projectname}\par}
-  \vspace{1.5cm}
-  \begin{tabular}{@{}>{\bfseries}l@{\hspace{1.2cm}}l@{}}
-    Réalisé par : & \reportauthor \\
-    Entreprise d'accueil : & Capgemini / Capgemini Engineering \\
-    Encadrant académique : & \reportacademicadvisor \\
-    Encadrant professionnel : & \reportcompanyadvisor \\
-    Année universitaire : & 2025--2026 \\
-  \end{tabular}
-  \vfill
-  {\large Version structurée pour compilation et finalisation académique sur Overleaf.\par}
+  \vspace*{0.05cm}
+  {\bfseries\normalsize Ministère de l'Enseignement Supérieur et de la Recherche Scientifique\par}
+  \vspace{0.16cm}
+  {\bfseries\normalsize École Polytechnique Internationale Privée de Tunis\par}
+  \vspace{0.22cm}
+  \includegraphics[width=5.4cm]{figures/coverpage/polytech-logo.jpeg}\par
+  \vspace{0.3cm}
+  {\bfseries\Huge Projet de Fin d'Études\par}
+  \vspace{0.28cm}
+  {\large Pour obtenir le diplôme de\par}
+  \vspace{0.18cm}
+  {\bfseries\Large Mastère Professionnel\par}
+  \vspace{0.04cm}
+  {\itshape\large Spécialité : Génie Logiciel\par}
+  \vspace{0.28cm}
+  {\large Présenté et réalisé par :\par}
+  \vspace{0.22cm}
+  {\color{coverline}\rule{0.55\textwidth}{0.8pt}}\par
+  \vspace{0.22cm}
+  {\bfseries\LARGE \pfeprojecttitle\par}
+  \vspace{0.22cm}
+  {\color{coverline}\rule{0.55\textwidth}{0.8pt}}\par
+  \vspace{0.28cm}
+  {\bfseries\Large \pfeauthor\par}
+  \vspace{0.04cm}
+  {\itshape\large Juillet 2026\par}
+  \vspace{0.28cm}
+  {\large Préparé au sein de :\par}
+  \vspace{0.12cm}
+  {\bfseries\large \pfecompany\par}
+  \vspace{0.18cm}
+  \includegraphics[width=4.0cm]{figures/coverpage/company-logo.png}\par
+  \vspace{0.3cm}
+  {\bfseries\large JURY\par}
+  \vspace{0.18cm}
+  {\normalsize
+  \begin{tabular}{@{}>{\bfseries}l l l@{}}
+    Mme. \pfepresident & Enseignante à Polytech Intl & Présidente \\[3pt]
+    Mme. \pfereviewer & Enseignante à Polytech Intl & Rapporteur \\[3pt]
+    M. \pfecompanyadvisor & \pfecompany & Encadrant Professionnel \\[3pt]
+    M. \pfeacademicadvisor & Enseignant à Polytech Intl & Encadrant Académique \\
+  \end{tabular}\par}
+  \vspace{0.28cm}
+  {\footnotesize FOR.29\,|\,V.01\par}
+  \vspace{0.08cm}
+  {\large Année Universitaire : \textbf{2025/2026}\par}
+  \vspace{0.22cm}
+  \includegraphics[width=3.4cm]{figures/coverpage/eur-ace.jpg}\par
 \end{titlepage}
+\restoregeometry
 
 \pagenumbering{roman}
 \input{chapters/abstract-en}

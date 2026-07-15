@@ -1,0 +1,14 @@
+\begin{tikzpicture}[
+  node distance=0.88cm,
+  font=\scriptsize,
+  layer/.style={box, text width=9.8cm, minimum width=10.3cm, minimum height=1.05cm, inner sep=7pt}
+]
+  \node[layer] (ui) {\textbf{Couche présentation}\\Espaces TA, Manager, RH et Admin ; formulaires, tableaux de bord et assistant};
+  \node[layer, below=of ui] (access) {\textbf{Couche accès et orchestration}\\Session, rôles, redirections, validation des actions et réponses progressives};
+  \node[layer, below=of access] (business) {\textbf{Couche métier}\\Catalogue de CV, offres, candidats, entretiens, décisions, IA et gouvernance};
+  \node[layer, below=of business] (data) {\textbf{Couche données et services partagés}\\Base relationnelle, historique, recherche, notifications, exports et services IA};
+
+  \draw[line] (ui.south) -- (access.north);
+  \draw[line] (access.south) -- (business.north);
+  \draw[line] (business.south) -- (data.north);
+\end{tikzpicture}

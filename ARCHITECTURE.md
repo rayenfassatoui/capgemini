@@ -10,13 +10,14 @@
 app/                                    # Next.js App Router — ROUTING ONLY
 ├── (auth)/                             # Auth pages (sign-in, sign-up redirects to sign-in)
 ├── (dashboard)/                        # Protected dashboard routes
+│   ├── agent/                          # Full AI agent workspace
 │   ├── ta/                             # Talent Acquisition views
 │   │   ├── dashboard/                  # TA dashboard
 │   │   ├── cv-pool/                    # CV upload & management
 │   │   ├── jobs/                       # Job postings & matching
 │   │   │   └── [id]/                   # Job detail + candidates
 │   │   ├── calendar/                   # Interview calendar
-│   │   └── statistique/               # Analytics + AI chat
+│   │   └── statistique/               # TA analytics only
 │   ├── manager/                        # Hiring Manager views
 │   │   ├── dashboard/
 │   │   └── candidates/[id]/
@@ -42,7 +43,7 @@ features/recruitment/                   # Core business logic (Vertical Slice)
 ├── types.ts                            # TypeScript types & enums
 ├── services/                           # Business logic + DB (SOURCE OF TRUTH)
 │   ├── index.ts                        # Barrel export
-│   ├── ai.ts                           # OpenRouter client + model routing
+│   ├── ai.ts                           # NVIDIA Build API client + model routing
 │   ├── ai-features.ts                  # AI-powered features (debrief, compare, predict)
 │   ├── chat.ts                         # Chat context builder + conversation CRUD
 │   ├── cv-pool.ts                      # CV upload, parse, list, search
@@ -122,7 +123,7 @@ User Message
     │
     ▼
 ┌─────────────────────────┐
-│  POST /api/chat/stats   │  ← Rate Limited (15 req/min/user)
+│POST /api/chat/statistics│  ← Rate Limited (15 req/min/user)
 │  Session + RBAC check   │
 └──────────┬──────────────┘
            │
@@ -135,8 +136,8 @@ User Message
            │
            ▼
 ┌─────────────────────────┐
-│  LLM Agent Loop          │  ← Max 15 iterations
-│  (OpenRouter API)        │
+│  LLM Agent Loop          │  ← Max 8 iterations
+│  (NVIDIA Build API)      │
 │                          │
 │  ┌───────┐  ┌─────────┐ │
 │  │ Think │→ │ Tool    │ │

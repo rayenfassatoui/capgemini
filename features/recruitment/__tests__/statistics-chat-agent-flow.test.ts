@@ -208,6 +208,7 @@ describe('statistics chat agent flow', () => {
     expect(recoveredToolNames).toEqual([
       'get_dashboard_stats',
       'get_smart_insights',
+      'get_candidates_by_stage',
       'get_today_interviews',
       'get_notifications',
     ]);

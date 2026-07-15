@@ -1,0 +1,69 @@
+\begin{tikzpicture}[
+  font=\small,
+  context/.style={darkbox, font=\small, text width=6.35cm, minimum width=6.75cm, minimum height=1.05cm, inner sep=6pt},
+  project/.style={box, font=\small, text width=6.35cm, minimum width=6.75cm, minimum height=1.05cm, inner sep=6pt},
+  role/.style={darkbox, font=\footnotesize, text width=2.65cm, minimum width=3.0cm, minimum height=2.4cm, inner xsep=5pt, inner ysep=7pt},
+  responsibility/.style={actor, font=\footnotesize, text width=2.65cm, minimum width=3.0cm, minimum height=2.4cm, inner xsep=5pt, inner ysep=7pt}
+]
+  \node[context] (context) at (0,0.8) {
+    \textbf{Capgemini Engineering Tunisie}\\[2pt]
+    Contexte d'accueil du projet
+  };
+  \node[project] (project) at (0,-1.75) {
+    \textbf{\projectname{}}\\[2pt]
+    Plateforme de recrutement\\
+    augmentée par l'IA
+  };
+
+  \coordinate (role-hub) at (0,-3.35);
+  \node[role] (ta) at (-5.25,-4.55) {
+    \textbf{Talent\\Acquisition}\\[2pt]
+    Sourcing et\\présélection
+  };
+  \node[role] (manager) at (-1.75,-4.55) {
+    \textbf{Manager\\métier}\\[2pt]
+    Évaluation\\opérationnelle
+  };
+  \node[role] (hr) at (1.75,-4.55) {
+    \textbf{Ressources\\humaines}\\[2pt]
+    Décision et\\communication
+  };
+  \node[role] (admin) at (5.25,-4.55) {
+    \textbf{Administration}\\[2pt]
+    Pilotage et\\contrôle
+  };
+
+  \node[responsibility] (ta-scope) at (-5.25,-7.7) {
+    Vivier de CV\\
+    offres\\
+    présélection
+  };
+  \node[responsibility] (manager-scope) at (-1.75,-7.7) {
+    Candidatures affectées\\
+    entretiens\\
+    rapports
+  };
+  \node[responsibility] (hr-scope) at (1.75,-7.7) {
+    Décision finale\\
+    communication\\
+    onboarding
+  };
+  \node[responsibility] (admin-scope) at (5.25,-7.7) {
+    Comptes et rôles\\
+    indicateurs\\
+    traçabilité
+  };
+
+  \draw[line] (context.south) -- (project.north);
+  \draw[line] (project.south) -- (role-hub);
+  \draw[thick, draw=cgdeep] (-5.25,-3.35) -- (5.25,-3.35);
+  \draw[line] (-5.25,-3.35) -- (ta.north);
+  \draw[line] (-1.75,-3.35) -- (manager.north);
+  \draw[line] (1.75,-3.35) -- (hr.north);
+  \draw[line] (5.25,-3.35) -- (admin.north);
+
+  \draw[line] (ta.south) -- (ta-scope.north);
+  \draw[line] (manager.south) -- (manager-scope.north);
+  \draw[line] (hr.south) -- (hr-scope.north);
+  \draw[line] (admin.south) -- (admin-scope.north);
+\end{tikzpicture}

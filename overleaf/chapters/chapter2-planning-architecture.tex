@@ -16,7 +16,7 @@ Le système distingue quatre acteurs principaux, définis à partir de la spéci
     \toprule
     Acteur & Responsabilités principales \\
     \midrule
-    TA & Gérer le vivier de CV, créer les offres, affecter les candidats, piloter le matching et les premiers entretiens. \\
+    TA & Gérer le catalogue de CV, créer les offres, affecter les candidats, piloter le matching et les premiers entretiens. \\
     Manager & Évaluer les candidats au stade managérial, conduire les entretiens, produire des rapports et orienter vers les RH. \\
     HR & Finaliser l'évaluation, décider de l'acceptation ou du rejet, générer et envoyer les emails de décision, déclencher l'embauche. \\
     Admin & Superviser les utilisateurs, l'analytique, les logs d'activité, les emails et l'onboarding global. \\
@@ -63,39 +63,39 @@ Les exigences non fonctionnelles retenues pour la solution sont résumées dans 
 \section{Étude analytique}
 
 \subsection{Diagramme global des cas d'utilisation}
-La figure \ref{fig:global-use-case} synthétise les interactions majeures entre les quatre acteurs et les grands sous-systèmes métier.
+La figure \ref{fig:global-use-case} répartit les capacités entre les quatre acteurs métier réels : Talent Acquisition, Manager métier, Ressources humaines et Administrateur. L'authentification constitue un prérequis commun ; elle n'est pas répétée sous la forme d'un acteur supplémentaire, afin de préserver une lecture directe des responsabilités.
 
 \begin{figure}[H]
   \centering
   \diagraminput{figures/diagrams/global-use-case}
-  \caption{\label{fig:global-use-case}Cas d'utilisation global de la plateforme \projectname{}}
+  \caption{\label{fig:global-use-case}Cas d'utilisation de la plateforme \projectname{}, structurés par rôle}
 \end{figure}
 
 \subsection{Processus métier cible}
-Le diagramme de cas d'utilisation identifie les capacités du système, mais il ne suffit pas à montrer la circulation réelle d'une candidature entre les rôles. Pour répondre à cette limite, la figure \ref{fig:business-bpmn} formalise un processus métier de type BPMN simplifié : le TA initialise le besoin et le vivier, l'IA assiste le classement, le Manager évalue la compétence opérationnelle, puis HR arbitre la décision finale et déclenche l'onboarding ou la notification.
+Le diagramme de cas d'utilisation identifie les capacités du système, mais il ne suffit pas à montrer la circulation réelle d'une candidature entre les rôles. Pour répondre à cette limite, la figure \ref{fig:business-bpmn} représente le processus cible dans un pool découpé en couloirs horizontaux : Talent Acquisition initialise la candidature, le système IA assiste la présélection, le Manager évalue la compétence opérationnelle, puis les Ressources humaines arbitrent la décision finale. Chaque passerelle exclusive conduit soit à l'étape suivante, soit à une notification de rejet suivie de la clôture de la candidature.
 
 \begin{figure}[H]
   \centering
   \diagraminput{figures/diagrams/recruitment-bpmn}
-  \caption{\label{fig:business-bpmn}Processus métier cible du recrutement, sous forme BPMN simplifiée}
+  \caption{\label{fig:business-bpmn}Processus BPMN cible du recrutement avec pool et couloirs de responsabilité}
 \end{figure}
 
 Cette lecture métier justifie ensuite les choix de conception : chaque étape doit posséder un responsable, un état observable, une trace et une règle de transition. Le pipeline candidat et l'historique des changements ne sont donc pas des détails techniques ; ils matérialisent le besoin de gouvernance visible dans le processus.
 
 \subsection{Diagramme de classes global}
-Le schéma Drizzle du projet est reformulé en diagramme de classes UML afin de montrer les classes métier, leurs attributs principaux et leurs multiplicités. La figure \ref{fig:domain-model} relie ainsi les objets centraux du recrutement : comptes utilisateurs, postes, CV, candidats, évaluations, entretiens, rapports et événements de gouvernance.
+Le schéma Drizzle du projet est reformulé en diagramme de classes UML afin de montrer les classes métier, leurs attributs principaux et leurs relations structurantes. La figure \ref{fig:domain-model} distingue explicitement le CV de la candidature créée lors de son affectation à une offre. Elle présente aussi l'historique des étapes, les actions agentiques en attente et la dépendance directe du rapport à l'entretien, conformément aux clés étrangères du schéma.
 
 \begin{figure}[H]
   \centering
   \diagraminput{figures/diagrams/global-domain-model}
-  \caption{\label{fig:domain-model}Diagramme de classes global centré recrutement}
+  \caption{\label{fig:domain-model}Modèle de domaine et relations structurantes du recrutement}
 \end{figure}
 
 \subsection{Vue d'ensemble du Product Backlog}
 Le \textit{Product Backlog} constitue la passerelle entre le besoin métier décrit au chapitre précédent et la réalisation par sprints présentée dans la suite du rapport. Il ne s'agit pas seulement d'une liste de fonctionnalités : il ordonne les capacités du produit selon leur valeur pour les équipes de recrutement, leurs dépendances techniques et leur rôle dans la constitution progressive des données exploitables par l'IA, comme le montre le tableau \ref{tab:product-backlog}.
 
 \paragraph{Logique de priorisation.}
-La priorité a été donnée aux éléments qui débloquent les autres modules. Le socle d'accès arrive en premier parce qu'aucune donnée RH ne peut être exposée sans authentification et contrôle de rôle. Le vivier de CV et les offres viennent ensuite, car ils produisent les objets métier fondamentaux. Le pipeline candidat transforme ces objets en processus opérationnel. L'IA intervient lorsque suffisamment de données structurées existent pour produire des scores, des synthèses et des réponses contextualisées. Enfin, la gouvernance consolide les traces, les notifications et les indicateurs nécessaires au pilotage.
+La priorité a été donnée aux éléments qui débloquent les autres modules. Le socle d'accès arrive en premier parce qu'aucune donnée RH ne peut être exposée sans authentification et contrôle de rôle. Le catalogue de CV et les offres viennent ensuite, car ils produisent les objets métier fondamentaux. Le pipeline candidat transforme ces objets en processus opérationnel. L'IA intervient lorsque suffisamment de données structurées existent pour produire des scores, des synthèses et des réponses contextualisées. Enfin, la gouvernance consolide les traces, les notifications et les indicateurs nécessaires au pilotage.
 
 \begin{table}[H]
   \centering
@@ -104,8 +104,8 @@ La priorité a été donnée aux éléments qui débloquent les autres modules. 
     \toprule
     ID & Epic produit & Valeur métier & Items principaux \\
     \midrule
-    PB1 & Accès et identité & Sécuriser l'entrée dans la plateforme et orienter chaque utilisateur vers son espace. & Landing page, connexion, redirection par rôle, protection des routes, shell de dashboard. \\
-    PB2 & Vivier de CV & Centraliser les profils et transformer des documents hétérogènes en données consultables. & Upload PDF/DOCX, extraction de texte, métadonnées, recherche, export, détection de doublons. \\
+    PB1 & Accès et identité & Sécuriser l'entrée dans la plateforme et orienter chaque utilisateur vers son espace. & Connexion, redirection par rôle, protection des espaces, shell de dashboard. \\
+    PB2 & Catalogue de CV & Centraliser les profils et transformer des documents hétérogènes en données consultables. & Import PDF/DOCX, extraction de texte, métadonnées, recherche, export, détection de doublons. \\
     PB3 & Offres d'emploi & Structurer les besoins de recrutement pour préparer le matching et les décisions. & Création de poste, critères \textit{must-have}, critères \textit{nice-to-have}, séniorité, fermeture contrôlée. \\
     PB4 & Pipeline candidat & Faire progresser un profil affecté dans un workflow multi-rôles traçable. & Affectation, états candidat, responsabilités TA/Manager/HR, planification, rapports d'entretien, historique immuable des transitions. \\
     PB5 & Intelligence IA & Assister les recruteurs par des analyses contextualisées et contrôlées. & Screening, matching hybride, guides d'entretien, autopilot, RAG, chat analytique outillé, confirmation des actions modifiant les données. \\
@@ -126,7 +126,7 @@ Le backlog est découpé en cinq sprints de réalisation. Chaque sprint possède
     \toprule
     Sprint & Module & Objectif principal \\
     \midrule
-    Sprint 1 & Accès et identité & Mettre en place le point d'entrée sécurisé du produit : page publique, authentification, redirection par rôle et cadre de navigation commun. \\
+    Sprint 1 & Accès et identité & Mettre en place le point d'entrée sécurisé du produit : authentification, redirection par rôle et cadre de navigation commun. \\
     Sprint 2 & CV et offres & Construire la base documentaire et métier du recrutement : importer les CV, structurer les offres et préparer les traitements de recherche et de matching. \\
     Sprint 3 & Pipeline et entretiens & Transformer une affectation CV-offre en suivi candidat complet, avec transitions d'état, historique auditable, responsabilités, planification et rapports. \\
     Sprint 4 & Intelligence IA & Ajouter une assistance IA réellement branchée sur les données internes : screening, recherche hybride, guides, autopilot, chat analytique et confirmation des actions modifiant les données. \\
@@ -135,74 +135,81 @@ Le backlog est découpé en cinq sprints de réalisation. Chaque sprint possède
   \end{tabularx}
 \end{table}
 
-Cette planification montre une trajectoire progressive : d'abord sécuriser l'accès, ensuite créer les données de référence, puis orchestrer le workflow métier, enrichir les décisions par l'IA et terminer par la supervision. Elle évite de présenter les sprints comme des blocs indépendants ; chacun prépare explicitement le suivant.
+\begin{figure}[H]
+  \centering
+  \diagraminput{figures/diagrams/sprint-roadmap}
+  \caption{\label{fig:sprint-roadmap}Trajectoire incrémentale des sprints de réalisation}
+\end{figure}
+
+Cette planification montre une trajectoire progressive, résumée par la figure \ref{fig:sprint-roadmap} : d'abord sécuriser l'accès, ensuite créer les données de référence, puis orchestrer le workflow métier, enrichir les décisions par l'IA et terminer par la supervision. Elle évite de présenter les sprints comme des blocs indépendants ; chacun prépare explicitement le suivant.
 
 \section{Architecture du projet}
 
 \subsection{Architecture externe}
-D'un point de vue externe, la plateforme peut être vue comme un ensemble de flux entre cinq blocs :
+D'un point de vue global, la plateforme peut être comprise comme un système organisé en couches. Cette lecture évite de réduire l'architecture à une liste de fichiers ou de technologies : elle met plutôt en évidence les responsabilités principales du produit et la manière dont les données circulent entre les utilisateurs, la logique métier, les données persistantes et les services externes.
 \begin{itemize}
-  \item le client web utilisé par les rôles \textbf{TA}, \textbf{Manager}, \textbf{HR} et \textbf{Admin} ;
-  \item l'application \sourcecode{Next.js 16}, qui gère l'interface, les routes, le rendu serveur, les Server Actions et l'API de chat \netref{web:nextjs-docs} ;
-  \item la base \sourcecode{Neon PostgreSQL}, qui stocke les entités métier, les conversations, les logs et les embeddings \netref{web:neon-docs}\netref{web:postgres-docs} ;
-  \item les services IA externes appelés pour les générations, les réécritures de requêtes et les embeddings ;
-  \item le service d'emailing utilisé pour les invitations, les décisions et certaines notifications.
+  \item la couche présentation regroupe les espaces utilisés par les rôles \textbf{TA}, \textbf{Manager}, \textbf{RH} et \textbf{Admin} ;
+  \item la couche d'accès et d'orchestration contrôle l'identité, les rôles, les redirections et la coordination des actions ;
+  \item la couche métier porte les règles de recrutement : catalogue de CV, offres, candidats, entretiens, décisions, IA et gouvernance ;
+  \item la couche données et services partagés conserve les informations, les historiques, les notifications, les exports et les appels vers les services spécialisés.
 \end{itemize}
 
-Le flux typique est le suivant : un utilisateur agit depuis un dashboard, la requête est authentifiée, la logique métier est exécutée dans les services, les données sont lues ou écrites en base, puis un appel IA ou email est déclenché lorsque le cas d'usage l'exige. Pour le chat analytique, la réponse est renvoyée progressivement au client en streaming \sourcecode{SSE}.
-
-Cette vue externe permet de distinguer clairement ce qui appartient au produit et ce qui dépend de services tiers. Le c\oe{}ur métier reste dans l'application et dans la base de données ; les services externes sont utilisés comme capacités spécialisées, sous contrôle des services applicatifs.
-
-\subsection{Architecture applicative globale}
-L'architecture adoptée n'est pas une architecture microservices. Le projet affirme explicitement une architecture \textit{Feature-Driven} : la couche de routage reste mince, les composants d'interface sont séparés, et la logique métier réside dans des services organisés par fonctionnalité. Cette décision est particulièrement adaptée à une application web monolithique moderne enrichie par l'IA.
-La figure \ref{fig:feature-architecture} présente cette organisation interne et ses principales frontières.
+Le flux typique est le suivant : un utilisateur agit depuis son espace métier, la demande est contrôlée selon son rôle, la règle métier correspondante est appliquée, puis les données sont consultées ou mises à jour. Lorsqu'un cas d'usage l'exige, la plateforme sollicite un service spécialisé comme l'assistance IA ou l'envoi d'email, tout en conservant la décision et les preuves dans le périmètre applicatif.
 
 \begin{figure}[H]
   \centering
-  \diagraminput{figures/diagrams/feature-architecture}
-  \caption{\label{fig:feature-architecture}Architecture interne \textit{feature-driven} de la solution}
+  \diagraminput{figures/diagrams/layered-architecture}
+  \caption{\label{fig:layered-architecture}Vue globale de l'architecture par couches}
 \end{figure}
 
-Les frontières de couches sont les suivantes :
+\subsection{Architecture applicative globale}
+L'architecture adoptée n'est pas une architecture microservices. Le projet repose sur un monolithe moderne organisé par fonctionnalités. Ce choix signifie que la plateforme reste livrée comme une application cohérente, tout en séparant clairement les capacités métier : accès, catalogue de CV, offres, pipeline candidat, entretiens, intelligence assistive, gouvernance et administration.
+
+\begin{figure}[H]
+  \centering
+  \diagraminput{figures/diagrams/monolithic-architecture}
+  \caption{\label{fig:monolithic-architecture}Architecture monolithique modulaire de la plateforme}
+\end{figure}
+
+Ce choix est adapté au contexte du projet, car les modules partagent les mêmes utilisateurs, les mêmes rôles, les mêmes candidats, les mêmes règles d'accès et la même base de preuves. Les séparer artificiellement en microservices aurait augmenté la complexité de synchronisation, de sécurité et de déploiement sans créer de bénéfice métier immédiat.
+
+\subsection{Architecture interne}
+Les frontières internes se lisent donc en termes de responsabilités :
 \begin{itemize}
-  \item la couche de routage gère le rendu et les points d'entrée HTTP ;
-  \item la couche d'actions serveur encapsule les mutations et la revalidation ;
-  \item la couche de services constitue la source de vérité métier et de persistance ;
-  \item la couche de composants porte l'interface utilisateur ;
-  \item la couche d'utilitaires concentre les fonctions transverses comme l'authentification, l'accès aux données, la limitation et les logs ;
-  \item le schéma de données décrit le modèle persistant.
+  \item la présentation porte les écrans, formulaires, tableaux de bord et interactions utilisateur ;
+  \item l'accès contrôle l'authentification, les rôles et l'orientation vers les bons espaces ;
+  \item les modules métier concentrent les règles propres au recrutement ;
+  \item les données persistantes conservent les profils, offres, candidats, entretiens, historiques et preuves ;
+  \item les services transverses apportent les capacités partagées : notifications, exports, assistance IA, recherche et audit.
 \end{itemize}
 
 \paragraph{Tableau de correspondance besoin / module / solution technique.}
-La cohérence de l'architecture se comprend mieux lorsqu'on relie directement les besoins métier aux modules fonctionnels et aux choix techniques qui y répondent, comme le montre le tableau \ref{tab:business-architecture-correspondence}.
+La cohérence de l'architecture se comprend mieux lorsqu'on relie directement les besoins métier aux modules fonctionnels et aux réponses qui y répondent, comme le montre le tableau \ref{tab:business-architecture-correspondence}.
 
 \begin{table}[H]
   \centering
   \caption{\label{tab:business-architecture-correspondence}Correspondance entre besoins métier et réponses architecturales}
   \begin{tabularx}{\textwidth}{>{\bfseries}p{3.1cm}p{3.1cm}X}
     \toprule
-    Besoin métier & Module principal & Solution technique retenue \\
+    Besoin métier & Module principal & Réponse retenue \\
     \midrule
-    Sécuriser l'accès et séparer les responsabilités & Accès et identité & Authentification par rôles, espaces protégés et shell de dashboard mutualisé. \\
-    Transformer des CV hétérogènes en profils exploitables & Vivier de CV & Pipeline d'ingestion, extraction structurée, embeddings et chunking progressif. \\
+    Sécuriser l'accès et séparer les responsabilités & Accès et identité & Authentification par rôles, espaces protégés et cadre de navigation mutualisé. \\
+    Transformer des CV hétérogènes en profils exploitables & Catalogue de CV & Pipeline d'ingestion, extraction structurée, enrichissement progressif et recherche. \\
     Relier les profils aux besoins de recrutement & Offres, candidats et pipeline & Offres structurées, transitions d'état explicites, historique d'étapes et assignations multi-rôles. \\
-    Retrouver des profils au-delà des mots-clés & Intelligence IA & Stockage vectoriel avec \sourcecode{pgvector}, recherche full-text et retrieval hybride. \\
-    Interroger le système en langage naturel & Chat analytique & Agent conversationnel outillé, registre d'outils filtré par rôle, confirmation des mutations et streaming SSE. \\
+    Retrouver des profils au-delà des mots-clés & Intelligence IA & Recherche assistée combinant signaux métier, similarité sémantique et justification des résultats. \\
+    Interroger le système en langage naturel & Chat analytique & Assistant conversationnel outillé, réponses sourcées, confirmations et traces d'exécution. \\
     Auditer et piloter l'activité & Gouvernance & Notifications, logs, centre de gouvernance, analytics, exports et suivi détaillé de l'onboarding. \\
     \bottomrule
   \end{tabularx}
 \end{table}
 
-Ce tableau montre que l'architecture n'est pas le résultat d'un empilement de technologies. Chaque décision technique répond à un besoin métier identifiable et s'insère dans un module fonctionnel précis.
-
-\subsection{Architecture interne}
-L'architecture interne retenue est une architecture \textit{feature-driven}, et non une architecture microservices. Ce choix évite de distribuer artificiellement des modules qui partagent les mêmes entités, la même authentification et la même base de données.
+Ce tableau montre que l'architecture n'est pas le résultat d'un empilement de technologies. Chaque décision répond à un besoin métier identifiable et s'insère dans un module fonctionnel précis.
 
 \paragraph{Justification du choix feature-driven.}
-Le choix \textit{feature-driven} est pertinent parce que le produit s'organise naturellement autour de tranches métier cohérentes : accès, vivier, offres, pipeline candidat, IA et gouvernance. Dans ce contexte, regrouper les services, les actions et les composants par fonctionnalité réduit la dispersion du code et rend plus lisible la responsabilité de chaque module. Cette organisation facilite aussi l'évolution incrémentale du produit, car chaque sprint peut enrichir une capacité métier identifiable sans multiplier les dépendances transverses.
+Le choix \textit{feature-driven} est pertinent parce que le produit s'organise naturellement autour de tranches métier cohérentes : accès, catalogue de CV, offres, pipeline candidat, IA et gouvernance. Dans ce contexte, regrouper les éléments d'un même module autour de sa capacité métier réduit la dispersion et rend plus lisible la responsabilité de chaque partie.
 
 \paragraph{Justification du monolithe moderne.}
-Le projet n'appelle pas naturellement une architecture microservices. Les modules partagent fortement les mêmes entités, la même authentification, le même stockage et les mêmes règles de gouvernance. Un monolithe moderne permet donc de garder une base de vérité unifiée pour les rôles, les candidats, les entretiens, le chat et les traces d'activité. Il réduit également la complexité de déploiement, de cohérence transactionnelle et de sécurité, tout en restant compatible avec des capacités avancées comme le SSE, les actions serveur et l'orchestration de services IA externes.
+Le projet n'appelle pas naturellement une architecture microservices. Les modules partagent fortement les mêmes entités, la même authentification, le même stockage et les mêmes règles de gouvernance. Un monolithe moderne permet donc de garder une base de vérité unifiée pour les rôles, les candidats, les entretiens, le chat et les traces d'activité. Il réduit également la complexité de déploiement, de cohérence transactionnelle et de sécurité, tout en restant compatible avec des capacités avancées comme les réponses progressives, l'orchestration de l'assistance IA et la gouvernance des actions sensibles.
 
 \subsection{Architecture du sous-système IA}
 Le sous-système IA articule plusieurs briques : génération de descriptions de poste, extraction de CV, matching, génération de guides d'entretien, débriefing, assistant conversationnel et pipeline RAG. L'agent statistique est exposé via l'API du chat analytique, qui assemble le contexte, filtre les outils selon le rôle, diffuse la réponse en SSE et restitue les preuves sous forme de sources, graphiques, cartes typées et trace d'exécution par phases.
@@ -211,7 +218,7 @@ La figure \ref{fig:ai-orchestration} illustre cette orchestration entre le chat,
 \begin{figure}[H]
   \centering
   \diagraminput{figures/diagrams/ai-orchestration}
-  \caption{\label{fig:ai-orchestration}Orchestration de l'agent conversationnel et de ses outils}
+  \caption{\label{fig:ai-orchestration}Architecture du sous-système agentique IA et RAG}
 \end{figure}
 
 \paragraph{Justification de \sourcecode{pgvector}.}
@@ -241,20 +248,14 @@ Ces garde-fous sont essentiels, car la crédibilité du projet repose précisém
 \section{Environnement de développement et technique}
 
 \subsection{Outils de gestion et de documentation}
-L'environnement de travail du projet s'appuie sur les artefacts présents dans le dépôt :
-\begin{itemize}
-  \item le code applicatif \sourcecode{Next.js} et \sourcecode{TypeScript} ;
-  \item la documentation d'architecture et les prompts techniques conservés dans \sourcecode{ARCHITECTURE.md} et \sourcecode{docs/} ;
-  \item les sources du rapport en Markdown dans \sourcecode{rapport/} et leur version \LaTeX{} dans \sourcecode{overleaf/} ;
-  \item les diagrammes du mémoire stockés dans \sourcecode{overleaf/figures/diagrams}.
-\end{itemize}
+L'environnement de travail est présenté à travers les artefacts utiles à la compréhension du projet : documents de conception, schéma de données, modules fonctionnels, diagrammes, captures, scénarios de validation et rapports d'évaluation.
 
-Cette organisation garde le rapport directement rattaché au projet réel : les choix décrits proviennent des fichiers, scripts, services, schémas et composants effectivement présents dans le dépôt.
+Cette présentation garde l'analyse au niveau académique attendu : ce qui importe n'est pas l'organisation locale des fichiers, mais la manière dont les artefacts soutiennent les choix de conception et les preuves de réalisation.
 
 \subsection{Environnement d'exécution et de développement}
-Le projet est développé dans un environnement JavaScript / TypeScript moderne. \sourcecode{Bun} est utilisé comme runtime principal, gestionnaire de dépendances et orchestrateur de scripts \netref{web:bun-docs}. \sourcecode{Next.js 16} fournit le socle full-stack de développement et d'exécution \netref{web:nextjs-docs}. L'environnement local repose sur \sourcecode{bun dev}, tandis que les scripts de base de données, de seed, de réindexation, de benchmark et d'évaluation utilisent également Bun.
+Le projet s'appuie sur un environnement web moderne permettant de développer une application full-stack, de gérer la persistance, de valider les entrées, d'exécuter les tests et de produire les évaluations nécessaires. La section précise le rôle de l'outillage dans la réalisation : construire l'interface, organiser la logique métier, stocker les données, automatiser certaines validations et mesurer les modules d'intelligence.
 
-Ce choix simplifie l'outillage : un même runtime permet d'exécuter l'application, les scripts techniques, les tests et les tâches liées à l'IA, sans multiplier les gestionnaires de paquets ni les conventions d'exécution.
+Ce choix d'outillage simplifie le cycle de réalisation : une même base technique permet de construire les écrans, d'orchestrer les traitements métier, de contrôler les données et de vérifier les comportements critiques sans disperser le projet entre plusieurs environnements incohérents.
 
 \subsection{Outils front-end}
 Le front-end du projet repose sur les technologies suivantes :
@@ -299,7 +300,7 @@ La persistance s'appuie sur \sourcecode{Neon PostgreSQL} et \sourcecode{Drizzle 
   \item les embeddings vectoriels via \sourcecode{pgvector}.
 \end{itemize}
 
-L'usage de \sourcecode{pgvector} évite l'introduction d'une base vectorielle externe \netref{web:pgvector-docs}. Les embeddings globaux des CV sont stockés dans le vivier, tandis que les embeddings orientés RAG sont stockés dans les chunks. Ces chunks sont aussi indexés en recherche plein texte, ce qui rend possible une recherche hybride combinant récupération vectorielle et récupération lexicale.
+L'usage de \sourcecode{pgvector} évite l'introduction d'une base vectorielle externe \netref{web:pgvector-docs}. Les embeddings globaux des CV sont stockés dans le catalogue, tandis que les embeddings orientés RAG sont stockés dans les chunks. Ces chunks sont aussi indexés en recherche plein texte, ce qui rend possible une recherche hybride combinant récupération vectorielle et récupération lexicale.
 Les tables \sourcecode{candidate\_stage\_history} et \sourcecode{pending\_agent\_actions} renforcent la gouvernance du modèle. La première conserve les mouvements du pipeline avec l'étape précédente, la nouvelle étape, l'acteur, la raison, la source et l'horodatage. La seconde matérialise les actions IA sensibles avant exécution, avec leur statut, leur expiration et leur résultat d'exécution. Ces deux tables transforment les opérations critiques en preuves consultables et exportables.
 
 \subsection{Justification synthétique des choix technologiques}
@@ -317,7 +318,7 @@ Les technologies retenues ne sont pas uniquement des préférences de développe
     Next.js 16 App Router & SPA séparée, API backend isolée & Unifie rendu, routes, actions serveur et streaming SSE dans un même produit full-stack. & Réduit la dispersion entre front-end, API et logique d'orchestration. \\
     TypeScript strict & JavaScript simple & Rend explicites les contrats entre composants, services, actions et outils agentiques. & Diminue les erreurs d'intégration dans les workflows multi-rôles. \\
     Bun & npm, yarn, pnpm, Node scripts dispersés & Accélère les scripts locaux et garde une convention unique pour développement, tests, seed et évaluation. & Évite la fragmentation de l'outillage. \\
-    Architecture feature-driven & Découpage par couches techniques ou microservices & Aligne chaque module sur une capacité métier : accès, vivier, jobs, pipeline, IA, gouvernance. & Évite un microservice prématuré et maintient une cohérence transactionnelle. \\
+    Architecture feature-driven & Découpage par couches techniques ou microservices & Aligne chaque module sur une capacité métier : accès, catalogue de CV, jobs, pipeline, IA, gouvernance. & Évite un microservice prématuré et maintient une cohérence transactionnelle. \\
     Better Auth + RBAC & Authentification maison & Fournit sessions et rôles sans réimplémenter une couche sensible. & Limite les failles liées à une authentification artisanale. \\
     Zod & Validation implicite ou types compile-time seuls & Valide les entrées utilisateur et les arguments d'outils à l'exécution. & Empêche l'agent ou les formulaires de déclencher des mutations mal formées. \\
     Neon PostgreSQL + Drizzle & Base NoSQL ou ORM plus opaque & Garde données RH, logs, conversations, états et embeddings dans un modèle relationnel typé. & Préserve traçabilité, cohérence et requêtage analytique. \\

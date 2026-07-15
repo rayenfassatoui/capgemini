@@ -2,7 +2,7 @@
 
 \section*{Introduction}
 \addcontentsline{toc}{section}{Introduction}
-Le dernier module referme la boucle fonctionnelle de la plateforme. Après avoir construit l'accès, le vivier documentaire, le pipeline candidat et la couche IA, il restait à renforcer la gouvernance globale du système. Une plateforme de recrutement d'entreprise ne peut pas se limiter à traiter des candidatures ; elle doit aussi fournir de la visibilité, des traces d'audit, des mécanismes de communication, des exports et un suivi après embauche.
+Le dernier module referme la boucle fonctionnelle de la plateforme. Après avoir construit l'accès, le catalogue documentaire, le pipeline candidat et la couche IA, il restait à renforcer la gouvernance globale du système. Une plateforme de recrutement d'entreprise ne peut pas se limiter à traiter des candidatures ; elle doit aussi fournir de la visibilité, des traces d'audit, des mécanismes de communication, des exports et un suivi après embauche.
 
 Ce module ne correspond donc pas à un simple bloc de notifications. Il consolide la dimension administrable, pilotable et auditable de \projectname{}, là où la supervision, la traçabilité et la restitution des données deviennent aussi importantes que les fonctionnalités de recrutement elles-mêmes.
 
@@ -119,7 +119,7 @@ Elle permet surtout de distinguer clairement deux niveaux de lecture. Le niveau 
 
 
 \subsection{Audit, logs et exports}
-Le service \sourcecode{activity-log.ts} enregistre les événements importants via \sourcecode{logActivity()}, puis les restitue en lecture simple ou enrichie. En parallèle, \sourcecode{export.ts} permet de générer plusieurs artefacts : export du vivier de CV, export d'un CV individuel, export ZIP de plusieurs CV, export des candidats acceptés, export des logs d'emails, export du journal d'activité, export de l'onboarding et export Excel détaillé d'un workflow d'acceptation candidat.
+Le service \sourcecode{activity-log.ts} enregistre les événements importants via \sourcecode{logActivity()}, puis les restitue en lecture simple ou enrichie. En parallèle, \sourcecode{export.ts} permet de générer plusieurs artefacts : export du catalogue de CV, export d'un CV individuel, export ZIP de plusieurs CV, export des candidats acceptés, export des logs d'emails, export du journal d'activité, export de l'onboarding et export Excel détaillé d'un workflow d'acceptation candidat.
 
 Cette partie prouve que la plateforme est pensée pour la restitution, la preuve et l'audit, pas seulement pour l'exécution interactive. Les exports jouent un rôle d'interopérabilité : la donnée reste exploitable hors de l'interface, pour le reporting, le contrôle et la conformité.
 Dans un cadre d'entreprise, cette capacité d'export dépasse la simple commodité. Elle permet de transformer l'information applicative en matière de reporting, de contrôle, de conformité et de partage. Les exports constituent donc un pont entre la plateforme de recrutement et les besoins plus larges d'audit, de pilotage RH ou de restitution managériale.
@@ -162,9 +162,9 @@ La décision finale reste humaine. Les mécanismes de screening, de matching, de
 \subsection{Accessibilité et validation UX}
 L'expérience utilisateur a été conçue pour rester exploitable par les quatre rôles principaux sur des écrans et contextes différents. Les pages métier utilisent une structure de dashboard cohérente, des composants shadcn/ui pour les dialogues, boutons, champs, tableaux et sélecteurs, ainsi qu'une navigation latérale stable. Cette cohérence réduit l'effort d'apprentissage et améliore l'opérabilité du produit.
 
-La validation responsive repose sur une lecture mobile-first des écrans : les listes, cartes, panneaux et tableaux doivent rester utilisables sur petit écran, tablette et desktop. Les parcours critiques à vérifier sont la connexion, l'upload CV, la consultation du vivier, la création d'offre, le détail candidat, la planification d'entretien, la réponse agentique et les vues administrateur.
+La validation responsive repose sur une lecture mobile-first des écrans : les listes, cartes, panneaux et tableaux doivent rester utilisables sur petit écran, tablette et desktop. Les parcours critiques à vérifier sont la connexion, l'upload CV, la consultation du catalogue, la création d'offre, le détail candidat, la planification d'entretien, la réponse agentique et les vues administrateur.
 
-Sur le plan clavier et lecteur d'écran, les éléments importants sont les champs labellisés, les boutons avec texte ou nom accessible, les dialogues qui conservent le focus, les états d'erreur compréhensibles et la présence d'un lien de saut vers le contenu principal. Le projet embarque aussi une logique de thème clair/sombre et d'internationalisation, ce qui améliore la lisibilité et l'adaptation au contexte utilisateur. Le tableau \ref{tab:ux-accessibility-validation} formalise ces contrôles.
+Sur le plan clavier et lecteur d'écran, les éléments importants sont les champs labellisés, les boutons avec texte ou nom accessible, les dialogues qui conservent le focus, les états d'erreur compréhensibles et la présence d'un lien de saut vers le contenu principal. Le projet embarque aussi une logique de thème clair/sombre ; il fournit un changement de langue FR/EN pour la navigation et le calendrier ; la localisation du contenu métier reste partielle. Le tableau \ref{tab:ux-accessibility-validation} formalise ces contrôles.
 
 \begin{table}[H]
   \centering

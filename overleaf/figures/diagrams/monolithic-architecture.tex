@@ -1,0 +1,32 @@
+\begin{tikzpicture}[
+  font=\scriptsize,
+  user/.style={actor, text width=2.5cm, minimum width=2.8cm, minimum height=0.9cm, inner sep=5pt},
+  module/.style={box, text width=2.4cm, minimum width=2.7cm, minimum height=0.82cm, inner sep=5pt},
+  appbox/.style={darkbox, minimum width=10.9cm, minimum height=4.2cm, inner sep=7pt},
+  dependency/.style={actor, text width=2.75cm, minimum width=3.05cm, minimum height=0.9cm, inner sep=5pt}
+]
+  \node[user] (users) at (0,3.05) {\textbf{Utilisateurs métier}\\TA, Manager, RH, Admin};
+
+  \node[appbox] (app) at (0,0) {};
+  \node[font=\scriptsize\bfseries] at (0,1.58) {Application monolithique modulaire};
+  \node[font=\scriptsize] at (0,1.28) {une seule application, découpée par capacités métier};
+
+  \node[module] (access) at (-3.45,0.45) {\textbf{Accès}\\identité};
+  \node[module] (catalog) at (0,0.45) {\textbf{Catalogue CV}\\offres};
+  \node[module] (pipeline) at (3.45,0.45) {\textbf{Pipeline}\\candidat};
+  \node[module] (interviews) at (-3.45,-0.95) {\textbf{Entretiens}\\décisions};
+  \node[module] (ai) at (0,-0.95) {\textbf{Assistance IA}\\recherche};
+  \node[module] (governance) at (3.45,-0.95) {\textbf{Gouvernance}\\exports};
+
+  \node[dependency] (db) at (-3.0,-3.1) {\textbf{Base commune}\\profils, candidats, traces};
+  \node[dependency] (external) at (3.0,-3.1) {\textbf{Services contrôlés}\\IA, email, fichiers};
+
+  \draw[line] (users.south) -- (app.north);
+  \draw[line] ([xshift=-3.0cm]app.south) -- (db.north);
+  \draw[line] ([xshift=3.0cm]app.south) -- (external.north);
+
+  \draw[dashedline] (access.east) -- (catalog.west);
+  \draw[dashedline] (catalog.east) -- (pipeline.west);
+  \draw[dashedline] (interviews.east) -- (ai.west);
+  \draw[dashedline] (ai.east) -- (governance.west);
+\end{tikzpicture}

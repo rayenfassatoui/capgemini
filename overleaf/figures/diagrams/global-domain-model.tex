@@ -1,126 +1,127 @@
 \begin{tikzpicture}[
-  font=\scriptsize,
+  font=\footnotesize,
   umlclass/.style={
     draw=cgdeep,
     rounded corners=2pt,
     thick,
     fill=white,
     align=left,
-    inner sep=4pt,
-    text width=2.85cm
+    inner xsep=9pt,
+    inner ysep=9pt,
+    text width=2.25cm,
+    minimum width=2.55cm
   },
+  keyclass/.style={umlclass, fill=cglight, draw=cgblue},
+  auditclass/.style={umlclass, fill=boxgray},
   association/.style={thick, draw=cgdeep},
-  composition/.style={{Diamond[open,length=2.3mm,width=2.3mm]}-, thick, draw=cgdeep},
-  relationlabel/.style={font=\tiny, fill=white, inner sep=1pt},
-  multiplicity/.style={font=\tiny, fill=white, inner sep=1pt}
+  composition/.style={{Diamond[length=2.3mm,width=2.3mm]}-, thick, draw=cgdeep},
+  relationlabel/.style={font=\scriptsize, fill=white, inner sep=1.5pt}
 ]
-  \node[umlclass] (user) at (0,0) {
-    \centering\textbf{User}\par
+  % Identité et objets d'entrée.
+  \node[umlclass] (user) at (-6.6,5.1) {
+    \centering\textbf{Utilisateur}\\[-1pt]\texttt{users}\par
     \noindent\rule{\linewidth}{0.35pt}\par
-    \texttt{id}: uuid\\
+    \texttt{id}: text\\
     \texttt{email}: text\\
     \texttt{role}: enum
   };
-
-  \node[umlclass] (job) at (3.55,0) {
-    \centering\textbf{Job}\par
+  \node[auditclass] (pending) at (-6.6,0.7) {
+    \centering\textbf{Action agent en attente}\\[-1pt]
+    \noindent\rule{\linewidth}{0.35pt}\par
+    \texttt{userId}: text\\
+    \texttt{toolName}: text\\
+    \texttt{status}: text
+  };
+  \node[umlclass] (cv) at (-3.3,5.1) {
+    \centering\textbf{CV}\\[-1pt]\texttt{cv\_pool}\par
+    \noindent\rule{\linewidth}{0.35pt}\par
+    \texttt{id}: uuid\\
+    \texttt{skills}: json\\
+    \texttt{embedding}: vector
+  };
+  \node[umlclass] (job) at (3.3,5.1) {
+    \centering\textbf{Offre}\\[-1pt]\texttt{jobs}\par
     \noindent\rule{\linewidth}{0.35pt}\par
     \texttt{id}: uuid\\
     \texttt{title}: text\\
-    \texttt{seniority}: text
+    \texttt{status}: text
   };
 
-  \node[umlclass] (candidate) at (7.1,0) {
-    \centering\textbf{Candidate}\par
+  % Objet central : une candidature relie un CV à une offre.
+  \node[keyclass] (candidate) at (0,1.0) {
+    \centering\textbf{Candidature}\\[-1pt]\texttt{candidates}\par
     \noindent\rule{\linewidth}{0.35pt}\par
     \texttt{id}: uuid\\
-    \texttt{stage}: enum\\
-    \texttt{taId}: uuid\\
-    \texttt{managerId}: uuid
+    \texttt{cvId, jobId}: uuid\\
+    \texttt{stage}: enum
   };
 
-  \node[umlclass] (interview) at (10.65,0) {
-    \centering\textbf{Interview}\par
+  % Dépendances disposées en éventail.
+  \node[umlclass] (chunk) at (-6.6,-4.6) {
+    \centering\textbf{Fragment de CV}\\[-1pt]\texttt{cv\_chunks}\par
     \noindent\rule{\linewidth}{0.35pt}\par
-    \texttt{id}: uuid\\
-    \texttt{scheduledAt}: date\\
+    \texttt{cvId}: uuid\\
+    \texttt{sectionType}: enum\\
+    {\scriptsize\texttt{searchVector}: tsvector}
+  };
+  \node[auditclass] (history) at (-3.3,-4.6) {
+    \centering\textbf{Historique d'étape}\\[-1pt]
+    \noindent\rule{\linewidth}{0.35pt}\par
+    {\scriptsize\texttt{candidateId}: uuid}\\
+    {\scriptsize\texttt{previousStage}: enum}\\
+    {\scriptsize\texttt{newStage}: enum}
+  };
+  \node[umlclass] (guide) at (0,-4.6) {
+    \centering\textbf{Guide d'entretien}\\[-1pt]
+    {\ttfamily\tiny interview\_guides}\par
+    \noindent\rule{\linewidth}{0.35pt}\par
+    \texttt{candidateId}: uuid\\
+    \texttt{jobId}: uuid\\
+    \texttt{questions}: json
+  };
+  \node[umlclass] (interview) at (3.3,-4.6) {
+    \centering\textbf{Entretien}\\[-1pt]\texttt{interviews}\par
+    \noindent\rule{\linewidth}{0.35pt}\par
+    \texttt{candidateId}: uuid\\
+    {\scriptsize\texttt{interviewerId}: text}\\
     \texttt{status}: enum
   };
-
-  \node[umlclass] (cvpool) at (0,-3.05) {
-    \centering\textbf{CvPool}\par
+  \node[umlclass] (screening) at (6.6,-4.6) {
+    \centering\textbf{Évaluation IA}\\[-1pt]\texttt{screenings}\par
     \noindent\rule{\linewidth}{0.35pt}\par
-    \texttt{id}: uuid\\
-    \texttt{rawText}: text\\
-    \texttt{skills}: text[]\\
-    \texttt{embedding}: vector
-  };
-
-  \node[umlclass] (screening) at (7.1,-3.05) {
-    \centering\textbf{Screening}\par
-    \noindent\rule{\linewidth}{0.35pt}\par
-    \texttt{id}: uuid\\
-    \texttt{score}: integer\\
-    \texttt{summary}: text\\
+    \texttt{candidateId, jobId}: uuid\\
+    \texttt{score}: real\\
     \texttt{gaps}: json
   };
-
-  \node[umlclass] (guide) at (10.65,-3.05) {
-    \centering\textbf{InterviewGuide}\par
+  \node[umlclass] (report) at (3.3,-10.0) {
+    \centering\textbf{Rapport d'entretien}\\[-1pt]
+    {\ttfamily\tiny interview\_reports}\par
     \noindent\rule{\linewidth}{0.35pt}\par
-    \texttt{id}: uuid\\
-    \texttt{questions}: json\\
-    \texttt{autopilot}: boolean
-  };
-
-  \node[umlclass] (chunk) at (0,-6.1) {
-    \centering\textbf{CvChunk}\par
-    \noindent\rule{\linewidth}{0.35pt}\par
-    \texttt{id}: uuid\\
-    \texttt{chunkText}: text\\
-    \texttt{searchVector}: tsvector\\
-    \texttt{embedding}: vector
-  };
-
-  \node[umlclass] (governance) at (7.1,-6.1) {
-    \centering\textbf{GovernanceAudit}\par
-    \noindent\rule{\linewidth}{0.35pt}\par
-    \texttt{id}: uuid\\
-    \texttt{kind}: enum\\
-    \texttt{status}: enum
-  };
-
-  \node[umlclass] (report) at (10.65,-6.1) {
-    \centering\textbf{InterviewReport}\par
-    \noindent\rule{\linewidth}{0.35pt}\par
-    \texttt{id}: uuid\\
+    \texttt{interviewId}: uuid\\
     \texttt{score}: integer\\
-    \texttt{decision}: enum
+    \texttt{decision}: text
   };
 
-  \draw[association] (user.east) -- node[relationlabel, above]{crée}
-    node[multiplicity, above, pos=0.16]{1} node[multiplicity, above, pos=0.84]{0..*} (job.west);
-  \draw[association] (job.east) -- node[relationlabel, above]{cible}
-    node[multiplicity, above, pos=0.16]{1} node[multiplicity, above, pos=0.84]{0..*} (candidate.west);
-  \draw[association] (candidate.east) -- node[relationlabel, above]{planifie}
-    node[multiplicity, above, pos=0.16]{1} node[multiplicity, above, pos=0.84]{0..*} (interview.west);
+  % Relations structurantes placées dans les couloirs libres.
+  \begin{pgfonlayer}{background}
+    \draw[association] (user.north) -- (-6.6,6.65) --
+      node[relationlabel, above] {importe} (-4.9,6.65) -- (-4.9,5.1) --
+      (cv.west);
+  \end{pgfonlayer}
+  \draw[association] (user.south) --
+    node[relationlabel, left] {contrôle} (pending.north);
 
-  \draw[association] (user.south) -- node[relationlabel, left]{importe}
-    node[multiplicity, left, pos=0.18]{1} node[multiplicity, left, pos=0.82]{0..*} (cvpool.north);
-  \draw[association] (cvpool.east) -- node[relationlabel, above, sloped]{alimente}
-    node[multiplicity, below, sloped, pos=0.16]{1} node[multiplicity, below, sloped, pos=0.86]{0..*} (candidate.south west);
-  \draw[composition] (cvpool.south) -- node[relationlabel, left]{découpe}
-    node[multiplicity, left, pos=0.18]{1} node[multiplicity, left, pos=0.82]{1..*} (chunk.north);
+  \draw[association] (cv.south east) --
+    node[relationlabel, above, sloped] {alimente} (candidate.north west);
+  \draw[association] (job.south west) --
+    node[relationlabel, above, sloped] {concerne} (candidate.north east);
 
-  \draw[association] (candidate.south) -- node[relationlabel, left]{évalue}
-    node[multiplicity, left, pos=0.18]{1} node[multiplicity, left, pos=0.82]{0..1} (screening.north);
-  \draw[association] (interview.south) -- node[relationlabel, right]{prépare}
-    node[multiplicity, right, pos=0.18]{1} node[multiplicity, right, pos=0.82]{0..1} (guide.north);
-  \draw[association] (guide.south) -- node[relationlabel, right]{produit}
-    node[multiplicity, right, pos=0.18]{1} node[multiplicity, right, pos=0.82]{0..1} (report.north);
-
-  \draw[association] (screening.south) -- node[relationlabel, left]{journalise}
-    node[multiplicity, left, pos=0.18]{1} node[multiplicity, left, pos=0.82]{0..*} (governance.north);
-  \draw[association] (report.west) -- node[relationlabel, above]{trace}
-    node[multiplicity, above, pos=0.16]{1} node[multiplicity, above, pos=0.84]{0..*} (governance.east);
+  \draw[composition] (cv.south west) -- (chunk.north east);
+  \draw[association] (candidate.south west) -- (history.north east);
+  \draw[association] (candidate.south) -- (guide.north);
+  \draw[association] (candidate.south east) -- (interview.north west);
+  \draw[association] (candidate.east) -- (6.6,1.0) -- (screening.north);
+  \draw[association] (job.east) -- (8.4,5.1) -- (8.4,-4.6) -- (screening.east);
+  \draw[composition] (interview.south) --
+    node[relationlabel, left, pos=0.35] {produit} (report.north);
 \end{tikzpicture}

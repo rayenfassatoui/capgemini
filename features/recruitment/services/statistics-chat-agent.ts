@@ -61,8 +61,9 @@ import {
 } from "./statistics-chat-prompt";
 import {
   buildAgentSkillPrompt,
-  buildMissingToolRetryMessage,
+  buildMissingCloseJobToolCall,
   buildMissingCreateJobToolCall,
+  buildMissingToolRetryMessage,
   selectMissingToolRecoveryToolNames,
   selectAgentRuntimeSkills,
   selectToolNamesForSkills,
@@ -526,17 +527,25 @@ export async function handleStatisticsChatPost(
               continue;
             }
 
-            const missingCreateJobToolCall = buildMissingCreateJobToolCall({
-              message: lastMessageText,
-              skills: selectedSkills,
-              availableToolNames: activeToolNames,
-              records: toolExecutionHistory,
-              step,
-            });
-            if (!missingToolRecoveryUsed && missingCreateJobToolCall) {
+            const missingJobActionToolCall =
+              buildMissingCloseJobToolCall({
+                message: lastMessageText,
+                skills: selectedSkills,
+                availableToolNames: activeToolNames,
+                records: toolExecutionHistory,
+                step,
+              }) ??
+              buildMissingCreateJobToolCall({
+                message: lastMessageText,
+                skills: selectedSkills,
+                availableToolNames: activeToolNames,
+                records: toolExecutionHistory,
+                step,
+              });
+            if (!missingToolRecoveryUsed && missingJobActionToolCall) {
               missingToolRecoveryUsed = true;
               const recoveryToolCalls: ResponseToolCall[] = [
-                missingCreateJobToolCall,
+                missingJobActionToolCall,
               ];
 
               llmMessages.push({
@@ -746,17 +755,25 @@ export async function handleStatisticsChatPost(
             fullResponse = toolCallResult.fullResponse;
           }
 
-          const missingCreateJobAfterToolCall = buildMissingCreateJobToolCall({
-            message: lastMessageText,
-            skills: selectedSkills,
-            availableToolNames: activeToolNames,
-            records: toolExecutionHistory,
-            step,
-          });
-          if (!missingToolRecoveryUsed && missingCreateJobAfterToolCall) {
+          const missingJobActionAfterToolCall =
+            buildMissingCloseJobToolCall({
+              message: lastMessageText,
+              skills: selectedSkills,
+              availableToolNames: activeToolNames,
+              records: toolExecutionHistory,
+              step,
+            }) ??
+            buildMissingCreateJobToolCall({
+              message: lastMessageText,
+              skills: selectedSkills,
+              availableToolNames: activeToolNames,
+              records: toolExecutionHistory,
+              step,
+            });
+          if (!missingToolRecoveryUsed && missingJobActionAfterToolCall) {
             missingToolRecoveryUsed = true;
             const recoveryToolCalls: ResponseToolCall[] = [
-              missingCreateJobAfterToolCall,
+              missingJobActionAfterToolCall,
             ];
 
             llmMessages.push({

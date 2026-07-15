@@ -42,7 +42,7 @@
 - AI follow-up question generator from previous interview answers
 
 ### AI Agent (50+ Tools)
-The platform includes a conversational AI agent accessible from the statistics/chat page. The agent can:
+The platform includes a dedicated `/agent` workspace for long-form analysis, history, and traces, plus a dashboard-wide floating entry for compact chat. The agent can:
 
 | Category | Tools |
 |---|---|
@@ -86,7 +86,7 @@ The platform includes a conversational AI agent accessible from the statistics/c
 |---|---|
 | **Feature-Driven Architecture** | Vertical slices keep related code together, easier to reason about than MVC |
 | **Server Actions over API routes** | Colocation with UI, automatic revalidation, type-safe forms |
-| **OpenRouter multi-model routing** | Switch models per task type (agent, structured, generation) without code changes |
+| **NVIDIA Build API** | OpenAI-compatible NVIDIA endpoint; all current task types use `stepfun-ai/step-3.5-flash` |
 | **NVIDIA E5 V5 over OpenAI embeddings** | Free tier available, 1024-dim vectors, good multilingual support |
 | **pgvector over Pinecone/Weaviate** | No external vector DB needed, lives in same Neon database, HNSW indexing |
 | **In-memory rate limiting** | Zero dependencies, sufficient for single-instance deployment |
@@ -99,9 +99,9 @@ The platform includes a conversational AI agent accessible from the statistics/c
 ```typescript
 // features/recruitment/services/ai.ts
 export const AI_MODELS = {
-  agent: 'stepfun/step-3.5-flash:free',       // Tool calling, multi-step reasoning
-  structured: 'stepfun/step-3.5-flash:free',   // JSON generation, scoring
-  generation: 'stepfun/step-3.5-flash:free',   // Job descriptions, emails
+  agent: 'stepfun-ai/step-3.5-flash',       // Tool calling, multi-step reasoning
+  structured: 'stepfun-ai/step-3.5-flash',  // JSON generation, scoring
+  generation: 'stepfun-ai/step-3.5-flash',  // Job descriptions, emails
 };
 ```
 

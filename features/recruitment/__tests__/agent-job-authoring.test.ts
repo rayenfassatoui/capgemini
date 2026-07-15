@@ -9,6 +9,7 @@ import { requiresAgentActionConfirmation } from '../services/pending-agent-actio
 import { buildStatisticsChatSystemPrompt } from '../services/statistics-chat-prompt';
 import {
   buildAgentSkillPrompt,
+  buildMissingCloseJobToolCall,
   buildMissingCreateJobToolCall,
   selectAgentRuntimeSkills,
   selectToolNamesForSkills,
@@ -16,7 +17,7 @@ import {
 } from '../services/statistics-chat-skills';
 
 describe('agent job authoring flow', () => {
-  it('routes UI/UX job creation through generation before a confirmation-gated create', () => {
+  it('routes job authoring mutations through safe recovery', () => {
     const message = 'create job UI/UX kemla';
     const skills = selectAgentRuntimeSkills({
       message,
@@ -45,6 +46,7 @@ describe('agent job authoring flow', () => {
     );
     expect(skillPrompt).toContain('Generate a job description before create_job');
     expect(skillPrompt).toContain('atomic skill labels');
+    expect(skillPrompt).toContain('To close a named job, resolve its exact ID');
     expect(
       shouldRetryForMissingToolUse({
         message,
@@ -53,6 +55,45 @@ describe('agent job authoring flow', () => {
         toolExecutionCount: 0,
       }),
     ).toBe(true);
+    const closeMessage =
+      'Close the "Cloud DevOps Lead" job. Do not execute it; show the confirmation needed before any change.';
+    const closeSkills = selectAgentRuntimeSkills({
+      message: closeMessage,
+      role: 'ta',
+      hasAttachments: false,
+    });
+    const closeToolNames = selectToolNamesForSkills(closeSkills);
+    const closeToolCall = buildMissingCloseJobToolCall({
+      message: closeMessage,
+      skills: closeSkills,
+      availableToolNames: closeToolNames,
+      records: [
+        {
+          toolName: 'list_jobs',
+          args: {},
+          result: {
+            success: true,
+            data: [
+              {
+                id: 'cloud-devops-lead-id',
+                title: 'Cloud DevOps Lead',
+                status: 'open',
+              },
+            ],
+          },
+          mutating: false,
+        },
+      ],
+      step: 2,
+    });
+
+    expect(closeSkills.map((skill) => skill.id)).toContain('job-authoring');
+    expect(closeToolCall).toMatchObject({
+      function: { name: 'close_job' },
+    });
+    expect(JSON.parse(closeToolCall?.function.arguments ?? '{}')).toEqual({
+      jobId: 'cloud-devops-lead-id',
+    });
   });
 
   it('keeps generate_job_description read-only and create_job mutating', () => {

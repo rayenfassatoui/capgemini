@@ -1,35 +1,79 @@
 \begin{tikzpicture}[
-  font=\scriptsize,
-  flowbox/.style={box, text width=2.1cm, minimum height=0.86cm, inner sep=4pt, font=\scriptsize},
-  smallactor/.style={actor, minimum width=2.0cm, font=\scriptsize},
-  softline/.style={-{Latex[length=2.4mm]}, thick, draw=cgdeep}
+  font=\small,
+  interface/.style={box, font=\footnotesize, text width=4.25cm, minimum width=4.7cm, minimum height=1.0cm, inner sep=6pt},
+  api/.style={darkbox, font=\footnotesize, text width=4.55cm, minimum width=5.0cm, minimum height=1.0cm, inner sep=6pt},
+  orchestrator/.style={darkbox, font=\footnotesize, text width=5.9cm, minimum width=6.35cm, minimum height=1.1cm, inner sep=6pt},
+  capability/.style={box, font=\footnotesize, text width=3.5cm, minimum width=3.95cm, minimum height=1.25cm, inner sep=6pt},
+  service/.style={box, font=\footnotesize, text width=3.9cm, minimum width=4.35cm, minimum height=1.2cm, inner sep=6pt},
+  dbbox/.style={database, font=\footnotesize, text width=4.2cm, minimum width=4.7cm, minimum height=1.25cm, inner sep=6pt},
+  flow/.style={-{Latex[length=2.4mm]}, thick, draw=cgdeep},
+  exchange/.style={{Latex[length=2.2mm]}-{Latex[length=2.2mm]}, thick, draw=cgdeep},
+  evidence/.style={-{Latex[length=2.2mm]}, thick, dashed, draw=cgblue},
+  flowlabel/.style={font=\scriptsize, fill=white, inner sep=1.5pt, text=cgdeep}
 ]
-  \node[smallactor] (user) at (0,0) {Utilisateur};
-  \node[flowbox] (route) at (2.95,0) {Route SSE\\\texttt{/api/chat/}\\\texttt{statistics}};
-  \node[flowbox] (context) at (5.9,0) {Contexte\\session + rôle\\historique nettoyé};
-  \node[flowbox] (tools) at (8.85,0) {Filtrage outils\\RBAC + Zod};
+  \node[interface] (workspace) at (0,5.1) {
+    \textbf{Interface de l'agent}\\
+    chat, plan, cartes et sources
+  };
+  \node[api] (api) at (0,3.2) {
+    \textbf{API de chat en continu}\\
+    session, rôle et réponses SSE
+  };
+  \node[orchestrator] (orchestrator) at (0,1.2) {
+    \textbf{Orchestrateur agentique}\\
+    étapes, budget, délais\\
+    et confirmations
+  };
 
-  \node[flowbox] (llm) at (5.9,-1.55) {Boucle agentique\\max. 8 étapes};
-  \node[flowbox] (confirm) at (8.85,-1.55) {Confirmation\\actions sensibles};
-  \node[flowbox] (exec) at (11.75,-1.55) {Exécution outil\\RBAC + Zod};
-  \node[database, font=\scriptsize, minimum width=1.65cm] (db) at (11.75,-3.18) {Base\\données};
+  \node[capability] (model) at (-4.8,-1.2) {
+    \textbf{Modèle de langage\\externe}\\
+    compatible OpenAI\\
+    ou NVIDIA
+  };
+  \node[capability] (tools) at (0,-1.2) {
+    \textbf{Registre d'outils\\métier}\\
+    RBAC et\\
+    validation Zod
+  };
+  \node[capability] (governance) at (4.8,-1.2) {
+    \textbf{Garde-fous et traçabilité}\\
+    sources, limites et évaluations
+  };
 
-  \node[flowbox] (ground) at (5.9,-3.18) {Sanitization\\grounding};
-  \node[flowbox] (cards) at (2.95,-3.18) {Métadonnées\\sources + graphiques\\cartes typées};
-  \node[flowbox] (trace) at (2.95,-5.38) {Trace par phases\\retrieval, analysis\\confirmation, execution};
-  \node[flowbox] (ui) at (0,-5.38) {Réponse UI\\source-backed\\actions de suivi};
+  \node[service] (services) at (-2.7,-4.2) {
+    \textbf{Services de recrutement}\\
+    CV, offres, candidatures\\
+    et entretiens
+  };
+  \node[service] (retrieval) at (2.7,-4.2) {
+    \textbf{Recherche hybride}\\
+    texte intégral, vecteurs\\
+    et RAG
+  };
+  \node[dbbox] (database) at (0,-8.0) {
+    \textbf{PostgreSQL et pgvector}\\
+    données métier, fragments\\
+    et traces
+  };
 
-  \draw[softline] (user.east) -- (route.west);
-  \draw[softline] (route.east) -- (context.west);
-  \draw[softline] (context.east) -- (tools.west);
-  \draw[softline] (tools.south west) -- (llm.north east);
-  \draw[softline] (llm.east) -- (confirm.west);
-  \draw[softline] (confirm.east) -- (exec.west);
-  \draw[softline] (exec.south) -- (db.north);
-  \draw[softline] (db.west) -- (ground.east);
-  \draw[softline] (llm.south) -- (ground.north);
-  \draw[softline] (ground.west) -- (cards.east);
-  \draw[softline] (cards.south) -- (trace.north);
-  \draw[softline] (trace.west) -- (ui.east);
-  \draw[softline] (ui.west) -- ++(-0.55,0) |- (user.west);
+  \draw[exchange] (workspace.south) -- (api.north);
+  \draw[exchange] (api.south) -- (orchestrator.north);
+  \draw[exchange] (orchestrator.south west)
+    .. controls (-2.0,0.15) and (-3.4,-0.15) .. (model.north);
+  \draw[flow] (orchestrator.south) -- (tools.north);
+  \draw[flow] (orchestrator.south east)
+    .. controls (2.0,0.15) and (3.4,-0.15) .. (governance.north);
+
+  \draw[flow] (tools.south west)
+    .. controls (-0.9,-2.8) and (-2.0,-3.0) .. (services.north);
+  \draw[flow] (tools.south east)
+    .. controls (0.9,-2.8) and (2.0,-3.0) .. (retrieval.north);
+  \draw[exchange] (services.south)
+    .. controls (-2.7,-6.0) and (-2.5,-7.0) .. (database.west);
+  \draw[exchange] (retrieval.south)
+    .. controls (2.7,-6.0) and (2.5,-7.0) .. (database.east);
+
+  \draw[evidence] (governance.east) -- (7.35,-1.2)
+    -- node[flowlabel, right, rotate=90] {sources et traces} (7.35,5.1)
+    -- (workspace.east);
 \end{tikzpicture}

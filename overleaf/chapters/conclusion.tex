@@ -21,7 +21,7 @@ La validation retenue pour ce rapport combine deux niveaux complémentaires : d'
     Domaine & Scénario de validation & Résultat attendu & Résultat retenu \\
     \midrule
     Accès et identité & Connexion puis accès à l'espace métier. & Redirection par rôle et blocage sans session valide. & Couvert par l'authentification, la redirection par rôle et le shell dashboard. \\
-    Vivier de CV & Import d'un CV PDF ou DOCX. & Extraction du texte, profil consultable et enrichissement lancé. & Couvert par l'upload, l'extraction, les doublons et l'indexation progressive. \\
+    Catalogue de CV & Import d'un CV PDF ou DOCX. & Extraction du texte, profil consultable et enrichissement lancé. & Couvert par l'upload, l'extraction, les doublons et l'indexation progressive. \\
     Pipeline candidat & CV affecté puis transmis entre TA, Manager et RH. & Candidat créé, transitions historisées et responsabilités tracées. & Couvert par le workflow candidat, les affectations et l'historique d'étapes. \\
     Entretiens et décisions & Entretien planifié puis formalisé par un rapport. & Entretien créé, étape mise à jour et onboarding ouvert si embauche. & Couvert par la planification, le reporting et la checklist d'onboarding. \\
     Administration et gouvernance & Consultation des vues admin et du centre de gouvernance. & Supervision consolidée, traces d'audit, confirmations IA et exports. & Couvert par les vues admin, les logs, les exports et le centre de gouvernance. \\
@@ -32,7 +32,7 @@ La validation retenue pour ce rapport combine deux niveaux complémentaires : d'
 \end{table}
 
 \paragraph{Validation technique automatisée.}
-Sur le plan technique, les preuves automatisées principales sont documentées dans les artefacts du projet. Dans l'état observé, \sourcecode{bun run lint}, \sourcecode{bun run build} et \sourcecode{bun run test} passent ; la suite Vitest complète valide 123 tests après alignement du harnais \sourcecode{ChatInput} avec le contrat de propriétés du composant.
+Sur le plan technique, les contrôles automatisés exécutés pour cette révision ont validé \sourcecode{bun run lint} sans avertissement et \sourcecode{bun run test} : 27 fichiers de test et 125 tests Vitest passent. La compilation de production \sourcecode{bun run build} fait partie de la vérification finale avant livraison.
 
 Les vérifications automatisées couvrent notamment :
 \begin{itemize}
@@ -42,7 +42,7 @@ Les vérifications automatisées couvrent notamment :
   \item la confirmation des actions IA modifiant les données, depuis la création d'une action en attente jusqu'à son exécution, son annulation ou son expiration ;
   \item les transitions du pipeline candidat, avec validation des transitions autorisées, rejet des transitions incohérentes et formatage de la timeline ;
   \item la génération des métadonnées d'évidence, des liens profonds et des résumés de gouvernance administrateur ;
-  \item la qualification des panneaux d'\textit{evidence readiness} côté candidat et côté vivier documentaire ;
+  \item la qualification des panneaux d'\textit{evidence readiness} côté candidat et côté catalogue documentaire ;
   \item la génération, la sérialisation et l'extraction des graphiques du chat analytique, afin que les réponses visuelles restent fondées sur des sorties d'outils validées ;
   \item la génération, la sérialisation et l'extraction des cartes de réponse typées du chat, afin que les réponses candidat, pipeline et gouvernance soient rendues à partir de sorties d'outils validées ;
   \item le regroupement de la trace d'outils par phases, avec classification en récupération, analyse, confirmation, exécution et vérification ;
@@ -129,7 +129,7 @@ Plusieurs prolongements peuvent être envisagés. La première perspective consi
 
 La deuxième perspective concerne l'optimisation du pipeline RAG. Les pistes prioritaires sont la réduction du \textit{topK} lorsque la requête est simple, le cache des embeddings et des résultats, l'activation conditionnelle de la réécriture, la mesure séparée du coût de reranking et l'étude d'index vectoriels plus adaptés aux volumes importants. Un fine-tuning ciblé peut aussi être envisagé, non pour mémoriser les CV, mais pour stabiliser des tâches répétitives : classification d'intention, extraction d'exigences, reformulation de requêtes ou normalisation des compétences.
 
-La troisième perspective porte sur le recrutement prédictif. À partir d'un historique suffisant et gouverné, la plateforme pourrait estimer les risques de blocage dans le pipeline, prédire les délais de passage entre étapes, recommander les profils avec une probabilité de réussite contextualisée et détecter les écarts entre demande métier et disponibilité du vivier. Cette évolution devra cependant rester explicable et contrôlée, car une prédiction RH non justifiée peut introduire des biais de décision.
+La troisième perspective porte sur le recrutement prédictif. À partir d'un historique suffisant et gouverné, la plateforme pourrait estimer les risques de blocage dans le pipeline, prédire les délais de passage entre étapes, recommander les profils avec une probabilité de réussite contextualisée et détecter les écarts entre demande métier et disponibilité du catalogue. Cette évolution devra cependant rester explicable et contrôlée, car une prédiction RH non justifiée peut introduire des biais de décision.
 
 Enfin, l'intégration de modèles multimodaux représente une perspective de recherche intéressante. Elle permettrait d'exploiter non seulement le texte des CV et offres, mais aussi des documents scannés, portfolios, certificats, tableaux ou supports d'entretien. Cette ouverture doit être accompagnée de règles de gouvernance renforcées : consentement, minimisation des données, filtrage des informations sensibles et séparation claire entre aide à l'analyse et décision humaine.
 \section*{Apports personnels}

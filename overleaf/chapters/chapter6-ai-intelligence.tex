@@ -2,7 +2,7 @@
 
 \section*{Introduction}
 \addcontentsline{toc}{section}{Introduction}
-Ce quatrième module constitue le différenciateur principal du projet. À ce stade, la plateforme dispose déjà d'un vivier de CV structuré, d'offres détaillées et d'un pipeline candidat opérationnel. L'enjeu n'est donc plus seulement de stocker, afficher ou faire circuler des données, mais de les transformer en intelligence exploitable.
+Ce quatrième module constitue le différenciateur principal du projet. À ce stade, la plateforme dispose déjà d'un catalogue de CV structuré, d'offres détaillées et d'un pipeline candidat opérationnel. L'enjeu n'est donc plus seulement de stocker, afficher ou faire circuler des données, mais de les transformer en intelligence exploitable.
 
 Ce module ne correspond pas à l'ajout d'un simple assistant textuel. Il met en place une couche IA complète qui intervient directement dans les opérations de recrutement : matching, screening, recherche sémantique, RAG, génération de guides d'entretien, comparaison de candidats, synthèses, optimisation d'offres et agent conversationnel outillé. Les fondements du RAG et de la recherche par similarité sont rattachés aux références scientifiques citées en bibliographie et webographie \netref{web:rag-lewis}\netref{web:vector-johnson}.
 
@@ -15,7 +15,7 @@ L'objectif est d'intégrer l'intelligence artificielle au c\oe{}ur du processus 
 \begin{itemize}
   \item accélérer le tri initial des profils ;
   \item fournir des scores et synthèses de screening ;
-  \item rendre possible une recherche sémantique sur le vivier ;
+  \item rendre possible une recherche sémantique sur le catalogue ;
   \item introduire un pipeline RAG hybride pour les recherches complexes ;
   \item générer des guides d'entretien contextualisés ;
   \item exposer ces capacités à travers un agent conversationnel outillé ;
@@ -85,6 +85,12 @@ La couche IA n'est pas monolithique. Elle se compose de plusieurs niveaux compl�
   \item \textbf{Intelligence conversationnelle} : agent multi-outils, raisonnement en plusieurs étapes, accès contrôlé aux services métier, réponses ancrées dans les résultats disponibles, cartes typées et trace d'exécution par phases.
 \end{enumerate}
 
+\begin{figure}[H]
+  \centering
+  \diagraminput{figures/diagrams/ai-levels}
+  \caption{\label{fig:ai-levels}Niveaux complémentaires de l'intelligence artificielle du projet}
+\end{figure}
+
 Cette structuration montre que l'IA n'est pas résumée à un seul modèle. Elle est distribuée dans plusieurs services spécialisés selon les usages et intégrée progressivement à mesure que les données métier se structurent.
 
 \subsection{Matching, screening et autopilot}
@@ -102,7 +108,7 @@ Cette combinaison évite de dépendre d'un seul mécanisme. Certaines requêtes 
 
 \subsection{Agent conversationnel, réponses exploitables et garde-fous}
 L'agent conversationnel ne se limite plus à une simple fenêtre de chat sur la page statistique. Il suit désormais un schéma hybride : une assistance flottante reste disponible dans les espaces métier pour les demandes rapides, tandis qu'un workspace dédié \sourcecode{/agent} prend en charge les analyses longues, les traces d'exécution, les pièces jointes et l'historique conversationnel complet.
-Sur le plan technique, cet agent s'appuie sur un registre de plus de cinquante outils répartis en catégories : CV Pool, Jobs, Candidates, Matching, Interviews, AI Features, Communication, Dashboard et Admin. Le registre centralise les définitions, la validation Zod, l'exécution et le filtrage RBAC par rôle.
+Sur le plan technique, cet agent s'appuie sur un registre de plus de cinquante outils répartis en catégories : catalogue de CV, jobs, candidats, matching, entretiens, fonctions IA, communication, dashboard et administration. Le registre centralise les définitions, la validation Zod, l'exécution et le filtrage RBAC par rôle.
 Le projet ne laisse cependant pas l'agent répondre librement sur des personnes qu'il n'a pas effectivement résolues. Le mécanisme de grounding reconstruit l'ensemble de candidats autorisés à partir des résultats d'outils et valide les noms présents dans la réponse finale. Cette logique complète les garde-fous définis dans la couche d'orchestration : nombre maximal d'étapes, volume de sortie, timeout, seuil d'échec d'outils, séparation entre faits observés et recommandations, restitution finale orientée décision et transformation des résultats en cartes typées lorsque cela améliore la lecture.
 Ces garde-fous répondent à une exigence forte du domaine RH : une réponse fluide mais non justifiée peut être plus dangereuse qu'une absence de réponse. Le système préfère donc encadrer l'agent, afficher sa \textit{evidence trace}, regrouper les outils par phases d'exécution et pointer ses limites plutôt que maximiser artificiellement sa liberté de génération.
 Pour les outils qui modifient les données, le projet ajoute un garde-fou supplémentaire : l'action n'est pas exécutée immédiatement. Le service \sourcecode{pending-agent-actions.ts} crée une entrée \sourcecode{pending\_agent\_actions} avec les arguments sanitizés, un résumé métier, un statut \sourcecode{pending} et une expiration. L'interface affiche alors une carte de confirmation enrichie, avec niveau de risque, entités affectées, impact attendu, compte à rebours et arguments exacts ; l'utilisateur peut confirmer ou annuler. Après confirmation, l'outil est exécuté, puis l'action passe à \sourcecode{executed} ou \sourcecode{failed}. Ainsi, l'agent peut proposer une mutation, mais la responsabilité finale reste explicitement humaine.
@@ -214,16 +220,21 @@ L'IA n'est donc pas utilisée seulement pour retrouver ou classer, mais aussi po
 \end{figure}
 
 \subsection{Page statistiques, workspace agentique et réponses sourcées}
-La page statistique du recruteur charge les statistiques du vivier, les statistiques des jobs et les \textit{smart insights}. Le composant \sourcecode{StatisticsChat} complète cette vue par une interaction conversationnelle SSE, mais il n'est plus seul : la navigation expose aussi une page \sourcecode{/agent} plein écran conçue pour les analyses longues, la consultation de l'historique et les traces détaillées.
-Cette couche conversationnelle n'est pas décorative. Elle ouvre un accès agentique aux données du système, avec mémoire conversationnelle, outils filtrés par rôle, exécution traçable et prompts contextuels injectés depuis les pages métier. Les boutons \textit{Ask Agent} disséminés dans le vivier, les offres, les fiches Manager, les fiches RH et les surfaces Admin réutilisent les données du contexte courant pour préremplir la demande.
+La page statistique du recruteur charge les statistiques du catalogue, les statistiques des jobs et les \textit{smart insights}. Le composant \sourcecode{StatisticsChat} complète cette vue par une interaction conversationnelle SSE, mais il n'est plus seul : la navigation expose aussi une page \sourcecode{/agent} plein écran conçue pour les analyses longues, la consultation de l'historique et les traces détaillées.
+Cette couche conversationnelle n'est pas décorative. Elle ouvre un accès agentique aux données du système, avec mémoire conversationnelle, outils filtrés par rôle, exécution traçable et prompts contextuels injectés depuis les pages métier. Les boutons \textit{Ask Agent} disséminés dans le catalogue, les offres, les fiches Manager, les fiches RH et les surfaces Admin réutilisent les données du contexte courant pour préremplir la demande.
 Du point de vue métier, l'apport du sprint est concret. La recherche sémantique réduit l'effort de repérage des profils proches, le RAG améliore la justification des réponses complexes, et le chat agentique réduit le coût de navigation entre plusieurs écrans spécialisés. Le recruteur ne gagne donc pas seulement en rapidité ; il gagne aussi en lisibilité sur les raisons qui conduisent à une recommandation, un classement ou une synthèse. La figure \ref{fig:agent-workspace} montre cette restitution sourcée.
 \begin{figure}[H]
   \centering
-  \appcapture{figures/screenshots/statistics-ai-chat.png}
-  \caption{\label{fig:agent-workspace}Workspace agentique et réponse sourcée dans le chat.}
+  \appcapture{figures/screenshots/agent-workspace-references.png}
+  \caption{\label{fig:agent-workspace}Workspace agentique : demande analytique, preuves sourcées et amorce de restitution du pipeline.}
+\end{figure}
+\begin{figure}[H]
+  \centering
+  \appcapture{figures/screenshots/agent-confirmation-trace.png}
+  \caption{\label{fig:agent-confirmation-trace}Confirmation humaine et trace d'exécution d'une action agentique sensible.}
 \end{figure}
 \subsection{Fonctionnement détaillé du chat analytique}
-Le chat du projet n'est pas un simple champ de texte connecté à un LLM. Il constitue une interface de pilotage qui permet à l'utilisateur autorisé de poser des questions métier directement sur l'état réel de la plateforme. Un recruteur peut par exemple demander un résumé du vivier, interroger la répartition des jobs, rechercher des candidats correspondant à un besoin précis ou demander une comparaison appuyée sur les données disponibles.
+Le chat du projet n'est pas un simple champ de texte connecté à un LLM. Il constitue une interface de pilotage qui permet à l'utilisateur autorisé de poser des questions métier directement sur l'état réel de la plateforme. Un recruteur peut par exemple demander un résumé du catalogue, interroger la répartition des jobs, rechercher des candidats correspondant à un besoin précis ou demander une comparaison appuyée sur les données disponibles.
 Son fonctionnement repose sur plusieurs briques coordonnées :
 \begin{itemize}
   \item l'authentification de l'utilisateur avant tout échange ;
@@ -253,7 +264,7 @@ Les graphiques produits par l'assistant ne sont pas des images libres dessinées
     \toprule
     Type de question & Source de données & Restitution attendue \\
     \midrule
-    Tendance du vivier & Statistiques CV & Courbe des uploads de CV sur la fenêtre récente. \\
+    Tendance du catalogue & Statistiques CV & Courbe des uploads de CV sur la fenêtre récente. \\
     Pipeline candidat & Insights ou dashboard & Barres par étape de recrutement. \\
     Compétences et langues & Agrégats CV et jobs & Classement visuel des compétences ou langues les plus représentées. \\
     Écart demande--offre & Analyse des skills gaps & Barres comparatives entre demande côté jobs et supply côté CV. \\
@@ -286,6 +297,7 @@ Le projet contient une preuve quantitative d'amélioration du pipeline RAG dans 
     \bottomrule
   \end{tabular}
 \end{table}
+Les valeurs de ce tableau proviennent de l'artefact d'évaluation de phase 2 \sourcecode{reports/rag-eval/phase2-gate.md}.
 
 \begin{figure}[H]
   \centering
@@ -304,7 +316,7 @@ L'interprétation est claire : la phase 2 améliore nettement la pertinence des 
 
 Cette mesure a une forte valeur méthodologique dans le rapport. Elle prouve que le projet ne se contente pas d'affirmer que l'IA fonctionne mieux ; il cherche à objectiver les gains et à rendre visibles les coûts associés.
 
-En complément de cette évaluation retrieval, le projet contient désormais une suite d'évaluation agentique déterministe. Elle vérifie les politiques de prompt anti-hallucination, le blocage des demandes créatives hors périmètre, le grounding des classements candidats, la confirmation obligatoire des mutations, la génération des cartes candidat/pipeline/gouvernance, le masquage des traces sensibles et le regroupement de la timeline d'outils. L'état de validation observé est détaillé dans les artefacts du projet : 123 tests passent sur la suite Vitest complète.
+En complément de cette évaluation retrieval, le projet contient désormais une suite d'évaluation agentique déterministe. Elle vérifie les politiques de prompt anti-hallucination, le blocage des demandes créatives hors périmètre, le grounding des classements candidats, la confirmation obligatoire des mutations, la génération des cartes candidat/pipeline/gouvernance, le masquage des traces sensibles et le regroupement de la timeline d'outils. L'état de validation observé est détaillé dans les artefacts du projet : 125 tests passent sur la suite Vitest complète.
 
 \subsection{Analyse de complexité, coût et pistes d'optimisation}
 L'étude expérimentale doit être complétée par une lecture de complexité, car un pipeline IA utile en démonstration peut devenir difficile à exploiter si son coût croît trop rapidement avec le volume de CV, de chunks ou d'appels modèle. Dans ce projet, les principaux coûts proviennent de quatre sources : génération d'embeddings, recherche vectorielle, réécriture/reranking LLM et boucle agentique multi-outils.

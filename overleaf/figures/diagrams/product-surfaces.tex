@@ -1,0 +1,80 @@
+\begin{tikzpicture}[
+  font=\small,
+  role/.style={darkbox, font=\footnotesize, text width=2.7cm, minimum width=3.0cm, minimum height=1.15cm, inner sep=5pt},
+  surface/.style={box, font=\footnotesize, text width=3.45cm, minimum width=3.9cm, minimum height=1.05cm, inner sep=5pt},
+  sectiontitle/.style={font=\bfseries\footnotesize, fill=white, text=cgdeep, inner xsep=5pt, inner ysep=1pt},
+  aiband/.style={darkbox, font=\footnotesize, text width=9.6cm, minimum width=10.05cm, minimum height=1.05cm, inner sep=6pt}
+]
+  % Une rangée régulière par rôle, inspirée de la composition du rapport de référence.
+  \node[role] (ta) at (-5.6,4.8) {
+    \textbf{Talent\\Acquisition}\\
+    sourcing et\\affectation
+  };
+  \draw[thick, rounded corners=4pt, draw=cgblue!70] (-3.7,6.2) rectangle (6.7,3.4);
+  \node[sectiontitle] at (1.5,6.2) {Sourcing et affectation};
+  \node[surface] (cv) at (-1.1,4.8) {
+    \textbf{Vivier de CV}\\
+    extraction et recherche
+  };
+  \node[surface] (jobs) at (4.1,4.8) {
+    \textbf{Offres et matching}\\
+    critères et présélection
+  };
+
+  \node[role] (manager) at (-5.6,1.6) {
+    \textbf{Manager\\métier}\\
+    évaluation\\opérationnelle
+  };
+  \draw[thick, rounded corners=4pt, draw=cgblue!70] (-3.7,3.0) rectangle (6.7,0.2);
+  \node[sectiontitle] at (1.5,3.0) {Évaluation métier};
+  \node[surface] (assigned) at (-1.1,1.6) {
+    \textbf{Candidatures\\affectées}\\
+    suivi du pipeline
+  };
+  \node[surface] (interviews) at (4.1,1.6) {
+    \textbf{Entretiens et\\rapports}\\
+    planification et évaluation
+  };
+
+  \node[role] (hr) at (-5.6,-1.6) {
+    \textbf{Ressources\\humaines}\\
+    décision et\\communication
+  };
+  \draw[thick, rounded corners=4pt, draw=cgblue!70] (-3.7,-0.2) rectangle (6.7,-3.0);
+  \node[sectiontitle] at (1.5,-0.2) {Décision et communication};
+  \node[surface] (decision) at (-1.1,-1.6) {
+    \textbf{Décision finale}\\
+    arbitrage RH
+  };
+  \node[surface] (communication) at (4.1,-1.6) {
+    \textbf{Communication et\\onboarding}\\
+    notifications et suivi
+  };
+
+  \node[role] (admin) at (-5.6,-4.8) {
+    \textbf{Administration}\\
+    pilotage et\\contrôle
+  };
+  \draw[thick, rounded corners=4pt, draw=cgblue!70] (-3.7,-3.4) rectangle (6.7,-6.2);
+  \node[sectiontitle] at (1.5,-3.4) {Pilotage et gouvernance};
+  \node[surface] (accounts) at (-1.1,-4.8) {
+    \textbf{Comptes et rôles}\\
+    administration des accès
+  };
+  \node[surface] (governance) at (4.1,-4.8) {
+    \textbf{Indicateurs et\\journaux}\\
+    exports et traçabilité
+  };
+
+  \node[aiband] (ai) at (1.5,-7.7) {
+    \textbf{Assistance IA transversale}\\[2pt]
+    extraction \textbullet{} screening \textbullet{} génération\\
+    \textbullet{} RAG \textbullet{} chat analytique
+  };
+
+  \draw[line] (ta.east) -- (-3.7,4.8);
+  \draw[line] (manager.east) -- (-3.7,1.6);
+  \draw[line] (hr.east) -- (-3.7,-1.6);
+  \draw[line] (admin.east) -- (-3.7,-4.8);
+  \draw[dashedline] (1.5,-6.2) -- (ai.north);
+\end{tikzpicture}
