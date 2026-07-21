@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
+import { Field, FieldGroup, FieldLabel } from '@/components/ui/field';
 import { toast } from 'sonner';
 import {
   IconBrain,
@@ -38,8 +39,8 @@ import {
   generateHRDecisionEmailAction,
   sendHRDecisionEmailAction,
 } from '../actions';
-
-import type { InterviewAutoPilotGuide } from '../types';
+import type { InterviewAutoPilotGuide, ScheduleInterviewInput } from '../types';
+import { scheduleInterviewSchema } from '../schemas';
 import { InterviewAutoPilotGuideView } from './interview-autopilot-guide';
 import { buildAgentPromptHref } from './chat/agent-prompts';
 import { EvidenceReadinessPanel } from './evidence-readiness-panel';
@@ -247,16 +248,22 @@ export function HRCandidateDetailClient({
       toast.error('Please fill all fields');
       return;
     }
+    const input: ScheduleInterviewInput = {
+      candidateId: candidate.id,
+      jobId: candidate.jobId,
+      stage: 'hr',
+      scheduledDate: scheduleData.date,
+      scheduledTime: scheduleData.time,
+      meetLink: scheduleData.link,
+    };
+    const parsedInput = scheduleInterviewSchema.safeParse(input);
+    if (!parsedInput.success) {
+      toast.error(parsedInput.error.issues[0]?.message ?? 'Invalid interview details');
+      return;
+    }
     try {
       setIsScheduling(true);
-      const interview = await scheduleInterviewAction({
-        candidateId: candidate.id,
-        jobId: candidate.jobId,
-        stage: 'hr',
-        scheduledDate: scheduleData.date,
-        scheduledTime: scheduleData.time,
-        meetLink: scheduleData.link
-      });
+      const interview = await scheduleInterviewAction(parsedInput.data);
 
       await sendInterviewEmailAction({
         interviewId: interview.id,
@@ -469,20 +476,20 @@ export function HRCandidateDetailClient({
                     <DialogHeader>
                       <DialogTitle>Schedule HR Meeting</DialogTitle>
                     </DialogHeader>
-                    <div className="space-y-4 py-4">
-                      <div className="space-y-2">
-                        <label className="text-sm font-medium">Date</label>
-                        <Input type="date" value={scheduleData.date} onChange={e => setScheduleData({...scheduleData, date: e.target.value})} />
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-sm font-medium">Time</label>
-                        <Input type="time" value={scheduleData.time} onChange={e => setScheduleData({...scheduleData, time: e.target.value})} />
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-sm font-medium">Meeting Link</label>
-                        <Input value={scheduleData.link} onChange={e => setScheduleData({...scheduleData, link: e.target.value})} placeholder="https://meet.google.com/..." />
-                      </div>
-                    </div>
+                    <FieldGroup className="py-4">
+                      <Field>
+                        <FieldLabel htmlFor="hr-interview-date">Date</FieldLabel>
+                        <Input id="hr-interview-date" type="date" value={scheduleData.date} onChange={e => setScheduleData({...scheduleData, date: e.target.value})} required />
+                      </Field>
+                      <Field>
+                        <FieldLabel htmlFor="hr-interview-time">Time</FieldLabel>
+                        <Input id="hr-interview-time" type="time" value={scheduleData.time} onChange={e => setScheduleData({...scheduleData, time: e.target.value})} required />
+                      </Field>
+                      <Field>
+                        <FieldLabel htmlFor="hr-interview-link">Meeting Link</FieldLabel>
+                        <Input id="hr-interview-link" type="url" value={scheduleData.link} onChange={e => setScheduleData({...scheduleData, link: e.target.value})} placeholder="https://meet.google.com/..." required />
+                      </Field>
+                    </FieldGroup>
                     <DialogFooter>
                       <Button onClick={handleScheduleMeeting} disabled={isScheduling}>
                         {isScheduling ? 'Scheduling...' : 'Confirm & Send Invitation'}
@@ -594,15 +601,14 @@ export function HRCandidateDetailClient({
                   <p className="text-sm">Complete Step 1 first to unlock this step.</p>
                 </div>
               ) : emailSent ? (
-                <div className="space-y-4">
-                  <div className="flex items-center gap-3 p-4 rounded-lg bg-emerald-50 dark:bg-emerald-900/20">
+                <div className="flex flex-col gap-4">
+                  <div className="flex items-center gap-3 rounded-lg bg-emerald-50 p-4 dark:bg-emerald-900/20">
                     <IconCircleCheck className="h-5 w-5 text-emerald-500" />
                     <div>
                       <p className="font-medium text-emerald-600 dark:text-emerald-400">Email Sent</p>
                       <p className="text-sm text-muted-foreground">The email has been sent to {candidate.email}</p>
                     </div>
                   </div>
-                  {/* Allow resending */}
                   <Button
                     variant="outline"
                     size="sm"
@@ -615,27 +621,31 @@ export function HRCandidateDetailClient({
                   </Button>
                 </div>
               ) : isEditingEmail ? (
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">To</label>
-                    <Input value={`${candidate.fullName} <${candidate.email}>`} disabled />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Subject</label>
-                    <Input
-                      value={emailSubject}
-                      onChange={(e) => setEmailSubject(e.target.value)}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Body</label>
-                    <Textarea
-                      value={emailBody}
-                      onChange={(e) => setEmailBody(e.target.value)}
-                      rows={12}
-                      className="font-mono text-sm"
-                    />
-                  </div>
+                <div className="flex flex-col gap-4">
+                  <FieldGroup>
+                    <Field data-disabled>
+                      <FieldLabel htmlFor="hr-email-recipient">To</FieldLabel>
+                      <Input id="hr-email-recipient" value={`${candidate.fullName} <${candidate.email}>`} disabled />
+                    </Field>
+                    <Field>
+                      <FieldLabel htmlFor="hr-email-subject">Subject</FieldLabel>
+                      <Input
+                        id="hr-email-subject"
+                        value={emailSubject}
+                        onChange={(e) => setEmailSubject(e.target.value)}
+                      />
+                    </Field>
+                    <Field>
+                      <FieldLabel htmlFor="hr-email-body">Body</FieldLabel>
+                      <Textarea
+                        id="hr-email-body"
+                        value={emailBody}
+                        onChange={(e) => setEmailBody(e.target.value)}
+                        rows={12}
+                        className="font-mono text-sm"
+                      />
+                    </Field>
+                  </FieldGroup>
                   <div className="flex gap-2">
                     <Button onClick={handleSendEmail} disabled={isSendingEmail}>
                       <IconSend className="mr-2 h-4 w-4" />

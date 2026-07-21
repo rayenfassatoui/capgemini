@@ -17,6 +17,7 @@ import {
   IconChartBar
 } from '@tabler/icons-react';
 
+import { formatUtcDate } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -486,7 +487,7 @@ export default function JobsClient({ initialJobs, stats }: JobsClientProps) {
                   <CardFooter className="pt-4 border-t border-white/10 relative z-10 flex justify-between items-center text-xs text-muted-foreground">
                     <div className="flex items-center gap-1.5">
                       <IconCalendar className="h-3.5 w-3.5" />
-                      <span>{new Date(job.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</span>
+                      <span>{formatUtcDate(job.createdAt)}</span>
                     </div>
                     <div className="flex items-center gap-1 text-primary font-medium opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300">
                       View Details

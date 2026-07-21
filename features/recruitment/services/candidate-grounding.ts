@@ -119,6 +119,22 @@ export function normalizeCandidateNameLoose(value: string): string {
     .trim();
 }
 
+export function isCandidateRosterIntent(message: string): boolean {
+  const normalized = String(message ?? "").toLowerCase();
+  const hasCandidateNoun = /\b(candidates?|profiles?)\b/.test(normalized);
+  const hasRosterLanguage =
+    /\b(assigned\s+to\s+me|my\s+(?:assigned\s+)?candidates?|current\s+stage|job\s+title|candidate\s+roster|who\s+is\s+assigned)\b/.test(
+      normalized,
+    ) ||
+    /\b(list|show)\b.*\b(candidates?|profiles?)\b/.test(normalized);
+  const hasRankingLanguage =
+    /\b(top|best|rank(?:ing|ed)?|shortlist|match(?:es|ing)?|recommend(?:ation|ed)?|compare|comparison|prioriti[sz]e|priority)\b/.test(
+      normalized,
+    );
+
+  return hasCandidateNoun && hasRosterLanguage && !hasRankingLanguage;
+}
+
 export function isCandidateSearchOrRankingIntent(message: string): boolean {
   const normalized = String(message ?? "").toLowerCase();
   const isSkillDemandComparison =
@@ -129,7 +145,7 @@ export function isCandidateSearchOrRankingIntent(message: string): boolean {
       normalized,
     );
 
-  if (isSkillDemandComparison) {
+  if (isSkillDemandComparison || isCandidateRosterIntent(message)) {
     return false;
   }
 
@@ -242,9 +258,11 @@ export function groundAssistantResponse(
   options: GroundAssistantResponseOptions,
 ): GroundedAssistantResponse {
   const allowedCandidates = buildAllowedCandidatesFromToolRecords(records);
+  const isRosterFlow = isCandidateRosterIntent(options.userMessage);
   const isRankingFlow =
-    Boolean(options.forceDeterministicRanking) ||
-    isCandidateSearchOrRankingIntent(options.userMessage);
+    !isRosterFlow &&
+    (Boolean(options.forceDeterministicRanking) ||
+      isCandidateSearchOrRankingIntent(options.userMessage));
   const shouldUseBroadNameDetection =
     isRankingFlow ||
     allowedCandidates.candidates.length > 0 ||
@@ -265,6 +283,23 @@ export function groundAssistantResponse(
     };
   }
 
+
+  if (isRosterFlow) {
+    const validation = validateGroundedCandidateNames(
+      rawText,
+      allowedCandidates,
+      { broad: true },
+    );
+
+    return {
+      text: buildDeterministicCandidateRosterResponse(allowedCandidates),
+      blocked: !validation.ok,
+      deterministic: true,
+      candidateCount: allowedCandidates.candidates.length,
+      rejectedNames: validation.rejectedNames,
+      sourceTools: allowedCandidates.sourceTools,
+    };
+  }
 
   if (isRankingFlow) {
     const validation = validateGroundedCandidateNames(
@@ -318,6 +353,55 @@ export function groundAssistantResponse(
     rejectedNames: validation.rejectedNames,
     sourceTools: allowedCandidates.sourceTools,
   };
+}
+
+export function buildDeterministicCandidateRosterResponse(
+  allowedCandidates: AllowedCandidateSet,
+): string {
+  const rows = allowedCandidates.candidates.slice(0, 20);
+
+  if (rows.length === 0) {
+    return [
+      "## Assigned candidate roster",
+      "No candidates are accessible in the current role scope for the requested stages.",
+      "",
+      "## Caveats",
+      "- No names are inferred from prior conversations or model assumptions.",
+      "",
+      "## Next Steps",
+      "1. Verify the requested stages.",
+      "2. Check whether a candidate has been assigned to the current user.",
+      "3. Ask an administrator to review the assignment if the roster should not be empty.",
+    ].join("\n");
+  }
+
+  const table = [
+    "| Name | Current stage | Job |",
+    "|------|---------------|-----|",
+    ...rows.map(
+      (candidate) =>
+        `| ${escapeMarkdownTableCell(candidate.name)} | ${escapeMarkdownTableCell(formatStageLabel(candidate.stage) ?? "Not available")} | ${escapeMarkdownTableCell(candidate.jobTitle ?? "Not available")} |`,
+    ),
+  ].join("\n");
+
+  return [
+    "## Assigned candidate roster",
+    `I found **${rows.length}** candidate${rows.length === 1 ? "" : "s"} accessible in the current role scope.`,
+    "",
+    table,
+    "",
+    "## Evidence",
+    `- Role-scoped source tools: ${allowedCandidates.sourceTools.join(", ") || "candidate tool output"}.`,
+    "",
+    "## Caveats",
+    "- This is a factual roster, not a ranking, shortlist, or hiring recommendation.",
+    "- Only candidates returned by the current response cycle's role-scoped tools are shown.",
+    "",
+    "## Next Steps",
+    "1. Open one listed candidate to review evidence and stage history.",
+    "2. Ask for missing evidence for one listed candidate.",
+    "3. Use the direct workflow for the candidate's current stage; no stage change was executed.",
+  ].join("\n");
 }
 
 export function buildDeterministicGroundedCandidateResponse(

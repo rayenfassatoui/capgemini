@@ -381,21 +381,25 @@ function countToolItems(data: unknown): number | undefined {
   if (Array.isArray(data)) return data.length;
   if (!isRecord(data)) return undefined;
 
+  const total = readNumber(data, [
+    'count',
+    'total',
+    'totalUsers',
+    'totalCandidates',
+    'totalCvs',
+    'totalCvsInPool',
+    'totalJobs',
+    'totalInterviews',
+    'totalResults',
+  ]);
+  if (typeof total === 'number') return total;
+
   for (const key of ARRAY_EVIDENCE_KEYS) {
     const value = data[key];
     if (Array.isArray(value)) return value.length;
   }
 
-  const total = readNumber(data, [
-    'count',
-    'total',
-    'totalCandidates',
-    'totalCvs',
-    'totalJobs',
-    'totalResults',
-  ]);
-
-  return total;
+  return undefined;
 }
 
 function hasCollection(data: unknown): boolean {

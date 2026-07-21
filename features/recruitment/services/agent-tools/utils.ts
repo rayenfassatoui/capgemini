@@ -272,7 +272,15 @@ export function createResolveId(services: Services, ctx: AgentToolContext) {
     paramName: ResolvableParamName,
   ): Promise<string> => {
     const raw = String(value ?? "").trim();
-    if (UUID_RE.test(raw)) return raw;
+    if (UUID_RE.test(raw)) {
+      if (paramName === "candidateId") {
+        const candidate = await services.getCandidateForActor(raw, ctx);
+        if (!candidate) {
+          throw new Error("Candidate not found or not accessible.");
+        }
+      }
+      return raw;
+    }
 
     const index = Number(raw);
     const isIndex = Number.isInteger(index) && index >= 0;
@@ -286,7 +294,9 @@ export function createResolveId(services: Services, ctx: AgentToolContext) {
       const needle = normalizeLookupText(raw);
 
       if (paramName === "candidateId") {
-        const rows = await services.getCandidatesByStage(ALL_CANDIDATE_STAGES);
+        const rows = await services.getCandidatesForActor(ctx, {
+          stages: ALL_CANDIDATE_STAGES,
+        });
         const exactMatch =
           rows.find((r) => normalizeLookupText(r.fullName ?? "") === needle) ??
           rows.find((r) =>
@@ -435,7 +445,9 @@ export function createResolveId(services: Services, ctx: AgentToolContext) {
     }
 
     if (paramName === "candidateId") {
-      const rows = await services.getCandidatesByStage(ALL_CANDIDATE_STAGES);
+      const rows = await services.getCandidatesForActor(ctx, {
+        stages: ALL_CANDIDATE_STAGES,
+      });
       if (index >= rows.length) {
         throw new Error(
           `Invalid candidateId index ${index}. Available range is 0-${Math.max(rows.length - 1, 0)}.`,

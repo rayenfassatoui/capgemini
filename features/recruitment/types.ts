@@ -32,6 +32,7 @@ export type InterviewStage = 'ta' | 'manager' | 'hr';
 export type InterviewStatus = 'scheduled' | 'completed' | 'cancelled';
 
 export type InterviewDecision = 'pending' | 'accepted' | 'rejected';
+export type CompletedInterviewDecision = Exclude<InterviewDecision, 'pending'>;
 
 // ---------- Input Types ----------
 
@@ -143,7 +144,7 @@ export interface InterviewReportInput {
   candidateAnswers: Array<{ question: string; answer: string }>;
   overallEvaluation?: string | null;
   score: number;
-  decision: InterviewDecision;
+  decision: CompletedInterviewDecision;
 }
 
 export interface UpdateInterviewQuestionsInput {

@@ -50,8 +50,8 @@ const SECTIONS: SettingSection[] = [
     description: "AI model and provider settings for screening and analysis",
     icon: IconBrandOpenai,
     items: [
-      { label: "Provider", value: "OpenRouter", status: "active" },
-      { label: "Model", value: "stepfun/step-3.5-flash:free", status: "configured" },
+      { label: "Provider", value: "NVIDIA Build API", status: "active" },
+      { label: "Model", value: "stepfun-ai/step-3.5-flash", status: "configured" },
       { label: "Features", value: "CV Screening, Interview Guides, Statistics Chat", status: "active" },
     ],
   },

@@ -36,6 +36,7 @@ import {
 } from "@tabler/icons-react";
 import { toast } from "sonner";
 import type { OnboardingDetailedEntry } from "@/features/recruitment/services/admin";
+import { formatUtcDate } from "@/lib/utils";
 import { exportOnboardingExcelAction } from "@/features/recruitment/actions";
 import { usePathname, useRouter } from "next/navigation";
 import { AdminAgentEvidencePanel } from "./admin-agent-evidence-panel";
@@ -376,7 +377,7 @@ export function AdminOnboardingClient({
                         </TableCell>
                         <TableCell className="text-right">
                           <span className="text-xs text-muted-foreground tabular-nums">
-                            {new Date(c.hiredAt).toLocaleDateString()}
+                            {formatUtcDate(c.hiredAt)}
                           </span>
                         </TableCell>
                         <TableCell className="text-right">
@@ -462,7 +463,7 @@ export function AdminOnboardingClient({
                               )}
                               {task.completed && task.completedAt && (
                                 <p className="text-[10px] text-emerald-600 font-medium">
-                                  Completed {new Date(task.completedAt).toLocaleDateString()}
+                                  Completed {formatUtcDate(task.completedAt)}
                                 </p>
                               )}
                             </div>

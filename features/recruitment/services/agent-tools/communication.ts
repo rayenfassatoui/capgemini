@@ -142,7 +142,8 @@ export const executors: Record<string, ToolHandler> = {
         interviewerName: args.interviewerName as string,
         stage: args.stage as 'ta' | 'manager' | 'hr',
       },
-      ctx.userId
+      ctx.userId,
+      ctx.role
     );
     return sanitizeForJson(emailLog);
   },

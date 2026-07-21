@@ -24,6 +24,7 @@ import { IconSearch, IconMail, IconMailCheck, IconMailX, IconFileSpreadsheet, Ic
 import type { EmailLogEntry } from "@/features/recruitment/services/admin";
 import { exportEmailLogsExcelAction } from "@/features/recruitment/actions";
 import { usePathname, useRouter } from "next/navigation";
+import { formatUtcDateTime } from "@/lib/utils";
 import { AdminAgentEvidencePanel } from "./admin-agent-evidence-panel";
 import {
   buildAdminAgentPrompt,
@@ -279,7 +280,7 @@ export function AdminEmailsClient({
                       </TableCell>
                       <TableCell className="text-right">
                         <span className="text-xs text-muted-foreground tabular-nums">
-                          {new Date(email.createdAt).toLocaleString()}
+                          {formatUtcDateTime(email.createdAt)}
                         </span>
                       </TableCell>
                       <TableCell>
@@ -324,7 +325,7 @@ export function AdminEmailsClient({
                 </div>
                 <div>
                   <h4 className="text-sm font-medium text-muted-foreground">Date</h4>
-                  <p className="text-sm">{new Date(selectedEmail.createdAt).toLocaleString()}</p>
+                  <p className="text-sm">{formatUtcDateTime(selectedEmail.createdAt)}</p>
                 </div>
                 <div>
                   <h4 className="text-sm font-medium text-muted-foreground">Status</h4>

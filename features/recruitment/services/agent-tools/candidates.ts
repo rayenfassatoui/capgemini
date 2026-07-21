@@ -7,7 +7,7 @@ export const definitions: AgentToolDefinition[] = [
   {
     name: 'get_candidates_by_job',
     description:
-      'Get all candidates assigned to a specific job. Returns candidate info with their interview history.',
+      'Get candidates assigned to the current user for a specific job. Admin receives the global job roster. Returns role-scoped candidate info with job title.',
     parameters: {
       type: 'object',
       properties: {
@@ -21,7 +21,7 @@ export const definitions: AgentToolDefinition[] = [
   {
     name: 'get_candidates_by_stage',
     description:
-      'Get all candidates at specific pipeline stages. Stages: new, ta_screening, ta_interview, ta_accepted, ta_rejected, manager_interview, manager_accepted, manager_rejected, hr_interview, hr_accepted, hr_rejected, hired.',
+      'Get candidates assigned to the current user at specific pipeline stages. Admin receives global results. Stages: new, ta_screening, ta_interview, ta_accepted, ta_rejected, manager_interview, manager_accepted, manager_rejected, hr_interview, hr_accepted, hr_rejected, hired.',
     parameters: {
       type: 'object',
       properties: {
@@ -38,7 +38,7 @@ export const definitions: AgentToolDefinition[] = [
   },
   {
     name: 'get_candidate',
-    description: 'Get detailed information about a specific candidate by ID.',
+    description: 'Get detailed information about a candidate accessible to the current user.',
     parameters: {
       type: 'object',
       properties: {
@@ -187,30 +187,37 @@ export const definitions: AgentToolDefinition[] = [
 // ---- Executors ----
 
 export const executors: Record<string, ToolHandler> = {
-  get_candidates_by_job: async (args, { services, resolveId, sanitizeForJson, truncateArray }) => {
-    const cands = await services.getCandidatesByJob(
-      await resolveId(args.jobId, 'jobId')
-    );
+  get_candidates_by_job: async (
+    args,
+    { services, resolveId, sanitizeForJson, truncateArray, ctx }
+  ) => {
+    const cands = await services.getCandidatesForActor(ctx, {
+      jobId: await resolveId(args.jobId, 'jobId'),
+    });
     return truncateArray(
       cands.map((c) => sanitizeForJson(c)),
       30
     );
   },
 
-  get_candidates_by_stage: async (args, { services, sanitizeForJson, truncateArray }) => {
-    const cands = await services.getCandidatesByStage(
-      args.stages as CandidateStage[]
-    );
+  get_candidates_by_stage: async (
+    args,
+    { services, sanitizeForJson, truncateArray, ctx }
+  ) => {
+    const cands = await services.getCandidatesForActor(ctx, {
+      stages: args.stages as CandidateStage[],
+    });
     return truncateArray(
       cands.map((c) => sanitizeForJson(c)),
       30
     );
   },
 
-  get_candidate: async (args, { services, resolveId, sanitizeForJson }) => {
+  get_candidate: async (args, { services, resolveId, sanitizeForJson, ctx }) => {
     return sanitizeForJson(
-      await services.getCandidate(
-        await resolveId(args.candidateId, 'candidateId')
+      await services.getCandidateForActor(
+        await resolveId(args.candidateId, 'candidateId'),
+        ctx
       )
     );
   },
@@ -223,6 +230,7 @@ export const executors: Record<string, ToolHandler> = {
         changedBy: ctx.userId,
         source: 'agent',
         allowInvalidTransition: ctx.role === 'admin',
+        actorRole: ctx.role,
       }
     );
     return sanitizeForJson(updated);
@@ -269,6 +277,7 @@ export const executors: Record<string, ToolHandler> = {
         changedBy: ctx.userId,
         source: 'bulk',
         allowInvalidTransition: ctx.role === 'admin',
+        actorRole: ctx.role,
       }
     );
     return {

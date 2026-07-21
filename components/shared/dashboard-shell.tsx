@@ -57,6 +57,7 @@ export function DashboardShell({ children, role, userName }: DashboardShellProps
               size="icon" 
               className="lg:hidden"
               onClick={() => setIsMobileOpen(true)}
+              aria-label="Open navigation"
             >
               <IconMenu2 className="h-5 w-5" />
             </Button>
@@ -70,7 +71,7 @@ export function DashboardShell({ children, role, userName }: DashboardShellProps
         </header>
 
         {/* Main Content Area */}
-        <main className="min-w-0 flex-1 p-6">
+      <main id="main-content" tabIndex={-1} className="min-w-0 flex-1 px-6 pb-24 pt-6">
           <div className="mx-auto max-w-7xl min-w-0 animate-in fade-in slide-in-from-bottom-4 duration-500">
             {children}
           </div>

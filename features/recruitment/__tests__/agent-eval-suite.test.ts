@@ -7,6 +7,7 @@ import {
 import { buildConfirmationPreview } from '../components/chat/chat-message-helpers';
 import type { AgentActionConfirmation } from '../components/chat/chat-types';
 import { buildAgentEvidenceMetadata } from '../services/agent-evidence';
+import { definitions as dashboardToolDefinitions } from '../services/agent-tools/dashboard';
 import {
   groundAssistantResponse,
   type GroundingToolRecord,
@@ -123,6 +124,16 @@ describe('agent evaluation suite', () => {
     expect(prompt).toContain('ALL numeric tool arguments (limit, count, threshold, score) must be passed as numbers');
     expect(prompt).toContain('Distinguish CV pool from pipeline candidates');
     expect(prompt).toContain('get_cv_pool_stats (CV pool size and skills)');
+    expect(prompt).toContain('get_jobs_stats describes jobs created by the current user');
+    expect(prompt).toContain('get_dashboard_stats.totalJobs is platform-wide');
+    expect(
+      dashboardToolDefinitions.find(({ name }) => name === 'get_jobs_stats')
+        ?.description,
+    ).toContain('jobs created by the current user');
+    expect(
+      dashboardToolDefinitions.find(({ name }) => name === 'get_dashboard_stats')
+        ?.description,
+    ).toContain('totalJobs is platform-wide');
     expect(prompt).toContain('SECTION 2.5: PROACTIVE OPERATING MODE');
     expect(prompt).toContain('Boss use-case example');
     expect(prompt).toContain('rank by screening score first and stale workflow age second');

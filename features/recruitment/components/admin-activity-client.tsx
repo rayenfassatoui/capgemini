@@ -31,6 +31,7 @@ import { IconSearch, IconFilter, IconFileSpreadsheet, IconEye, IconActivity, Ico
 import { toast } from "sonner";
 import { exportActivityLogExcelAction } from "@/features/recruitment/actions";
 import { usePathname, useRouter } from "next/navigation";
+import { formatUtcDateTime } from "@/lib/utils";
 import { AdminAgentEvidencePanel } from "./admin-agent-evidence-panel";
 import {
   buildActivityAdminEvidence,
@@ -322,7 +323,7 @@ export function AdminActivityClient({
                     <TableCell className="text-right">
                       <span className="text-xs text-muted-foreground tabular-nums">
                         {entry.createdAt
-                          ? new Date(entry.createdAt).toLocaleString()
+                          ? formatUtcDateTime(entry.createdAt)
                           : "Unknown"}
                       </span>
                     </TableCell>
@@ -406,7 +407,7 @@ export function AdminActivityClient({
                   <div className="col-span-3">
                     <span className="text-sm text-muted-foreground tabular-nums">
                       {selectedActivity.createdAt
-                        ? new Date(selectedActivity.createdAt).toLocaleString()
+                        ? formatUtcDateTime(selectedActivity.createdAt)
                         : "Unknown"}
                     </span>
                   </div>

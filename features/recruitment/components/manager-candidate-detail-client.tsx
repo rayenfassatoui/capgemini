@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { Field, FieldGroup, FieldLabel } from '@/components/ui/field';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { Separator } from '@/components/ui/separator';
@@ -23,8 +24,30 @@ import {
   assignHrToCandidateAction,
 } from '@/features/recruitment/actions';
 import { toast } from 'sonner';
-import { IconMail, IconCalendar, IconCheck, IconX, IconExternalLink, IconCircleCheck, IconCircleDashed, IconPlus, IconTrash, IconSparkles, IconEdit, IconDeviceFloppy, IconBrain, IconFileAnalytics, IconMessageChatbot, IconReportAnalytics } from '@tabler/icons-react';
-import type { InterviewDecision, InterviewAutoPilotGuide } from '@/features/recruitment/types';
+import {
+  IconBrain,
+  IconCalendar,
+  IconCheck,
+  IconCircleCheck,
+  IconCircleDashed,
+  IconDeviceFloppy,
+  IconEdit,
+  IconExternalLink,
+  IconFileAnalytics,
+  IconMail,
+  IconMessageChatbot,
+  IconPlus,
+  IconReportAnalytics,
+  IconSparkles,
+  IconTrash,
+  IconX,
+} from '@tabler/icons-react';
+import { scheduleInterviewSchema } from '@/features/recruitment/schemas';
+import type {
+  CompletedInterviewDecision,
+  InterviewAutoPilotGuide,
+  ScheduleInterviewInput,
+} from '@/features/recruitment/types';
 import { InterviewAutoPilotGuideView } from './interview-autopilot-guide';
 import { buildAgentPromptHref } from './chat/agent-prompts';
 import { EvidenceReadinessPanel } from './evidence-readiness-panel';
@@ -132,7 +155,11 @@ export function ManagerCandidateDetailClient({
   const [isGeneratingQuestions, setIsGeneratingQuestions] = useState(false);
   const [isScheduling, setIsScheduling] = useState(false);
   const [scheduleData, setScheduleData] = useState({ date: '', time: '', link: '' });
-  const [reportData, setReportData] = useState({ notes: '', score: 0, decision: 'pending' });
+  const [reportData, setReportData] = useState<{
+    notes: string;
+    score: number;
+    decision: CompletedInterviewDecision | '';
+  }>({ notes: '', score: 0, decision: '' });
   const [isSubmittingReport, setIsSubmittingReport] = useState(false);
   const [isDeciding, setIsDeciding] = useState(false);
 
@@ -148,7 +175,9 @@ export function ManagerCandidateDetailClient({
   const step1Done = !!interviewGuide;
   const step2Done = !!currentInterview;
   const step3Done = currentInterview?.status === 'completed';
-  const hasDecided = candidate.stage === 'manager_accepted' || candidate.stage === 'manager_rejected';
+  const isReadyForHrAssignment = candidate.stage === 'manager_accepted';
+  const isRejected = candidate.stage === 'manager_rejected';
+  const hasDecided = isReadyForHrAssignment || isRejected;
   const candidateJobTitle = candidate.job?.title || jobTitle || 'Unknown job';
   const evidenceReadiness = buildCandidateEvidenceReadiness({
     workflow: 'manager',
@@ -248,16 +277,22 @@ export function ManagerCandidateDetailClient({
       toast.error('Please fill all fields');
       return;
     }
+    const input: ScheduleInterviewInput = {
+      candidateId: candidate.id,
+      jobId: candidate.jobId,
+      stage: 'manager',
+      scheduledDate: scheduleData.date,
+      scheduledTime: scheduleData.time,
+      meetLink: scheduleData.link,
+    };
+    const parsedInput = scheduleInterviewSchema.safeParse(input);
+    if (!parsedInput.success) {
+      toast.error(parsedInput.error.issues[0]?.message ?? 'Invalid interview details');
+      return;
+    }
     try {
       setIsScheduling(true);
-      const interview = await scheduleInterviewAction({
-        candidateId: candidate.id,
-        jobId: candidate.jobId,
-        stage: 'manager',
-        scheduledDate: scheduleData.date,
-        scheduledTime: scheduleData.time,
-        meetLink: scheduleData.link
-      });
+      const interview = await scheduleInterviewAction(parsedInput.data);
       
       await sendInterviewEmailAction({
         interviewId: interview.id,
@@ -302,6 +337,10 @@ export function ManagerCandidateDetailClient({
       toast.error('Score must be between 0 and 100');
       return;
     }
+    if (!reportData.decision) {
+      toast.error('Please choose Accepted or Rejected');
+      return;
+    }
     try {
       setIsSubmittingReport(true);
       await saveInterviewReportAction({
@@ -310,7 +349,7 @@ export function ManagerCandidateDetailClient({
         stage: 'manager',
         notes: reportData.notes,
         score: Number(reportData.score),
-        decision: reportData.decision as InterviewDecision,
+        decision: reportData.decision,
         candidateAnswers: []
       });
       toast.success('Report saved');
@@ -615,20 +654,20 @@ export function ManagerCandidateDetailClient({
                     <DialogHeader>
                       <DialogTitle>Schedule Interview</DialogTitle>
                     </DialogHeader>
-                    <div className="space-y-4 py-4">
-                      <div className="space-y-2">
-                        <label className="text-sm font-medium">Date</label>
-                        <Input type="date" value={scheduleData.date} onChange={e => setScheduleData({...scheduleData, date: e.target.value})} />
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-sm font-medium">Time</label>
-                        <Input type="time" value={scheduleData.time} onChange={e => setScheduleData({...scheduleData, time: e.target.value})} />
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-sm font-medium">Meeting Link</label>
-                        <Input value={scheduleData.link} onChange={e => setScheduleData({...scheduleData, link: e.target.value})} placeholder="https://meet.google.com/..." />
-                      </div>
-                    </div>
+                    <FieldGroup className="py-4">
+                      <Field>
+                        <FieldLabel htmlFor="manager-interview-date">Date</FieldLabel>
+                        <Input id="manager-interview-date" type="date" value={scheduleData.date} onChange={e => setScheduleData({...scheduleData, date: e.target.value})} required />
+                      </Field>
+                      <Field>
+                        <FieldLabel htmlFor="manager-interview-time">Time</FieldLabel>
+                        <Input id="manager-interview-time" type="time" value={scheduleData.time} onChange={e => setScheduleData({...scheduleData, time: e.target.value})} required />
+                      </Field>
+                      <Field>
+                        <FieldLabel htmlFor="manager-interview-link">Meeting Link</FieldLabel>
+                        <Input id="manager-interview-link" type="url" value={scheduleData.link} onChange={e => setScheduleData({...scheduleData, link: e.target.value})} placeholder="https://meet.google.com/..." required />
+                      </Field>
+                    </FieldGroup>
                     <DialogFooter>
                       <Button onClick={handleScheduleInterview} disabled={isScheduling}>
                         {isScheduling ? 'Scheduling...' : 'Confirm & Send Email'}
@@ -662,19 +701,21 @@ export function ManagerCandidateDetailClient({
               ) : (
                 <div className="space-y-4">
                   <div className="space-y-2">
-                    <label className="text-sm font-medium">Notes & Evaluation</label>
-                    <Textarea 
-                      value={reportData.notes} 
-                      onChange={e => setReportData({...reportData, notes: e.target.value})} 
+                    <label htmlFor="manager-report-notes" className="text-sm font-medium">Notes & Evaluation</label>
+                    <Textarea
+                      id="manager-report-notes"
+                      value={reportData.notes}
+                      onChange={e => setReportData({...reportData, notes: e.target.value})}
                       placeholder="Enter your interview notes, observations, and evaluation..."
                       rows={5}
                     />
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <label className="text-sm font-medium">Score (0-100)</label>
-                      <Input 
-                        type="number" 
+                      <label htmlFor="manager-report-score" className="text-sm font-medium">Score (0-100)</label>
+                      <Input
+                        id="manager-report-score"
+                        type="number"
                         min={0}
                         max={100}
                         value={reportData.score} 
@@ -682,13 +723,17 @@ export function ManagerCandidateDetailClient({
                       />
                     </div>
                     <div className="space-y-2">
-                      <label className="text-sm font-medium">Decision</label>
-                      <select 
+                      <label htmlFor="manager-report-decision" className="text-sm font-medium">Decision</label>
+                      <select
+                        id="manager-report-decision"
                         className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                         value={reportData.decision}
-                        onChange={e => setReportData({...reportData, decision: e.target.value as InterviewDecision})}
+                        onChange={e => setReportData({
+                          ...reportData,
+                          decision: e.target.value as CompletedInterviewDecision,
+                        })}
                       >
-                        <option value="pending">Pending</option>
+                        <option value="" disabled>Select a decision</option>
                         <option value="accepted">Accepted</option>
                         <option value="rejected">Rejected</option>
                       </select>
@@ -703,45 +748,55 @@ export function ManagerCandidateDetailClient({
           </Card>
 
           {/* Step 4: Final Decision */}
-          <Card className={hasDecided ? 'border-emerald-200 dark:border-emerald-900' : ''}>
+          <Card
+            className={
+              isReadyForHrAssignment
+                ? 'border-emerald-200 dark:border-emerald-900'
+                : isRejected
+                  ? 'border-destructive/40'
+                  : ''
+            }
+          >
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                {hasDecided && <IconCircleCheck className="h-5 w-5 text-emerald-500" />}
+                {isReadyForHrAssignment && (
+                  <IconCircleCheck className="h-5 w-5 text-emerald-500" />
+                )}
+                {isRejected && <IconX className="h-5 w-5 text-destructive" />}
                 4. Final Decision
               </CardTitle>
               <CardDescription>
-                {hasDecided
-                  ? `You have ${candidate.stage === 'manager_accepted' ? 'accepted this candidate (forwarded to HR)' : 'rejected this candidate'}.`
-                  : 'Accept to forward the candidate to HR, or reject.'}
+                {isRejected
+                  ? 'You rejected this candidate.'
+                  : isReadyForHrAssignment
+                    ? 'The manager interview report is accepted. Select an HR representative to complete the handoff.'
+                    : 'Submit an accepted manager interview report before assigning this candidate to HR.'}
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {hasDecided ? (
+              {isRejected ? (
                 <div className="flex items-center gap-3 p-4 rounded-lg bg-muted">
-                  {candidate.stage === 'manager_accepted' ? (
-                    <>
-                      <IconCircleCheck className="h-5 w-5 text-emerald-500" />
-                      <div>
-                        <p className="font-medium text-emerald-600 dark:text-emerald-400">Candidate Accepted</p>
-                        <p className="text-sm text-muted-foreground">Forwarded to HR for final processing.</p>
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      <IconX className="h-5 w-5 text-destructive" />
-                      <div>
-                        <p className="font-medium text-destructive">Candidate Rejected</p>
-                        <p className="text-sm text-muted-foreground">This candidate will not move forward.</p>
-                      </div>
-                    </>
-                  )}
+                  <IconX className="h-5 w-5 text-destructive" />
+                  <div>
+                    <p className="font-medium text-destructive">Candidate Rejected</p>
+                    <p className="text-sm text-muted-foreground">This candidate will not move forward.</p>
+                  </div>
                 </div>
               ) : (
                 <div className="space-y-4">
+                  {isReadyForHrAssignment && (
+                    <div className="flex items-center gap-3 rounded-lg border border-emerald-500/25 bg-emerald-500/10 p-3">
+                      <IconCircleCheck className="h-5 w-5 shrink-0 text-emerald-500" />
+                      <p className="text-sm text-emerald-700 dark:text-emerald-300">
+                        Accepted report recorded. Choose HR to complete the handoff.
+                      </p>
+                    </div>
+                  )}
                   {hrUsers && hrUsers.length > 0 && (
                     <div className="space-y-2">
-                      <label className="text-sm font-medium">Select HR Representative</label>
+                      <label htmlFor="manager-hr-assignee" className="text-sm font-medium">Select HR Representative</label>
                       <select
+                        id="manager-hr-assignee"
                         className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                         value={selectedHrId}
                         onChange={(e) => setSelectedHrId(e.target.value)}
@@ -756,10 +811,11 @@ export function ManagerCandidateDetailClient({
                   <div className="flex gap-3">
                     <Button 
                       onClick={() => handleDecision('manager_accepted')} 
-                      disabled={isDeciding || !selectedHrId}
+                      disabled={isDeciding || !selectedHrId || !isReadyForHrAssignment}
                       className="bg-emerald-600 hover:bg-emerald-700 text-white"
                     >
-                      <IconCheck className="mr-2 h-4 w-4" /> Accept & Assign to HR
+                      <IconCheck className="mr-2 h-4 w-4" />
+                      {isReadyForHrAssignment ? 'Assign to HR' : 'Accepted report required'}
                     </Button>
                     <Button 
                       variant="destructive" 

@@ -1,15 +1,15 @@
 import { Suspense } from 'react';
-import { getCandidatesByStageAndAssigneeAction } from '@/features/recruitment/actions';
+import { getCandidatesForCurrentActorAction } from '@/features/recruitment/actions';
 import { requireRole } from '@/lib/auth';
 import { ManagerCandidatesClient } from '@/features/recruitment/components/manager-candidates-client';
 
 export default async function ManagerCandidatesPage() {
-  const session = await requireRole(['manager', 'admin']);
-  const candidates = await getCandidatesByStageAndAssigneeAction(
-    ['manager_interview', 'manager_accepted', 'manager_rejected'], 
-    'assignedManagerId', 
-    session.user.id
-  );
+  await requireRole(['manager', 'admin']);
+  const candidates = await getCandidatesForCurrentActorAction([
+    'manager_interview',
+    'manager_accepted',
+    'manager_rejected',
+  ]);
 
   return (
     <div className="relative space-y-8 p-6 md:p-8 max-w-7xl mx-auto">

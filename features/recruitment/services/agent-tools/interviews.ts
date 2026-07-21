@@ -192,7 +192,7 @@ export const definitions: AgentToolDefinition[] = [
   {
     name: 'create_interview_report',
     description:
-      'Save an interview report with notes, candidate answers, score (0-100), and decision (pending/accepted/rejected). Also marks the interview as completed and updates the candidate stage accordingly.',
+      'Save a completed interview report with notes, candidate answers, score (0-100), and an accepted or rejected decision. Updates the candidate stage accordingly.',
     parameters: {
       type: 'object',
       properties: {
@@ -229,8 +229,8 @@ export const definitions: AgentToolDefinition[] = [
         },
         decision: {
           type: 'string',
-          description: 'Decision: pending, accepted, or rejected',
-          enum: ['pending', 'accepted', 'rejected'],
+          description: 'Decision: accepted or rejected',
+          enum: ['accepted', 'rejected'],
         },
       },
       required: ['interviewId', 'candidateId', 'stage', 'score', 'decision'],
@@ -294,7 +294,8 @@ export const executors: Record<string, ToolHandler> = {
         scheduledTime: args.scheduledTime as string,
         meetLink: args.meetLink as string,
       },
-      ctx.userId
+      ctx.userId,
+      ctx.role
     );
     return sanitizeForJson(interview);
   },
@@ -363,9 +364,10 @@ export const executors: Record<string, ToolHandler> = {
           }>) ?? [],
         overallEvaluation: (args.overallEvaluation as string) ?? null,
         score: Number(args.score),
-        decision: args.decision as 'pending' | 'accepted' | 'rejected',
+        decision: args.decision as 'accepted' | 'rejected',
       },
-      ctx.userId
+      ctx.userId,
+      ctx.role
     );
     return sanitizeForJson(report);
   },

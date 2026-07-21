@@ -60,6 +60,56 @@ describe('agent evidence metadata', () => {
     });
   });
 
+  it('uses semantic total fields before nested analytics array lengths', () => {
+    const metadata = buildAgentEvidenceMetadata(
+      [
+        {
+          toolName: 'get_cv_pool_stats',
+          result: {
+            success: true,
+            data: {
+              totalCvs: 10,
+              topSkills: [
+                { skill: 'TypeScript', count: 6 },
+                { skill: 'React', count: 5 },
+              ],
+            },
+          },
+        },
+        {
+          toolName: 'get_jobs_stats',
+          result: {
+            success: true,
+            data: {
+              totalJobs: 8,
+              bySeniority: [{ seniority: 'Senior', count: 6 }],
+            },
+          },
+        },
+        {
+          toolName: 'get_system_overview',
+          result: {
+            success: true,
+            data: {
+              totalUsers: 5,
+              totalCandidates: 17,
+              totalJobs: 11,
+              recentActivity: [{ id: 'activity-1' }],
+            },
+          },
+        },
+      ],
+      { role: 'admin' },
+    );
+
+    expect(metadata.sources.map((source) => source.count)).toEqual([10, 8, 5]);
+    expect(metadata.sources.map((source) => source.detail)).toEqual([
+      '10 accessible records',
+      '8 accessible records',
+      '5 accessible records',
+    ]);
+  });
+
   it('keeps failed tools out of row-level evidence and records source limits', () => {
     const records: AgentEvidenceToolRecord[] = [
       {

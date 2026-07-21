@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { formatUtcDate } from '@/lib/utils';
 import { 
   IconSearch, 
   IconEye,
@@ -90,6 +91,7 @@ export function HRCandidatesClient({ initialCandidates }: HRCandidatesClientProp
           <div className="relative bg-background/50 backdrop-blur-xl border border-border/50 rounded-xl flex items-center shadow-sm group-hover:shadow-md transition-all duration-300">
             <IconSearch className="ml-3 h-4 w-4 text-muted-foreground" />
             <Input
+              aria-label="Search candidates"
               placeholder="Search candidates..."
               className="border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 placeholder:text-muted-foreground/50"
               value={searchTerm}
@@ -145,27 +147,27 @@ export function HRCandidatesClient({ initialCandidates }: HRCandidatesClientProp
                   </div>
 
                   {/* Main Info */}
-                  <div className="flex-grow min-w-0 space-y-1">
-                    <div className="flex items-center gap-2">
-                      <h3 className="font-semibold text-lg text-foreground truncate">
+                  <div className="w-full min-w-0 flex-grow space-y-1">
+                    <div className="flex w-full min-w-0 flex-col items-start gap-2 sm:flex-row sm:items-center">
+                      <h3 className="w-full break-words text-lg font-semibold text-foreground sm:min-w-0 sm:flex-1 sm:truncate">
                         {candidate.fullName}
                       </h3>
-                      <Badge variant={getStageBadgeColor(candidate.stage)} className="ml-2 shadow-sm">
+                      <Badge variant={getStageBadgeColor(candidate.stage)} className="shrink-0 shadow-sm">
                         {formatStage(candidate.stage)}
                       </Badge>
                     </div>
                     <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
-                      <div className="flex items-center gap-1.5">
-                        <IconBriefcase className="h-3.5 w-3.5" />
-                        <span>{candidate.jobTitle || 'N/A'}</span>
+                      <div className="flex w-full min-w-0 items-center gap-1.5 sm:w-auto">
+                        <IconBriefcase className="h-3.5 w-3.5 shrink-0" />
+                        <span className="min-w-0 truncate">{candidate.jobTitle || 'N/A'}</span>
                       </div>
-                      <div className="flex items-center gap-1.5">
-                        <IconMail className="h-3.5 w-3.5" />
-                        <span className="truncate">{candidate.email}</span>
+                      <div className="flex w-full min-w-0 items-center gap-1.5 sm:w-auto">
+                        <IconMail className="h-3.5 w-3.5 shrink-0" />
+                        <span className="min-w-0 truncate">{candidate.email}</span>
                       </div>
                       <div className="flex items-center gap-1.5">
                         <IconCalendar className="h-3.5 w-3.5" />
-                        <span>{new Date(candidate.createdAt).toLocaleDateString()}</span>
+                        <span>{formatUtcDate(candidate.createdAt)}</span>
                       </div>
                     </div>
                   </div>

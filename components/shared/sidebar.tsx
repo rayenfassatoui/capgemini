@@ -45,6 +45,7 @@ interface NavItem {
   labelKey: string;
   href: string;
   icon: React.ComponentType<{ className?: string }>;
+  exact?: boolean;
 }
 
 const NAV_ITEMS: Record<UserRole, NavItem[]> = {
@@ -86,7 +87,7 @@ const NAV_ITEMS: Record<UserRole, NavItem[]> = {
       href: "/admin/dashboard",
       icon: IconLayoutDashboard,
     },
-    { labelKey: "nav.users", href: "/admin", icon: IconUserShield },
+    { labelKey: "nav.users", href: "/admin", icon: IconUserShield, exact: true },
     { labelKey: "nav.activity", href: "/admin/activity", icon: IconActivity },
     { labelKey: "nav.governance", href: "/admin/governance", icon: IconShieldCheck },
     { labelKey: "nav.analytics", href: "/admin/analytics", icon: IconChartBar },
@@ -222,7 +223,7 @@ function SidebarContent({
         <nav className="space-y-1">
           {navItems.map((item) => {
             const isActive =
-              pathname === item.href || pathname.startsWith(item.href + "/");
+              pathname === item.href || (!item.exact && pathname.startsWith(item.href + "/"));
             const Icon = item.icon;
 
             return (
@@ -234,6 +235,7 @@ function SidebarContent({
                   >
                     <Link
                       href={item.href}
+                      aria-label={isCollapsed ? t(item.labelKey) : undefined}
                       className={cn(
                         "group flex items-center rounded-md px-3 py-2.5 text-sm font-medium transition-all duration-200",
                         isActive
@@ -284,7 +286,7 @@ function SidebarContent({
                 NAV_ITEMS[r].map((item) => {
                   const isActive =
                     pathname === item.href ||
-                    pathname.startsWith(item.href + "/");
+                    (!item.exact && pathname.startsWith(item.href + "/"));
                   const Icon = item.icon;
                   return (
                     <TooltipProvider key={item.href} delay={0}>
@@ -295,6 +297,7 @@ function SidebarContent({
                         >
                           <Link
                             href={item.href}
+                            aria-label={isCollapsed ? `${t(item.labelKey)} (${r.toUpperCase()})` : undefined}
                             className={cn(
                               "group flex items-center rounded-md px-3 py-2 text-sm transition-all",
                               isActive
@@ -357,6 +360,13 @@ function SidebarContent({
                     isCollapsed && "justify-center h-9 w-9",
                   )}
                   onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+                  aria-label={
+                    mounted
+                      ? theme === "dark"
+                        ? t("settings.light")
+                        : t("settings.dark")
+                      : t("settings.dark")
+                  }
                 >
                   {/* Render placeholder until mounted to avoid hydration mismatch */}
                   {mounted ? (
@@ -403,6 +413,7 @@ function SidebarContent({
                     isCollapsed && "justify-center h-9 w-9",
                   )}
                   onClick={() => setLocale(locale === "en" ? "fr" : "en")}
+                  aria-label={locale === "en" ? "Switch to French" : "Switch to English"}
                 >
                   <IconLanguage className="h-4 w-4 shrink-0" />
                   {!isCollapsed && (
@@ -446,6 +457,7 @@ function SidebarContent({
             size="sm"
             className="h-8 w-full flex items-center justify-center text-gray-500 hover:text-gray-900 dark:hover:text-white"
             onClick={toggleCollapse}
+            aria-label={isCollapsed ? "Expand navigation" : "Collapse navigation"}
           >
             {isCollapsed ? (
               <IconChevronsRight className="h-4 w-4" />

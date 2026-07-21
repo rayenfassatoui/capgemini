@@ -6,7 +6,7 @@ export const definitions: AgentToolDefinition[] = [
   {
     name: 'get_dashboard_stats',
     description:
-      "Get recruitment dashboard statistics: assigned/in-pipeline candidates, total jobs, today's interviews, pending screenings, and stage breakdown. This does not count uploaded CV pool size.",
+      "Get recruitment dashboard statistics. totalJobs is platform-wide. totalCandidates, pendingScreenings, and stageBreakdown are platform-wide for TA/admin but limited to assigned candidates for Manager/HR. totalInterviewsToday is for the current user. This does not count uploaded CV pool size.",
     parameters: { type: 'object', properties: {}, required: [] },
     allowedRoles: ['ta', 'manager', 'hr', 'admin'],
     mutating: false,
@@ -14,7 +14,7 @@ export const definitions: AgentToolDefinition[] = [
   {
     name: 'get_cv_pool_stats',
     description:
-      'Get CV pool statistics: total CVs, top skills, language distribution, and upload trend.',
+      'Get statistics only for CVs uploaded by the current user: total CVs, top skills, language distribution, and upload trend.',
     parameters: { type: 'object', properties: {}, required: [] },
     allowedRoles: ['ta', 'admin'],
     mutating: false,
@@ -22,7 +22,7 @@ export const definitions: AgentToolDefinition[] = [
   {
     name: 'get_jobs_stats',
     description:
-      'Get job statistics: total jobs, by seniority, by status, by business unit, and top skills demand.',
+      'Get statistics only for jobs created by the current user: total jobs, by seniority, by status, by business unit, and top skills demand.',
     parameters: { type: 'object', properties: {}, required: [] },
     allowedRoles: ['ta', 'admin'],
     mutating: false,

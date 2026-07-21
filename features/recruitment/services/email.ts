@@ -2,16 +2,40 @@ import { eq } from 'drizzle-orm';
 import { db } from '@/lib/db';
 import { emailLogs, interviews } from '@/db/schema';
 import { sendInterviewEmailSchema } from '../schemas';
-import type { InterviewStage, SendInterviewEmailInput } from '../types';
+import type { InterviewStage, SendInterviewEmailInput, UserRole } from '../types';
 import { callOpenRouter, cleanJsonResponse } from './ai';
-import { getCandidate } from './candidates';
+import { getCandidate, getCandidateForActor } from './candidates';
 import { getJob } from './jobs';
+import { getInterview } from './interviews';
 
 export async function sendInterviewEmail(
   input: SendInterviewEmailInput,
-  userId: string
+  userId: string,
+  actorRole: UserRole
 ) {
   const validated = sendInterviewEmailSchema.parse(input);
+  const interview = await getInterview(validated.interviewId);
+  if (!interview) {
+    throw new Error('Interview not found');
+  }
+  if (actorRole !== 'admin' && actorRole !== interview.stage) {
+    throw new Error('Interview stage is outside your role');
+  }
+  if (validated.stage !== interview.stage) {
+    throw new Error('Interview stage does not match the email');
+  }
+
+  const candidate = await getCandidateForActor(interview.candidateId, {
+    userId,
+    role: actorRole,
+  });
+  if (!candidate) {
+    throw new Error('Candidate not found or not accessible');
+  }
+  const job = await getJob(interview.jobId);
+  if (!job) {
+    throw new Error('Job not found');
+  }
 
   const stageLabels: Record<InterviewStage, string> = {
     ta: 'Talent Acquisition',
@@ -19,19 +43,19 @@ export async function sendInterviewEmail(
     hr: 'HR',
   };
 
-  const subject = `Interview Invitation - ${validated.jobTitle} (${stageLabels[validated.stage]})`;
-  const body = `Dear ${validated.candidateName},
+  const subject = `Interview Invitation - ${job.title} (${stageLabels[interview.stage]})`;
+  const body = `Dear ${candidate.fullName},
 
-We are pleased to invite you for an interview for the position of ${validated.jobTitle}.
+We are pleased to invite you for an interview for the position of ${job.title}.
 
 Interview Details:
-- Stage: ${stageLabels[validated.stage]} Interview
-- Date: ${validated.scheduledDate}
-- Time: ${validated.scheduledTime}
+- Stage: ${stageLabels[interview.stage]} Interview
+- Date: ${interview.scheduledDate}
+- Time: ${interview.scheduledTime}
 - Interviewer: ${validated.interviewerName}
 
 Please join the interview using the following Google Meet link:
-${validated.meetLink}
+${interview.meetLink}
 
 Please confirm your availability by replying to this email.
 
@@ -56,7 +80,7 @@ Capgemini Recruitment Team`;
 
       await transporter.sendMail({
         from: emailUser,
-        to: validated.candidateEmail,
+        to: candidate.email,
         subject,
         text: body,
       });
@@ -70,8 +94,8 @@ Capgemini Recruitment Team`;
   const [emailLog] = await db
     .insert(emailLogs)
     .values({
-      toEmail: validated.candidateEmail,
-      toName: validated.candidateName,
+      toEmail: candidate.email,
+      toName: candidate.fullName,
       subject,
       body,
       sentBy: userId,

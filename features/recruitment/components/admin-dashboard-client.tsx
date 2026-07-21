@@ -16,6 +16,7 @@ import {
 } from "@tabler/icons-react";
 import type { SystemOverview } from "@/features/recruitment/services/admin";
 import { AdminAgentEvidencePanel } from "./admin-agent-evidence-panel";
+import { formatUtcDateTime } from "@/lib/utils";
 import {
   buildAdminAgentPrompt,
   buildDashboardAdminEvidence,
@@ -284,9 +285,7 @@ export function AdminDashboardClient({ overview }: AdminDashboardClientProps) {
                             {entry.userName}
                           </p>
                           <time className="text-[10px] font-medium text-muted-foreground/50 whitespace-nowrap bg-secondary/50 px-2 py-0.5 rounded-full">
-                            {entry.createdAt
-                              ? new Date(entry.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
-                              : "Unknown"}
+                            {entry.createdAt ? formatUtcDateTime(entry.createdAt) : "Unknown"}
                           </time>
                         </div>
                         

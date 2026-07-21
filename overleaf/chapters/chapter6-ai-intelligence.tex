@@ -222,11 +222,23 @@ L'IA n'est donc pas utilisée seulement pour retrouver ou classer, mais aussi po
 \subsection{Page statistiques, workspace agentique et réponses sourcées}
 La page statistique du recruteur charge les statistiques du catalogue, les statistiques des jobs et les \textit{smart insights}. Le composant \sourcecode{StatisticsChat} complète cette vue par une interaction conversationnelle SSE, mais il n'est plus seul : la navigation expose aussi une page \sourcecode{/agent} plein écran conçue pour les analyses longues, la consultation de l'historique et les traces détaillées.
 Cette couche conversationnelle n'est pas décorative. Elle ouvre un accès agentique aux données du système, avec mémoire conversationnelle, outils filtrés par rôle, exécution traçable et prompts contextuels injectés depuis les pages métier. Les boutons \textit{Ask Agent} disséminés dans le catalogue, les offres, les fiches Manager, les fiches RH et les surfaces Admin réutilisent les données du contexte courant pour préremplir la demande.
-Du point de vue métier, l'apport du sprint est concret. La recherche sémantique réduit l'effort de repérage des profils proches, le RAG améliore la justification des réponses complexes, et le chat agentique réduit le coût de navigation entre plusieurs écrans spécialisés. Le recruteur ne gagne donc pas seulement en rapidité ; il gagne aussi en lisibilité sur les raisons qui conduisent à une recommandation, un classement ou une synthèse. La figure \ref{fig:agent-workspace} montre cette restitution sourcée.
+Du point de vue métier, l'apport du sprint est concret. La recherche sémantique réduit l'effort de repérage des profils proches, le RAG améliore la justification des réponses complexes, et le chat agentique réduit le coût de navigation entre plusieurs écrans spécialisés. Le recruteur ne gagne donc pas seulement en rapidité ; il gagne aussi en lisibilité sur les raisons qui conduisent à une recommandation, un classement ou une synthèse. La figure \ref{fig:agent-workspace} montre cette restitution sourcée. Les figures \ref{fig:agent-pipeline-funnel} et \ref{fig:agent-skill-gap} isolent les deux cartes graphiques observées dans ce même workspace : la distribution des candidats par étape et l'écart entre demande des offres et compétences disponibles dans le vivier.
 \begin{figure}[H]
   \centering
   \appcapture{figures/screenshots/agent-workspace-references.png}
   \caption{\label{fig:agent-workspace}Workspace agentique : demande analytique, preuves sourcées et amorce de restitution du pipeline.}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \appcapture{figures/screenshots/agent-pipeline-funnel.png}
+  \caption{\label{fig:agent-pipeline-funnel}Funnel de pipeline affiché dans le workspace agent.}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \appcapture{figures/screenshots/agent-skill-gap.png}
+  \caption{\label{fig:agent-skill-gap}Écart demande--offre de compétences affiché dans le workspace agent.}
 \end{figure}
 \begin{figure}[H]
   \centering

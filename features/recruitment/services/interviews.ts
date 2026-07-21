@@ -7,17 +7,45 @@ import type {
   InterviewStage,
   ScheduleInterviewInput,
   TodayInterview,
+  UserRole,
 } from '../types';
-import { getCandidate, updateCandidateStage } from './candidates';
+import {
+  getCandidate,
+  getCandidateForActor,
+  updateCandidateStage,
+} from './candidates';
 import { getJob } from './jobs';
 import { logActivity } from './activity-log';
 import { notifyInterviewScheduled } from './notifications';
 
 export async function scheduleInterview(
   input: ScheduleInterviewInput,
-  userId: string
+  userId: string,
+  actorRole: UserRole
 ) {
   const validated = scheduleInterviewSchema.parse(input);
+  if (actorRole !== 'admin' && actorRole !== validated.stage) {
+    throw new Error('Interview stage is outside your role');
+  }
+
+  const candidate = await getCandidateForActor(validated.candidateId, {
+    userId,
+    role: actorRole,
+  });
+  if (!candidate) {
+    throw new Error('Candidate not found or not accessible');
+  }
+  if (candidate.jobId !== validated.jobId) {
+    throw new Error('Candidate does not belong to this job');
+  }
+  const interviewStageByRole: Record<InterviewStage, CandidateStage> = {
+    ta: 'ta_interview',
+    manager: 'manager_interview',
+    hr: 'hr_interview',
+  };
+  if (candidate.stage !== interviewStageByRole[validated.stage]) {
+    throw new Error(`Candidate is not at the ${validated.stage} interview stage`);
+  }
 
   const dbDate = validated.scheduledDate;
 
@@ -45,9 +73,9 @@ export async function scheduleInterview(
     reason: `${validated.stage.toUpperCase()} interview scheduled`,
   });
 
-  const candidate = await getCandidate(validated.candidateId);
+  const refreshedCandidate = await getCandidate(validated.candidateId);
   const job = await getJob(validated.jobId);
-  const candidateName = candidate?.fullName ?? 'Unknown';
+  const candidateName = refreshedCandidate?.fullName ?? 'Unknown';
   const jobTitle = job?.title ?? 'Unknown';
 
   // Notification should not block interview creation.

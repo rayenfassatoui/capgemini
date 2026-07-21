@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
   IconDownload,
@@ -41,6 +41,7 @@ import {
 } from "@/components/ui/table";
 import { exportGovernanceAuditCsvAction } from "@/features/recruitment/actions";
 import { GOVERNANCE_AUDIT_STATUSES } from "@/features/recruitment/types";
+import { formatUtcDateTime as formatDateTime } from "@/lib/utils";
 import type {
   GovernanceAuditFilters,
   GovernanceAuditReport,
@@ -57,12 +58,6 @@ const KIND_LABELS: Record<GovernanceAuditRow["kind"], string> = {
   stage_transition: "Stage transition",
 };
 
-function formatDateTime(value: string): string {
-  return new Intl.DateTimeFormat("en", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(new Date(value));
-}
 
 function emptyToAll(value: string | undefined): string {
   return value && value.length > 0 ? value : "all";
@@ -220,6 +215,7 @@ function AuditDetail({ row }: { row: GovernanceAuditRow }) {
 
 export function AdminGovernanceClient({ report }: AdminGovernanceClientProps) {
   const router = useRouter();
+  const sheetContentRef = useRef<HTMLDivElement>(null);
   const [selectedRow, setSelectedRow] = useState<GovernanceAuditRow | null>(null);
   const [isPending, startTransition] = useTransition();
   const [isExporting, setIsExporting] = useState(false);
@@ -523,7 +519,11 @@ export function AdminGovernanceClient({ report }: AdminGovernanceClientProps) {
       </Card>
 
       <Sheet open={!!selectedRow} onOpenChange={(open) => !open && setSelectedRow(null)}>
-        <SheetContent className="w-full sm:max-w-xl">
+        <SheetContent
+          ref={sheetContentRef}
+          initialFocus={sheetContentRef}
+          className="w-full sm:max-w-xl"
+        >
           <SheetHeader>
             <SheetTitle>Governance audit detail</SheetTitle>
             <SheetDescription>

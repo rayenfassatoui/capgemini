@@ -57,6 +57,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { Field, FieldGroup, FieldLabel } from '@/components/ui/field';
 
 import {
   closeJobAction,
@@ -76,11 +77,12 @@ import { InlineCvMatching } from '@/features/recruitment/components/match-cvs-di
 import { buildAgentPromptHref } from '@/features/recruitment/components/chat/agent-prompts';
 import { InterviewAutoPilotGuideView } from '@/features/recruitment/components/interview-autopilot-guide';
 
+import { scheduleInterviewSchema } from '@/features/recruitment/schemas';
 import type {
   CandidateStage,
   InterviewStage,
   ScheduleInterviewInput,
-  InterviewDecision,
+  CompletedInterviewDecision,
 } from '@/features/recruitment/types';
 
 // ---------- Types (Locally defined as they are not in types.ts) ----------
@@ -228,7 +230,7 @@ export function JobDetailClient({
   const [reportInterviewId, setReportInterviewId] = React.useState('');
   const [reportNotes, setReportNotes] = React.useState('');
   const [reportScore, setReportScore] = React.useState<number>(0);
-  const [reportDecision, setReportDecision] = React.useState<InterviewDecision>('pending');
+  const [reportDecision, setReportDecision] = React.useState<CompletedInterviewDecision | null>(null);
   const [reportOverall, setReportOverall] = React.useState('');
   const [selectedManagerIds, setSelectedManagerIds] = React.useState<Record<string, string>>({});
   const [assigningManager, setAssigningManager] = React.useState<string | null>(null);
@@ -255,9 +257,17 @@ export function JobDetailClient({
   const handleGenerateScreening = async (candidateId: string) => {
     try {
       toast.info('Generating screening...');
-      await generateScreeningAction(candidateId, jobId);
+      const screening = await generateScreeningAction(candidateId, jobId);
+      setCandidates((current) =>
+        current.map((candidate) =>
+          candidate.id === candidateId
+            ? { ...candidate, stage: 'ta_screening' }
+            : candidate
+        )
+      );
+      setViewScreeningData(screening);
       toast.success('Screening generated');
-      // Force refresh or update local state would be ideal
+      router.refresh();
     } catch {
       toast.error('Failed to generate screening');
     }
@@ -322,7 +332,7 @@ export function JobDetailClient({
   };
 
   const handleScheduleInterview = async () => {
-    if (!selectedCandidateId || !scheduleDate || !scheduleTime) {
+    if (!selectedCandidateId || !scheduleDate || !scheduleTime || !meetLink) {
       toast.error('Please fill all fields');
       return;
     }
@@ -335,14 +345,31 @@ export function JobDetailClient({
         scheduledTime: scheduleTime,
         meetLink,
       };
+      const parsedInput = scheduleInterviewSchema.safeParse(input);
+      if (!parsedInput.success) {
+        toast.error(parsedInput.error.issues[0]?.message ?? 'Invalid interview details');
+        return;
+      }
 
-      await scheduleInterviewAction(input);
+      const interview = await scheduleInterviewAction(parsedInput.data);
+      setCandidates((current) =>
+        current.map((candidate) =>
+          candidate.id === selectedCandidateId
+            ? {
+                ...candidate,
+                stage: 'ta_interview',
+                interviews: [interview, ...(candidate.interviews ?? [])],
+              }
+            : candidate
+        )
+      );
       setScheduleDialogOpen(false);
       toast.success('Interview scheduled');
       setScheduleDate('');
       setScheduleTime('');
       setMeetLink('');
       setSelectedCandidateId('');
+      router.refresh();
     } catch {
       toast.error('Failed to schedule interview');
     }
@@ -375,8 +402,16 @@ export function JobDetailClient({
 
   const handleUpdateStage = async (candidateId: string, stage: CandidateStage) => {
     try {
-      await updateCandidateStageAction(candidateId, stage);
+      const updated = await updateCandidateStageAction(candidateId, stage);
+      setCandidates((current) =>
+        current.map((candidate) =>
+          candidate.id === candidateId
+            ? { ...candidate, stage: updated.stage }
+            : candidate
+        )
+      );
       toast.success(`Candidate moved to ${stage}`);
+      router.refresh();
     } catch {
       toast.error('Failed to update stage');
     }
@@ -385,10 +420,22 @@ export function JobDetailClient({
   const handleOpenReport = (interviewId: string, candidateId: string) => {
     setReportInterviewId(interviewId);
     setSelectedCandidateId(candidateId); // Reuse this state
+    setReportNotes('');
+    setReportScore(0);
+    setReportDecision(null);
+    setReportOverall('');
     setReportDialogOpen(true);
   };
 
   const handleSaveReport = async () => {
+    if (!reportNotes.trim() && !reportOverall.trim()) {
+      toast.error('Please enter interview notes or an overall evaluation');
+      return;
+    }
+    if (!reportDecision) {
+      toast.error('Please choose Accept or Reject');
+      return;
+    }
     try {
       await saveInterviewReportAction({
         interviewId: reportInterviewId,
@@ -401,9 +448,23 @@ export function JobDetailClient({
         candidateAnswers: [], // Add functionality for Q&A pairs if needed
       });
       setReportDialogOpen(false);
+      setCandidates((current) =>
+        current.map((candidate) =>
+          candidate.id === selectedCandidateId
+            ? {
+                ...candidate,
+                stage:
+                  reportDecision === 'accepted'
+                    ? 'ta_accepted'
+                    : 'ta_rejected',
+              }
+            : candidate
+        )
+      );
       toast.success('Report saved');
-    } catch {
-      toast.error('Failed to save report');
+      router.refresh();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to save report');
     }
   };
 
@@ -426,8 +487,16 @@ export function JobDetailClient({
     }
     try {
       setAssigningManager(candidateId);
-      await assignManagerToCandidateAction(candidateId, managerId);
+      const updated = await assignManagerToCandidateAction(candidateId, managerId);
+      setCandidates((current) =>
+        current.map((candidate) =>
+          candidate.id === candidateId
+            ? { ...candidate, stage: updated.stage }
+            : candidate
+        )
+      );
       toast.success('Candidate assigned to manager');
+      router.refresh();
     } catch {
       toast.error('Failed to assign manager');
     } finally {
@@ -706,18 +775,29 @@ export function JobDetailClient({
 
                     {candidate.stage === 'ta_interview' && (
                       <div className="flex w-full gap-2 mt-2">
-                         <Button size="sm" variant="default" className="flex-1 bg-green-600 hover:bg-green-700" onClick={() => handleUpdateStage(candidate.id, 'ta_accepted')}>
-                           Accept
-                         </Button>
-                         <Button size="sm" variant="destructive" className="flex-1" onClick={() => handleUpdateStage(candidate.id, 'ta_rejected')}>
-                           Reject
-                         </Button>
+                        <Button
+                          size="sm"
+                          variant="default"
+                          className="flex-1"
+                          onClick={() => handleTabChange('interviews')}
+                        >
+                          Open Interview Workflow
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          className="flex-1"
+                          onClick={() => handleUpdateStage(candidate.id, 'ta_rejected')}
+                        >
+                          Reject
+                        </Button>
                       </div>
                     )}
 
                     {candidate.stage === 'ta_accepted' && (
                       <div className="w-full space-y-2">
                         <select
+                          aria-label={`Select manager for ${candidate.fullName}`}
                           className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                           value={selectedManagerIds[candidate.id] || ''}
                           onChange={(e) => setSelectedManagerIds(prev => ({ ...prev, [candidate.id]: e.target.value }))}
@@ -766,14 +846,14 @@ export function JobDetailClient({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {candidates.filter(c => ['ta_interview', 'manager_interview', 'hr_interview'].includes(c.stage)).length === 0 ? (
+                {candidates.filter(c => c.stage === 'ta_interview').length === 0 ? (
                   <TableRow>
                      <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                         No active candidates for interview. Go to Pipeline to accept candidates into the interview stage.
                      </TableCell>
                   </TableRow>
                 ) : (
-                  candidates.filter(c => ['ta_interview', 'manager_interview', 'hr_interview'].includes(c.stage)).map(candidate => {
+                  candidates.filter(c => c.stage === 'ta_interview').map(candidate => {
                     const interview = candidate.interviews?.find(i => i.status === 'scheduled') || candidate.interviews?.[0];
                     const isScheduled = !!interview;
                     
@@ -848,10 +928,12 @@ export function JobDetailClient({
             <DialogTitle>Schedule Interview</DialogTitle>
             <DialogDescription>Set up a time for the candidate interview.</DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Candidate</label>
-              <select 
+          <FieldGroup className="py-4">
+            <Field data-disabled>
+              <FieldLabel htmlFor="ta-interview-candidate">Candidate</FieldLabel>
+              <select
+                id="ta-interview-candidate"
+                aria-disabled="true"
                 className="flex h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring opacity-80 cursor-not-allowed"
                 value={selectedCandidateId}
                 onChange={(e) => setSelectedCandidateId(e.target.value)}
@@ -859,8 +941,8 @@ export function JobDetailClient({
               >
                 <option value="" disabled>Select a candidate</option>
                 {candidates
-                  .filter(c => 
-                    c.stage === 'ta_accepted' || 
+                  .filter(c =>
+                    c.stage === 'ta_accepted' ||
                     c.stage === 'ta_screening' ||
                     c.stage === 'ta_interview' ||
                     c.stage === 'manager_accepted' ||
@@ -869,25 +951,25 @@ export function JobDetailClient({
                     c.stage === 'hr_interview'
                   )
                   .map(c => (
-                  <option key={c.id} value={c.id}>{c.fullName} ({c.stage.replace(/_/g, ' ')})</option>
-                ))}
+                    <option key={c.id} value={c.id}>{c.fullName} ({c.stage.replace(/_/g, ' ')})</option>
+                  ))}
               </select>
-            </div>
+            </Field>
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                 <label className="text-sm font-medium">Date</label>
-                 <Input type="date" value={scheduleDate} onChange={(e) => setScheduleDate(e.target.value)} />
-              </div>
-              <div className="space-y-2">
-                 <label className="text-sm font-medium">Time</label>
-                 <Input type="time" value={scheduleTime} onChange={(e) => setScheduleTime(e.target.value)} />
-              </div>
+              <Field>
+                <FieldLabel htmlFor="ta-interview-date">Date</FieldLabel>
+                <Input id="ta-interview-date" type="date" value={scheduleDate} onChange={(e) => setScheduleDate(e.target.value)} required />
+              </Field>
+              <Field>
+                <FieldLabel htmlFor="ta-interview-time">Time</FieldLabel>
+                <Input id="ta-interview-time" type="time" value={scheduleTime} onChange={(e) => setScheduleTime(e.target.value)} required />
+              </Field>
             </div>
-            <div className="space-y-2">
-               <label className="text-sm font-medium">Google Meet Link</label>
-               <Input placeholder="https://meet.google.com/..." value={meetLink} onChange={(e) => setMeetLink(e.target.value)} />
-            </div>
-          </div>
+            <Field>
+              <FieldLabel htmlFor="ta-interview-link">Google Meet Link</FieldLabel>
+              <Input id="ta-interview-link" type="url" placeholder="https://meet.google.com/..." value={meetLink} onChange={(e) => setMeetLink(e.target.value)} required />
+            </Field>
+          </FieldGroup>
           <DialogFooter>
             <Button variant="outline" onClick={() => setScheduleDialogOpen(false)}>Cancel</Button>
             <Button onClick={handleScheduleInterview}>Schedule</Button>
@@ -958,8 +1040,9 @@ export function JobDetailClient({
             {currentQuestions.map((q, idx) => (
               <div key={idx} className="flex gap-2">
                 <div className="font-mono text-muted-foreground text-sm pt-2">{idx + 1}.</div>
-                <Textarea 
-                  value={q} 
+                <Textarea
+                  aria-label={`Interview question ${idx + 1}`}
+                  value={q}
                   onChange={(e) => {
                     const newQs = [...currentQuestions];
                     newQs[idx] = e.target.value;
@@ -1010,9 +1093,10 @@ export function JobDetailClient({
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
-               <label className="text-sm font-medium">Overall Evaluation</label>
-               <Textarea 
-                 placeholder="Summarize the interview..." 
+               <label htmlFor="ta-report-overall" className="text-sm font-medium">Overall Evaluation</label>
+               <Textarea
+                 id="ta-report-overall"
+                 placeholder="Summarize the interview..."
                  value={reportOverall}
                  onChange={(e) => setReportOverall(e.target.value)}
                  className="min-h-[100px]"
@@ -1021,8 +1105,9 @@ export function JobDetailClient({
             
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <label className="text-sm font-medium">Score (0-100)</label>
-                <Input 
+                <label htmlFor="ta-report-score" className="text-sm font-medium">Score (0-100)</label>
+                <Input
+                  id="ta-report-score"
                   type="number" 
                   min="0" 
                   max="100" 
@@ -1031,14 +1116,18 @@ export function JobDetailClient({
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium">Decision</label>
-                <div className="flex gap-4 pt-2">
+                <span id="ta-report-decision-label" className="text-sm font-medium">Decision</span>
+                <div
+                  className="flex gap-4 pt-2"
+                  role="radiogroup"
+                  aria-labelledby="ta-report-decision-label"
+                >
                   <label className="flex items-center gap-2">
-                    <input type="radio" checked={reportDecision === 'accepted'} onChange={() => setReportDecision('accepted')} />
+                    <input id="ta-report-accepted" name="ta-report-decision" type="radio" checked={reportDecision === 'accepted'} onChange={() => setReportDecision('accepted')} required />
                     <span className="text-sm text-green-600 font-medium">Accept</span>
                   </label>
                   <label className="flex items-center gap-2">
-                    <input type="radio" checked={reportDecision === 'rejected'} onChange={() => setReportDecision('rejected')} />
+                    <input id="ta-report-rejected" name="ta-report-decision" type="radio" checked={reportDecision === 'rejected'} onChange={() => setReportDecision('rejected')} required />
                     <span className="text-sm text-red-600 font-medium">Reject</span>
                   </label>
                 </div>
@@ -1046,9 +1135,10 @@ export function JobDetailClient({
             </div>
 
             <div className="space-y-2">
-               <label className="text-sm font-medium">Detailed Notes</label>
-               <Textarea 
-                 placeholder="Detailed notes..." 
+               <label htmlFor="ta-report-notes" className="text-sm font-medium">Detailed Notes</label>
+               <Textarea
+                 id="ta-report-notes"
+                 placeholder="Detailed notes..."
                  value={reportNotes}
                  onChange={(e) => setReportNotes(e.target.value)}
                  className="min-h-[150px]"

@@ -33,6 +33,55 @@ async function getServices() {
   return import('./services');
 }
 
+type ActionUser = {
+  id: string;
+  role?: string | null;
+};
+
+function getActorContext(user: ActionUser) {
+  return {
+    userId: user.id,
+    role: (user.role ?? 'ta') as UserRole,
+  };
+}
+
+async function requireCandidateAccess(
+  candidateId: string,
+  user: ActionUser
+) {
+  const services = await getServices();
+  const candidate = await services.getCandidateForActor(
+    candidateId,
+    getActorContext(user)
+  );
+  if (!candidate) {
+    throw new Error('Candidate not found');
+  }
+
+  return candidate;
+}
+
+function requireOwnedInterviewStage(role: UserRole, stage: InterviewStage) {
+  if (role !== 'admin' && role !== stage) {
+    throw new Error('Interview stage is outside your role');
+  }
+}
+
+
+async function requireInterviewAccess(
+  interviewId: string,
+  user: ActionUser
+) {
+  const services = await getServices();
+  const interview = await services.getInterview(interviewId);
+  if (!interview) {
+    throw new Error('Interview not found');
+  }
+
+  await requireCandidateAccess(interview.candidateId, user);
+  return interview;
+}
+
 // ==================== CV POOL ACTIONS ====================
 
 export async function uploadCvAction(input: UploadCvInput) {
@@ -187,26 +236,37 @@ export async function assignCvToJobAction(cvId: string, jobId: string) {
 }
 
 export async function getCandidatesByJobAction(jobId: string) {
-  await requireRole(['ta', 'manager', 'hr', 'admin']);
+  const session = await requireRole(['ta', 'admin']);
   const services = await getServices();
-  return services.getCandidatesByJob(jobId);
+  const candidates = await services.getCandidatesByJob(jobId);
+  const role = (session.user.role ?? 'ta') as UserRole;
+
+  return role === 'admin'
+    ? candidates
+    : candidates.filter((candidate) => candidate.assignedBy === session.user.id);
 }
 
 export async function getCandidatesByStageAction(stages: CandidateStage[]) {
-  await requireRole(['ta', 'manager', 'hr', 'admin']);
+  const session = await requireRole(['ta', 'manager', 'hr', 'admin']);
   const services = await getServices();
-  return services.getCandidatesByStage(stages);
+  return services.getCandidatesForActor(getActorContext(session.user), { stages });
 }
 
 export async function getCandidateAction(candidateId: string) {
-  await requireRole(['ta', 'manager', 'hr', 'admin']);
+  const session = await requireRole(['ta', 'manager', 'hr', 'admin']);
   const services = await getServices();
-  return services.getCandidate(candidateId);
+  const candidate = await services.getCandidateForActor(
+    candidateId,
+    getActorContext(session.user)
+  );
+
+  return candidate ? services.getCandidate(candidateId) : null;
 }
 
 export async function getCandidateStageHistoryAction(candidateId: string) {
-  await requireRole(['ta', 'manager', 'hr', 'admin']);
+  const session = await requireRole(['ta', 'manager', 'hr', 'admin']);
   const services = await getServices();
+  await requireCandidateAccess(candidateId, session.user);
   return services.getCandidateStageHistory(candidateId);
 }
 
@@ -217,11 +277,13 @@ export async function updateCandidateStageAction(
   try {
     const session = await requireRole(['ta', 'manager', 'hr', 'admin']);
     const services = await getServices();
+    await requireCandidateAccess(candidateId, session.user);
     const role = (session.user.role ?? 'ta') as UserRole;
     const result = await services.updateCandidateStage(candidateId, newStage, {
       changedBy: session.user.id,
       source: 'manual',
       allowInvalidTransition: role === 'admin',
+      actorRole: role,
     });
     revalidatePath('/ta/jobs');
     revalidatePath('/manager/candidates');
@@ -241,6 +303,13 @@ export async function generateScreeningAction(
   try {
     const session = await requireRole(['ta', 'admin']);
     const services = await getServices();
+    const candidate = await requireCandidateAccess(
+      candidateId,
+      session.user
+    );
+    if (candidate.jobId !== jobId) {
+      throw new Error('Candidate does not belong to this job');
+    }
     const result = await services.generateScreeningWithAI(candidateId, jobId, session.user.id);
     revalidatePath(`/ta/jobs/${jobId}`);
     return result;
@@ -250,8 +319,16 @@ export async function generateScreeningAction(
 }
 
 export async function getScreeningAction(candidateId: string, jobId: string) {
-  await requireRole(['ta', 'manager', 'hr', 'admin']);
+  const session = await requireRole(['ta', 'manager', 'hr', 'admin']);
   const services = await getServices();
+  const candidate = await requireCandidateAccess(
+    candidateId,
+    session.user
+  );
+  if (candidate.jobId !== jobId) {
+    throw new Error('Candidate does not belong to this job');
+  }
+
   return services.getScreening(candidateId, jobId);
 }
 
@@ -265,6 +342,12 @@ export async function generateInterviewQuestionsAction(
   try {
     const session = await requireRole(['ta', 'manager', 'hr', 'admin']);
     const services = await getServices();
+    const role = (session.user.role ?? 'ta') as UserRole;
+    requireOwnedInterviewStage(role, stage);
+    const candidate = await requireCandidateAccess(candidateId, session.user);
+    if (candidate.jobId !== jobId) {
+      throw new Error('Candidate does not belong to this job');
+    }
     const guide = await services.generateInterviewQuestionsWithAI(
       candidateId,
       jobId,
@@ -285,8 +368,13 @@ export async function getInterviewGuideAction(
   jobId: string,
   stage: InterviewStage
 ) {
-  await requireRole(['ta', 'manager', 'hr', 'admin']);
+  const session = await requireRole(['ta', 'manager', 'hr', 'admin']);
   const services = await getServices();
+  const candidate = await requireCandidateAccess(candidateId, session.user);
+  if (candidate.jobId !== jobId) {
+    throw new Error('Candidate does not belong to this job');
+  }
+
   return services.getInterviewGuide(candidateId, jobId, stage);
 }
 
@@ -321,6 +409,12 @@ export async function generateInterviewAutoPilotAction(
   try {
     const session = await requireRole(['ta', 'manager', 'hr', 'admin']);
     const services = await getServices();
+    const role = (session.user.role ?? 'ta') as UserRole;
+    requireOwnedInterviewStage(role, stage);
+    const candidate = await requireCandidateAccess(candidateId, session.user);
+    if (candidate.jobId !== jobId) {
+      throw new Error('Candidate does not belong to this job');
+    }
     const guide = await services.generateInterviewAutoPilotGuide(
       candidateId,
       jobId,
@@ -341,8 +435,13 @@ export async function getInterviewAutoPilotAction(
   jobId: string,
   stage: InterviewStage
 ) {
-  await requireRole(['ta', 'manager', 'hr', 'admin']);
+  const session = await requireRole(['ta', 'manager', 'hr', 'admin']);
   const services = await getServices();
+  const candidate = await requireCandidateAccess(candidateId, session.user);
+  if (candidate.jobId !== jobId) {
+    throw new Error('Candidate does not belong to this job');
+  }
+
   return services.getInterviewAutoPilotGuide(candidateId, jobId, stage);
 }
 
@@ -352,7 +451,13 @@ export async function scheduleInterviewAction(input: ScheduleInterviewInput) {
   try {
     const session = await requireRole(['ta', 'manager', 'hr', 'admin']);
     const services = await getServices();
-    const interview = await services.scheduleInterview(input, session.user.id);
+    const role = (session.user.role ?? 'ta') as UserRole;
+    requireOwnedInterviewStage(role, input.stage);
+    const interview = await services.scheduleInterview(
+      input,
+      session.user.id,
+      role
+    );
     revalidatePath('/ta/dashboard');
     revalidatePath('/manager/dashboard');
     revalidatePath('/hr/dashboard');
@@ -363,17 +468,17 @@ export async function scheduleInterviewAction(input: ScheduleInterviewInput) {
 }
 
 export async function getInterviewAction(interviewId: string) {
-  await requireRole(['ta', 'manager', 'hr', 'admin']);
-  const services = await getServices();
-  return services.getInterview(interviewId);
+  const session = await requireRole(['ta', 'manager', 'hr', 'admin']);
+  return requireInterviewAccess(interviewId, session.user);
 }
 
 export async function getInterviewByCandidateAndStageAction(
   candidateId: string,
   stage: InterviewStage
 ) {
-  await requireRole(['ta', 'manager', 'hr', 'admin']);
+  const session = await requireRole(['ta', 'manager', 'hr', 'admin']);
   const services = await getServices();
+  await requireCandidateAccess(candidateId, session.user);
   return services.getInterviewByCandidateAndStage(candidateId, stage);
 }
 
@@ -384,8 +489,11 @@ export async function getTodayInterviewsAction() {
 }
 
 export async function markInterviewCompletedAction(interviewId: string) {
-  await requireRole(['ta', 'manager', 'hr', 'admin']);
+  const session = await requireRole(['ta', 'manager', 'hr', 'admin']);
   const services = await getServices();
+  const interview = await requireInterviewAccess(interviewId, session.user);
+  const role = (session.user.role ?? 'ta') as UserRole;
+  requireOwnedInterviewStage(role, interview.stage);
   const result = await services.markInterviewCompleted(interviewId);
   revalidatePath('/ta/dashboard');
   revalidatePath('/manager/dashboard');
@@ -399,7 +507,13 @@ export async function saveInterviewReportAction(input: InterviewReportInput) {
   try {
     const session = await requireRole(['ta', 'manager', 'hr', 'admin']);
     const services = await getServices();
-    const report = await services.saveInterviewReport(input, session.user.id);
+    const role = (session.user.role ?? 'ta') as UserRole;
+    requireOwnedInterviewStage(role, input.stage);
+    const report = await services.saveInterviewReport(
+      input,
+      session.user.id,
+      role
+    );
     revalidatePath('/ta/dashboard');
     revalidatePath('/ta/jobs');
     revalidatePath('/manager/dashboard');
@@ -413,16 +527,21 @@ export async function saveInterviewReportAction(input: InterviewReportInput) {
 }
 
 export async function getInterviewReportAction(interviewId: string) {
-  await requireRole(['ta', 'manager', 'hr', 'admin']);
+  const session = await requireRole(['ta', 'manager', 'hr', 'admin']);
   const services = await getServices();
-  return services.getInterviewReport(interviewId);
+  const report = await services.getInterviewReport(interviewId);
+  if (!report) return null;
+
+  await requireCandidateAccess(report.candidateId, session.user);
+  return report;
 }
 
 export async function getInterviewReportsByCandidateAction(
   candidateId: string
 ) {
-  await requireRole(['ta', 'manager', 'hr', 'admin']);
+  const session = await requireRole(['ta', 'manager', 'hr', 'admin']);
   const services = await getServices();
+  await requireCandidateAccess(candidateId, session.user);
   return services.getInterviewReportsByCandidate(candidateId);
 }
 
@@ -432,7 +551,13 @@ export async function sendInterviewEmailAction(input: SendInterviewEmailInput) {
   try {
     const session = await requireRole(['ta', 'manager', 'hr', 'admin']);
     const services = await getServices();
-    const result = await services.sendInterviewEmail(input, session.user.id);
+    const role = (session.user.role ?? 'ta') as UserRole;
+    requireOwnedInterviewStage(role, input.stage);
+    const result = await services.sendInterviewEmail(
+      input,
+      session.user.id,
+      role
+    );
     revalidatePath('/ta/dashboard');
     revalidatePath('/manager/dashboard');
     revalidatePath('/hr/dashboard');
@@ -700,10 +825,16 @@ export async function bulkUpdateCandidateStageAction(
     const session = await requireRole(['ta', 'manager', 'hr', 'admin']);
     const services = await getServices();
     const role = (session.user.role ?? 'ta') as UserRole;
+    await Promise.all(
+      candidateIds.map((candidateId) =>
+        requireCandidateAccess(candidateId, session.user)
+      )
+    );
     const result = await services.bulkUpdateCandidateStage(candidateIds, newStage, {
       changedBy: session.user.id,
       source: 'bulk',
       allowInvalidTransition: role === 'admin',
+      actorRole: role,
     });
     revalidatePath('/ta/jobs');
     revalidatePath('/manager/candidates');
@@ -739,6 +870,7 @@ export async function assignManagerToCandidateAction(
   try {
     const session = await requireRole(['ta', 'admin']);
     const services = await getServices();
+    await requireCandidateAccess(candidateId, session.user);
     const result = await services.assignManagerToCandidate(candidateId, managerId, session.user.id);
     revalidatePath('/ta/jobs');
     revalidatePath('/manager/candidates');
@@ -755,6 +887,7 @@ export async function assignHrToCandidateAction(
   try {
     const session = await requireRole(['manager', 'admin']);
     const services = await getServices();
+    await requireCandidateAccess(candidateId, session.user);
     const result = await services.assignHrToCandidate(candidateId, hrId, session.user.id);
     revalidatePath('/manager/candidates');
     revalidatePath('/hr/candidates');
@@ -764,14 +897,12 @@ export async function assignHrToCandidateAction(
   }
 }
 
-export async function getCandidatesByStageAndAssigneeAction(
-  stages: CandidateStage[],
-  assigneeField: 'assignedManagerId' | 'assignedHrId',
-  assigneeId: string
+export async function getCandidatesForCurrentActorAction(
+  stages: CandidateStage[]
 ) {
-  await requireRole(['ta', 'manager', 'hr', 'admin']);
+  const session = await requireRole(['manager', 'hr', 'admin']);
   const services = await getServices();
-  return services.getCandidatesByStageAndAssignee(stages, assigneeField, assigneeId);
+  return services.getCandidatesForActor(getActorContext(session.user), { stages });
 }
 
 // ==================== ADMIN ACTIONS ====================

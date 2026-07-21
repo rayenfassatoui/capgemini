@@ -13,6 +13,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import type { CandidateStage } from '../types';
+import { formatUtcDateTime } from '@/lib/utils';
 
 const SOURCE_LABELS: Record<string, string> = {
   agent: 'Agent action',
@@ -26,10 +27,6 @@ const SOURCE_LABELS: Record<string, string> = {
   screening: 'Screening workflow',
 };
 
-const STAGE_HISTORY_DATE_FORMATTER = new Intl.DateTimeFormat('en', {
-  dateStyle: 'medium',
-  timeStyle: 'short',
-});
 
 export interface CandidateStageHistoryRecord {
   id: string;
@@ -92,7 +89,7 @@ export function formatStageHistoryTimestamp(value: Date | string): string {
     return 'Unknown time';
   }
 
-  return STAGE_HISTORY_DATE_FORMATTER.format(date);
+  return formatUtcDateTime(date);
 }
 
 export function normalizeCandidateStageHistory(
@@ -105,7 +102,7 @@ export function normalizeCandidateStageHistory(
       ...record,
       createdAtIso: date?.toISOString() ?? '',
       createdAtLabel: date
-        ? STAGE_HISTORY_DATE_FORMATTER.format(date)
+        ? formatUtcDateTime(date)
         : 'Unknown time',
     };
   });

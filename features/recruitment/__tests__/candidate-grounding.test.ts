@@ -3,6 +3,7 @@ import {
   buildAllowedCandidatesFromToolRecords,
   groundAssistantResponse,
   isCandidateSearchOrRankingIntent,
+  isCandidateRosterIntent,
   isExplicitNamedSearchIntent,
   validateGroundedCandidateNames,
   type GroundingToolRecord,
@@ -266,6 +267,50 @@ describe("candidate name grounding guard", () => {
       "get_screening",
     ]);
   });
+  it("formats assigned-candidate requests as a factual role-scoped roster", () => {
+    const records: GroundingToolRecord[] = [
+      {
+        toolName: "get_candidates_by_stage",
+        result: {
+          success: true,
+          data: [
+            {
+              id: "candidate-khayredine-1",
+              fullName: "Mohamed Khayredine Gabsi",
+              stage: "manager_interview",
+              jobTitle: "Senior AI Engineer",
+            },
+          ],
+        },
+      },
+    ];
+    const userMessage =
+      "List only candidates assigned to me with current stage and job title.";
+
+    expect(isCandidateRosterIntent(userMessage)).toBe(true);
+    expect(isCandidateSearchOrRankingIntent(userMessage)).toBe(false);
+
+    const grounded = groundAssistantResponse(
+      "Rayen Fassatoui should be screened first.",
+      records,
+      { userMessage },
+    );
+
+    expect(grounded.blocked).toBe(true);
+    expect(grounded.deterministic).toBe(true);
+    expect(grounded.candidateCount).toBe(1);
+    expect(grounded.text).toContain("## Assigned candidate roster");
+    expect(grounded.text).toContain(
+      "| Mohamed Khayredine Gabsi | Manager Interview | Senior AI Engineer |",
+    );
+    expect(grounded.text).toContain(
+      "This is a factual roster, not a ranking, shortlist, or hiring recommendation.",
+    );
+    expect(grounded.text).not.toContain("Rayen Fassatoui");
+    expect(grounded.text).not.toContain("## Shortlist read");
+    expect(grounded.text).not.toContain("screened first");
+  });
+
   it("does not allow non-admin responses to reuse names absent from current user-scoped tool output", () => {
     const currentUserScopedRecords: GroundingToolRecord[] = [
       {

@@ -150,7 +150,7 @@ export function ensureAgenticResponseStructure({
   const nextOptions = buildNextStepOptions(records, role);
   const nextStepsHeadingRe = /(^|\n)##\s*next\s*steps?/i;
   const answerHeadingRe =
-    /(^|\n)##\s*(?:candidate\s+read|shortlist\s+read|bottom\s+line|my\s+read|analysis|recommend(?:ation|ed)?|inferred)/i;
+    /(^|\n)##\s*(?:assigned\s+candidate\s+roster|candidate\s+read|shortlist\s+read|bottom\s+line|my\s+read|analysis|recommend(?:ation|ed)?|inferred)/i;
 
   if (answerHeadingRe.test(trimmed)) {
     if (nextStepsHeadingRe.test(trimmed)) {
@@ -210,8 +210,8 @@ SECTION 1: HARD CONSTRAINTS (never violate)
 12. For rankings, transferable-skills lists, top candidates, best-fit, and shortlist requests, table rows must come from structured tool results only. Do not synthesize candidate rows.
 13. If candidate tools return zero candidates, say no accessible candidates matched and suggest a safe next query. Do not infer or echo ungrounded names.
 14. Distinguish CV pool from pipeline candidates: "totalCandidates" from dashboard tools means assigned/in-pipeline candidate records, not uploaded CV pool size. Use "totalCvs" or get_cv_pool_stats for CV pool size and skill supply.
-15. For proactive, priority, boss-mode, or "what should I do next" requests, do not ask the user to choose an analysis path when tools can reveal the bottleneck. Fetch the smallest evidence set, decide, and propose 3 safe actions.
-
+15. Preserve statistics tool scopes exactly: get_cv_pool_stats describes CVs uploaded by the current user; get_jobs_stats describes jobs created by the current user; get_dashboard_stats.totalJobs is platform-wide. Dashboard candidates, pending screenings, and stage breakdown are platform-wide for TA/admin but assigned-only for Manager/HR; interviews today belong to the current user. NEVER invert, merge, or relabel these scopes.
+16. For proactive, priority, boss-mode, or "what should I do next" requests, do not ask the user to choose an analysis path when tools can reveal the bottleneck. Fetch the smallest evidence set, decide, and propose 3 safe actions.
 ═══════════════════════════════════════
 SECTION 2: ROLE & SESSION
 ═══════════════════════════════════════

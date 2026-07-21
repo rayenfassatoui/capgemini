@@ -2,18 +2,57 @@ import { desc, eq } from 'drizzle-orm';
 import { db } from '@/lib/db';
 import { interviewReports } from '@/db/schema';
 import { interviewReportSchema } from '../schemas';
-import type { CandidateStage, InterviewReportInput, InterviewStage } from '../types';
-import { getCandidate, updateCandidateStage } from './candidates';
-import { markInterviewCompleted } from './interviews';
+import type {
+  CandidateStage,
+  InterviewReportInput,
+  InterviewStage,
+  UserRole,
+} from '../types';
+import { getCandidateForActor, updateCandidateStage } from './candidates';
+import { getInterview, markInterviewCompleted } from './interviews';
 import { logActivity } from './activity-log';
-import { createOnboardingChecklist } from './onboarding';
 import { generateCandidateAcceptExcel } from './export';
 
 export async function saveInterviewReport(
   input: InterviewReportInput,
-  userId: string
+  userId: string,
+  actorRole: UserRole
 ) {
   const validated = interviewReportSchema.parse(input);
+  if (actorRole !== 'admin' && actorRole !== validated.stage) {
+    throw new Error('Interview stage is outside your role');
+  }
+
+  const interview = await getInterview(validated.interviewId);
+  if (!interview) {
+    throw new Error('Interview not found');
+  }
+  if (
+    interview.candidateId !== validated.candidateId ||
+    interview.stage !== validated.stage
+  ) {
+    throw new Error('Interview does not match this candidate and stage');
+  }
+  if (interview.status === 'cancelled') {
+    throw new Error('A cancelled interview cannot receive a report');
+  }
+  const candidate = await getCandidateForActor(validated.candidateId, {
+    userId,
+    role: actorRole,
+  });
+  if (!candidate) {
+    throw new Error('Candidate not found or not accessible');
+  }
+  const reportableStageByInterview: Record<InterviewStage, CandidateStage> = {
+    ta: 'ta_interview',
+    manager: 'manager_interview',
+    hr: 'hr_interview',
+  };
+  if (candidate.stage !== reportableStageByInterview[validated.stage]) {
+    throw new Error(
+      `Candidate is not at the ${validated.stage} interview stage`
+    );
+  }
 
   const [report] = await db
     .insert(interviewReports)
@@ -33,8 +72,7 @@ export async function saveInterviewReport(
   await markInterviewCompleted(validated.interviewId);
 
   // Activity log
-  const candidate = await getCandidate(validated.candidateId);
-  const candidateName = candidate?.fullName ?? 'Unknown';
+  const candidateName = candidate.fullName;
   await logActivity(
     userId,
     'interview_report_saved',
@@ -66,31 +104,6 @@ export async function saveInterviewReport(
       ).catch(() => {});
     }).catch(() => {});
 
-    const nextStageMap: Record<InterviewStage, CandidateStage | null> = {
-      ta: 'manager_interview',
-      manager: 'hr_interview',
-      hr: 'hired',
-    };
-    const nextStage = nextStageMap[validated.stage];
-    if (nextStage) {
-      await updateCandidateStage(validated.candidateId, nextStage, {
-        changedBy: userId,
-        source: 'interview_report',
-        reason: `Advanced after accepted ${validated.stage.toUpperCase()} interview`,
-      });
-
-      // Auto-create onboarding checklist when candidate is hired
-      if (nextStage === 'hired') {
-        await createOnboardingChecklist(validated.candidateId).catch(() => {});
-        await logActivity(
-          userId,
-          'candidate_hired',
-          'candidate',
-          validated.candidateId,
-          `${candidateName} has been hired - onboarding checklist created`
-        ).catch(() => {});
-      }
-    }
   } else if (validated.decision === 'rejected') {
     const rejectedStageMap: Record<InterviewStage, CandidateStage> = {
       ta: 'ta_rejected',

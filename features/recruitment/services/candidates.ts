@@ -1,7 +1,7 @@
 import { and, asc, desc, eq, inArray, sql } from 'drizzle-orm';
 import { db } from '@/lib/db';
 import { candidateStageHistory, candidates, cvPool, interviews, jobs, users } from '@/db/schema';
-import type { CandidateStage } from '../types';
+import type { CandidateStage, UserRole } from '../types';
 import { getJob } from './jobs';
 import { logActivity } from './activity-log';
 import { notifyStageChange } from './notifications';
@@ -22,6 +22,7 @@ export interface CandidateStageTransitionOptions {
   source: CandidateStageTransitionSource;
   reason?: string;
   allowInvalidTransition?: boolean;
+  actorRole?: UserRole;
 }
 
 interface IdRow extends Record<string, unknown> {
@@ -29,12 +30,12 @@ interface IdRow extends Record<string, unknown> {
 }
 
 export const CANDIDATE_STAGE_TRANSITIONS: Record<CandidateStage, readonly CandidateStage[]> = {
-  new: ['ta_screening', 'ta_interview', 'ta_rejected'],
+  new: ['ta_screening', 'ta_rejected'],
   ta_screening: ['ta_interview', 'ta_accepted', 'ta_rejected'],
   ta_interview: ['ta_screening', 'ta_accepted', 'ta_rejected'],
   ta_accepted: ['manager_interview', 'ta_rejected'],
   ta_rejected: ['new'],
-  manager_interview: ['manager_accepted', 'manager_rejected', 'hr_interview'],
+  manager_interview: ['manager_accepted', 'manager_rejected'],
   manager_accepted: ['hr_interview', 'manager_rejected'],
   manager_rejected: ['new'],
   hr_interview: ['hr_accepted', 'hr_rejected'],
@@ -48,6 +49,22 @@ export function isCandidateStageTransitionAllowed(
   newStage: CandidateStage
 ): boolean {
   return previousStage === newStage || CANDIDATE_STAGE_TRANSITIONS[previousStage].includes(newStage);
+}
+
+const MANUAL_STAGE_TARGETS_BY_ROLE: Record<
+  Exclude<UserRole, 'admin'>,
+  readonly CandidateStage[]
+> = {
+  ta: ['ta_interview', 'ta_rejected'],
+  manager: ['manager_rejected'],
+  hr: ['hr_accepted', 'hr_rejected', 'hired'],
+};
+
+export function isManualCandidateStageTargetAllowed(
+  role: UserRole,
+  stage: CandidateStage
+) {
+  return role === 'admin' || MANUAL_STAGE_TARGETS_BY_ROLE[role].includes(stage);
 }
 
 function getStageChangeRecipients(candidate: typeof candidates.$inferSelect): string[] {
@@ -205,6 +222,15 @@ export async function updateCandidateStage(
   if (previousStage === newStage) {
     return candidate;
   }
+  if (
+    ['manual', 'bulk', 'agent'].includes(options.source) &&
+    (!options.actorRole ||
+      !isManualCandidateStageTargetAllowed(options.actorRole, newStage))
+  ) {
+    throw new Error(
+      `The ${options.actorRole ?? 'unknown'} role cannot manually move a candidate to ${newStage}`
+    );
+  }
 
   if (
     !options.allowInvalidTransition &&
@@ -304,6 +330,22 @@ export async function assignManagerToCandidate(
   managerId: string,
   changedBy: string
 ) {
+  const candidate = await getCandidate(candidateId);
+  if (!candidate) {
+    throw new Error('Candidate not found');
+  }
+  if (candidate.stage !== 'ta_accepted') {
+    throw new Error('Candidate must have an accepted TA interview before manager assignment');
+  }
+
+  const [manager] = await db
+    .select({ id: users.id })
+    .from(users)
+    .where(and(eq(users.id, managerId), eq(users.role, 'manager')));
+  if (!manager) {
+    throw new Error('Selected user is not a manager');
+  }
+
   const [updatedAssignment] = await db
     .update(candidates)
     .set({
@@ -329,6 +371,24 @@ export async function assignHrToCandidate(
   hrId: string,
   changedBy: string
 ) {
+  const candidate = await getCandidate(candidateId);
+  if (!candidate) {
+    throw new Error('Candidate not found');
+  }
+  if (candidate.stage !== 'manager_accepted') {
+    throw new Error(
+      'Candidate needs an accepted manager interview report before HR assignment'
+    );
+  }
+
+  const [hrUser] = await db
+    .select({ id: users.id })
+    .from(users)
+    .where(and(eq(users.id, hrId), eq(users.role, 'hr')));
+  if (!hrUser) {
+    throw new Error('Selected user is not an HR representative');
+  }
+
   const [updatedAssignment] = await db
     .update(candidates)
     .set({
@@ -340,19 +400,6 @@ export async function assignHrToCandidate(
 
   if (!updatedAssignment) {
     throw new Error('Candidate not found');
-  }
-
-  let current = updatedAssignment;
-  if (current.stage === 'manager_interview') {
-    current = await updateCandidateStage(candidateId, 'manager_accepted', {
-      changedBy,
-      source: 'hr_assignment',
-      reason: 'Manager accepted candidate and selected HR representative',
-    });
-  }
-
-  if (current.stage === 'hr_interview') {
-    return current;
   }
 
   return updateCandidateStage(candidateId, 'hr_interview', {
@@ -382,30 +429,94 @@ export async function getCandidateStageHistory(candidateId: string) {
     .orderBy(asc(candidateStageHistory.createdAt));
 }
 
-export async function getCandidatesByStageAndAssignee(
-  stages: CandidateStage[],
-  assigneeField: 'assignedManagerId' | 'assignedHrId',
-  assigneeId: string
+export type CandidateScopeField =
+  | 'assignedBy'
+  | 'assignedManagerId'
+  | 'assignedHrId';
+
+export interface CandidateAccessContext {
+  userId: string;
+  role: UserRole;
+}
+export const CANDIDATE_VISIBLE_STAGES_BY_ROLE: Record<
+  UserRole,
+  readonly CandidateStage[] | null
+> = {
+  ta: null,
+  manager: ['manager_interview', 'manager_accepted', 'manager_rejected'],
+  hr: ['hr_interview', 'hr_accepted', 'hr_rejected', 'hired'],
+  admin: null,
+};
+
+
+interface CandidateAccessFilters {
+  candidateId?: string;
+  jobId?: string;
+  stages?: CandidateStage[];
+}
+
+export function getCandidateScopeField(role: UserRole): CandidateScopeField | null {
+  switch (role) {
+    case 'ta':
+      return 'assignedBy';
+    case 'manager':
+      return 'assignedManagerId';
+    case 'hr':
+      return 'assignedHrId';
+    case 'admin':
+      return null;
+  }
+}
+
+export async function getCandidatesForActor(
+  context: CandidateAccessContext,
+  filters: CandidateAccessFilters = {}
 ) {
-  if (stages.length === 0) return [];
+  const visibleStages = CANDIDATE_VISIBLE_STAGES_BY_ROLE[context.role];
+  const effectiveStages = visibleStages
+    ? filters.stages
+      ? filters.stages.filter((stage) => visibleStages.includes(stage))
+      : [...visibleStages]
+    : filters.stages;
+  if (effectiveStages?.length === 0) return [];
+
+  const scopeField = getCandidateScopeField(context.role);
+
   return db
     .select({
       id: candidates.id,
       fullName: candidates.fullName,
       email: candidates.email,
-      stage: candidates.stage,
-      createdAt: candidates.createdAt,
+      phone: candidates.phone,
+      cvId: candidates.cvId,
       jobId: candidates.jobId,
       jobTitle: jobs.title,
+      stage: candidates.stage,
+      assignedBy: candidates.assignedBy,
+      assignedManagerId: candidates.assignedManagerId,
+      assignedHrId: candidates.assignedHrId,
+      createdAt: candidates.createdAt,
+      updatedAt: candidates.updatedAt,
     })
     .from(candidates)
     .innerJoin(jobs, eq(candidates.jobId, jobs.id))
     .where(
       and(
-        inArray(candidates.stage, stages),
-        eq(candidates[assigneeField], assigneeId)
+        filters.candidateId ? eq(candidates.id, filters.candidateId) : undefined,
+        filters.jobId ? eq(candidates.jobId, filters.jobId) : undefined,
+        effectiveStages ? inArray(candidates.stage, effectiveStages) : undefined,
+        scopeField ? eq(candidates[scopeField], context.userId) : undefined
       )
     )
     .orderBy(desc(candidates.createdAt));
 }
+
+export async function getCandidateForActor(
+  candidateId: string,
+  context: CandidateAccessContext
+): Promise<Awaited<ReturnType<typeof getCandidatesForActor>>[number] | null> {
+  const [candidate] = await getCandidatesForActor(context, { candidateId });
+  return candidate ?? null;
+}
+
 

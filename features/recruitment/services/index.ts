@@ -55,13 +55,15 @@ export {
   getCandidatesByJob,
   getCandidatesByStage,
   getCandidate,
+  getCandidatesForActor,
+  getCandidateForActor,
+  getCandidateScopeField,
   updateCandidateStage,
   bulkUpdateCandidateStage,
   assignManagerToCandidate,
   assignHrToCandidate,
   getCandidateStageHistory,
   isCandidateStageTransitionAllowed,
-  getCandidatesByStageAndAssignee,
 } from "./candidates";
 
 export { generateScreeningWithAI, getScreening } from "./screening";

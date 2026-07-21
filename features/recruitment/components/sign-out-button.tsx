@@ -28,6 +28,7 @@ export function SignOutButton({ isCollapsed = false }: SignOutButtonProps = {}) 
         isCollapsed ? "justify-center h-9 w-9" : "w-full justify-start gap-2"
       )}
       onClick={handleSignOut}
+      aria-label="Sign out"
     >
       <IconLogout className="h-4 w-4 shrink-0" />
       {!isCollapsed && <span>Sign Out</span>}

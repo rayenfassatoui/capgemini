@@ -26,6 +26,7 @@ export const interviewStageSchema = z.enum(['ta', 'manager', 'hr']);
 export const interviewStatusSchema = z.enum(['scheduled', 'completed', 'cancelled']);
 
 export const interviewDecisionSchema = z.enum(['pending', 'accepted', 'rejected']);
+export const completedInterviewDecisionSchema = z.enum(['accepted', 'rejected']);
 
 // ---------- Job Schemas ----------
 
@@ -136,7 +137,7 @@ export const scheduleInterviewSchema = z.object({
   stage: interviewStageSchema,
   scheduledDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be in YYYY-MM-DD format'),
   scheduledTime: z.string().regex(/^\d{2}:\d{2}$/, 'Time must be in HH:mm format'),
-  meetLink: z.string().url(),
+  meetLink: z.string().url('Enter a valid meeting link'),
 });
 
 // ---------- Interview Report Schemas ----------
@@ -154,8 +155,14 @@ export const interviewReportSchema = z.object({
   ).default([]),
   overallEvaluation: z.string().nullable().optional(),
   score: z.number().min(0).max(100),
-  decision: interviewDecisionSchema,
-});
+  decision: completedInterviewDecisionSchema,
+}).refine(
+  (input) => Boolean(input.notes?.trim() || input.overallEvaluation?.trim()),
+  {
+    message: 'Interview notes or an overall evaluation are required',
+    path: ['notes'],
+  }
+);
 
 // ---------- Email Schemas ----------
 

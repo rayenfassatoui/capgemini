@@ -4,7 +4,7 @@ import { motion, type Variants } from 'framer-motion';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { cn } from '@/lib/utils';
+import { cn, formatUtcDate } from '@/lib/utils';
 import { 
   IconUser, 
   IconBriefcase, 
@@ -120,7 +120,7 @@ export function ManagerCandidatesClient({ candidates }: ManagerCandidatesClientP
                   </div>
                   <div className="flex items-center text-xs text-muted-foreground mt-1">
                     <IconCalendar className="h-3.5 w-3.5 mr-1.5 opacity-70" />
-                    <span>Applied {new Date(candidate.createdAt).toLocaleDateString()}</span>
+                    <span>Applied {formatUtcDate(candidate.createdAt)}</span>
                   </div>
                 </div>
 

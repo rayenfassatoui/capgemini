@@ -289,6 +289,9 @@ function buildCandidateCard(
   candidate: CandidateSummary,
   role: UserRole,
 ): RecruitmentResponseCard | null {
+  const isRoleScopedRoster =
+    candidate.sourceTool === 'get_candidates_by_stage' ||
+    candidate.sourceTool === 'get_candidates_by_job';
   const metrics: RecruitmentResponseCardMetric[] = [];
   pushMetric(
     metrics,
@@ -301,25 +304,31 @@ function buildCandidateCard(
   );
   pushMetric(metrics, 'Stage', candidate.stage);
   pushMetric(metrics, 'Skills', candidate.skills.length > 0 ? String(candidate.skills.length) : undefined, compactList(candidate.skills, 4));
-  pushMetric(metrics, 'Gaps', candidate.gaps.length > 0 ? String(candidate.gaps.length) : '0', candidate.gaps.length > 0 ? compactList(candidate.gaps, 3) : 'No explicit gap returned.', candidate.gaps.length > 0 ? 'warning' : 'success');
+  if (!isRoleScopedRoster || candidate.gaps.length > 0) {
+    pushMetric(metrics, 'Gaps', candidate.gaps.length > 0 ? String(candidate.gaps.length) : '0', candidate.gaps.length > 0 ? compactList(candidate.gaps, 3) : 'No explicit gap returned.', candidate.gaps.length > 0 ? 'warning' : 'success');
+  }
 
   if (metrics.length === 0) return null;
 
   const bullets: string[] = [];
-  pushUnique(bullets, candidate.jobTitle ? `Matched against ${candidate.jobTitle}.` : undefined);
+  pushUnique(bullets, candidate.jobTitle ? `${isRoleScopedRoster ? 'Assigned to' : 'Matched against'} ${candidate.jobTitle}.` : undefined);
   pushUnique(bullets, candidate.alreadyAssigned ? 'This CV is already assigned to a job.' : undefined);
   pushUnique(bullets, candidate.concerns[0] ? `Concern: ${candidate.concerns[0]}` : undefined);
 
   const actions: RecruitmentResponseCardAction[] = [];
   const detailLink = candidateDetailLink(candidate, role);
   if (detailLink) actions.push(detailLink);
-  actions.push({ label: 'Compare top candidates', prompt: 'Compare the top matching candidates from this result' });
+  if (!isRoleScopedRoster) {
+    actions.push({ label: 'Compare top candidates', prompt: 'Compare the top matching candidates from this result' });
+  }
 
   return {
     id: `candidate-${candidate.sourceTool}`,
     kind: 'candidate',
     title: candidate.name,
-    description: 'Best surfaced candidate from the latest grounded tool result.',
+    description: isRoleScopedRoster
+      ? 'Candidate returned by the current role-scoped pipeline query.'
+      : 'Best surfaced candidate from the latest grounded tool result.',
     tone: candidate.gaps.length > 0 ? 'warning' : 'success',
     sourceTool: candidate.sourceTool,
     metrics,

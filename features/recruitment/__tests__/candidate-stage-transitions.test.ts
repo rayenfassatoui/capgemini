@@ -20,6 +20,7 @@ vi.mock('../services/jobs', () => ({
 import {
   CANDIDATE_STAGE_TRANSITIONS,
   isCandidateStageTransitionAllowed,
+  isManualCandidateStageTargetAllowed,
 } from '../services/candidates';
 
 const ALL_STAGES: CandidateStage[] = [
@@ -59,6 +60,17 @@ describe('candidate stage transition rules', () => {
   it('blocks unsafe stage jumps', () => {
     expect(isCandidateStageTransitionAllowed('ta_rejected', 'hired')).toBe(false);
     expect(isCandidateStageTransitionAllowed('hired', 'new')).toBe(false);
+    expect(isCandidateStageTransitionAllowed('new', 'ta_interview')).toBe(false);
+    expect(isCandidateStageTransitionAllowed('manager_interview', 'hr_interview')).toBe(false);
     expect(isCandidateStageTransitionAllowed('new', 'hr_interview')).toBe(false);
+  });
+
+  it('keeps evidence-backed stages out of manual role updates', () => {
+    expect(isManualCandidateStageTargetAllowed('ta', 'ta_interview')).toBe(true);
+    expect(isManualCandidateStageTargetAllowed('manager', 'manager_rejected')).toBe(true);
+    expect(isManualCandidateStageTargetAllowed('manager', 'manager_accepted')).toBe(false);
+    expect(isManualCandidateStageTargetAllowed('hr', 'hired')).toBe(true);
+    expect(isManualCandidateStageTargetAllowed('hr', 'manager_accepted')).toBe(false);
+    expect(isManualCandidateStageTargetAllowed('admin', 'manager_accepted')).toBe(true);
   });
 });

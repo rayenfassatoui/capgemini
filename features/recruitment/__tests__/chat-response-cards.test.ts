@@ -129,4 +129,47 @@ describe("chat response cards", () => {
       ]),
     );
   });
+  it("renders pipeline roster cards without shortlist language or fake gap counts", () => {
+    const cards = buildResponseCardsFromToolRecords(
+      [
+        {
+          toolName: "get_candidates_by_stage",
+          args: { stages: ["manager_interview"] },
+          result: {
+            success: true,
+            data: [
+              {
+                id: "candidate-1",
+                fullName: "Mohamed Khayredine Gabsi",
+                stage: "manager_interview",
+                jobTitle: "Senior AI Engineer",
+              },
+            ],
+          },
+          mutating: false,
+        },
+      ],
+      { role: "manager", maxCards: 1 },
+    );
+
+    expect(cards).toHaveLength(1);
+    expect(cards[0]).toMatchObject({
+      title: "Mohamed Khayredine Gabsi",
+      description: "Candidate returned by the current role-scoped pipeline query.",
+      bullets: ["Assigned to Senior AI Engineer."],
+      actions: [
+        {
+          label: "Open candidate",
+          href: "/manager/candidates/candidate-1",
+        },
+      ],
+    });
+    expect(cards[0]?.metrics.some((metric) => metric.label === "Gaps")).toBe(
+      false,
+    );
+    expect(cards[0]?.actions?.some((action) => action.label === "Compare top candidates") ?? false).toBe(
+      false,
+    );
+  });
+
 });
