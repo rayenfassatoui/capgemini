@@ -1,4 +1,6 @@
 "use client";
+import { useCallback, useEffect, useRef } from "react";
+import { MotionConfig } from "framer-motion";
 
 import { cn } from "@/lib/utils";
 import { ChatHeader } from "./chat-header";
@@ -49,15 +51,58 @@ export function AgentChatSurface({
     confirmAction,
   } = controller;
 
+  const surfaceRef = useRef<HTMLDivElement>(null);
+  const previousViewRef = useRef(view);
+  const handleSetView = useCallback(
+    (nextView: "chat" | "history") => {
+      setView(nextView);
+    },
+    [setView],
+  );
+
+  useEffect(() => {
+    if (previousViewRef.current === view) return;
+    previousViewRef.current = view;
+
+    const frame = window.requestAnimationFrame(() => {
+      const selector =
+        view === "history"
+          ? "[data-agent-history-back]"
+          : "[data-agent-history-trigger]";
+      surfaceRef.current?.querySelector<HTMLElement>(selector)?.focus();
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [view]);
+
+  useEffect(() => {
+    if (view !== "history") return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      handleSetView("chat");
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [handleSetView, view]);
+
   return (
-    <div className={cn("flex h-full flex-col overflow-hidden", className)}>
+    <MotionConfig reducedMotion="user">
+      <div
+        ref={surfaceRef}
+        data-agent-chat-surface
+        className={cn(
+          "flex h-full flex-col overflow-hidden motion-reduce:scroll-auto motion-reduce:[&_*]:!animate-none motion-reduce:[&_*]:!transition-none",
+          className,
+        )}
+      >
       <ChatHeader
         view={view}
         conversations={conversations}
         isStreaming={isStreaming}
         variant={variant}
         contextLabel={contextLabel}
-        onSetView={setView}
+        onSetView={handleSetView}
         onNewChat={createNewChat}
         onClose={onClose}
         onExpand={onExpand}
@@ -79,6 +124,7 @@ export function AgentChatSurface({
       {view === "chat" && (
         <>
           <ChatMessageList
+            key={activeConversationId ?? "new-conversation"}
             messages={messages}
             isStreaming={isStreaming}
             isLoadingHistory={isLoadingHistory}
@@ -103,6 +149,7 @@ export function AgentChatSurface({
           />
         </>
       )}
-    </div>
+      </div>
+    </MotionConfig>
   );
 }

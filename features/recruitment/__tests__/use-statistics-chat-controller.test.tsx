@@ -1,5 +1,8 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { ReactNode } from 'react';
+import { I18nProvider } from '@/components/shared/i18n-provider';
+
 
 import { useStatisticsChatController } from '../components/chat/use-statistics-chat-controller';
 import { serializeChatChartEvent } from '../chat-chart-events';
@@ -54,6 +57,10 @@ function streamResponse(text: string) {
   );
 }
 
+function I18nTestWrapper({ children }: { children: ReactNode }) {
+  return <I18nProvider defaultLocale="en">{children}</I18nProvider>;
+}
+
 describe('useStatisticsChatController stream parsing', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
@@ -101,8 +108,9 @@ describe('useStatisticsChatController stream parsing', () => {
   });
 
   it('hydrates metadata, chart cards, response cards, and visible text from the stream', async () => {
-    const { result } = renderHook(() =>
-      useStatisticsChatController({ enabled: true }),
+    const { result } = renderHook(
+      () => useStatisticsChatController({ enabled: true }),
+      { wrapper: I18nTestWrapper },
     );
 
     await waitFor(() => {
@@ -125,4 +133,93 @@ describe('useStatisticsChatController stream parsing', () => {
     expect(assistantMessage.charts).toEqual([chart]);
     expect(assistantMessage.cards).toEqual([card]);
   });
+  it('stops an active stream and preserves the exact prompt for retry', async () => {
+    const prompt = 'Preserve this exact recruitment prompt for retry';
+    const encoder = new TextEncoder();
+    let resolvePostStarted: (() => void) | undefined;
+    const postStarted = new Promise<void>((resolve) => {
+      resolvePostStarted = resolve;
+    });
+    let requestAborted = false;
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+        const url = String(input);
+        const method = init?.method ?? 'GET';
+
+        if (url === '/api/chat/statistics' && method === 'GET') {
+          return Promise.resolve(jsonResponse({ conversations: [] }));
+        }
+        if (url === '/api/chat/statistics' && method === 'PUT') {
+          return Promise.resolve(jsonResponse(conversation));
+        }
+        if (url === '/api/chat/statistics' && method === 'POST') {
+          const signal = init?.signal;
+          const response = new Response(
+            new ReadableStream({
+              start(controller) {
+                controller.enqueue(encoder.encode('Partial response'));
+                resolvePostStarted?.();
+                signal?.addEventListener(
+                  'abort',
+                  () => {
+                    requestAborted = true;
+                    setTimeout(
+                      () =>
+                        controller.error(
+                          new DOMException('Request aborted', 'AbortError'),
+                        ),
+                      0,
+                    );
+                  },
+                  { once: true },
+                );
+              },
+            }),
+            {
+              status: 200,
+              headers: { 'content-type': 'text/plain; charset=utf-8' },
+            },
+          );
+          return Promise.resolve(response);
+        }
+
+        return Promise.resolve(new Response('Not found', { status: 404 }));
+      }),
+    );
+
+    const { result } = renderHook(
+      () => useStatisticsChatController({ enabled: true }),
+      { wrapper: I18nTestWrapper },
+    );
+    await waitFor(() => {
+      expect(result.current.isLoadingHistory).toBe(false);
+    });
+
+    let requestPromise: Promise<void> | undefined;
+    await act(async () => {
+      requestPromise = result.current.sendMessage(prompt);
+      await postStarted;
+    });
+    await waitFor(() => {
+      expect(result.current.isStreaming).toBe(true);
+    });
+
+    await act(async () => {
+      result.current.handleStop();
+      await requestPromise;
+    });
+
+    await waitFor(() => {
+      expect(result.current.isStreaming).toBe(false);
+      expect(result.current.messages[1]).toMatchObject({
+        role: 'assistant',
+        deliveryStatus: 'stopped',
+        retryPrompt: prompt,
+      });
+    });
+    expect(requestAborted).toBe(true);
+  });
+
 });

@@ -212,9 +212,11 @@ describe('statistics chat agent flow', () => {
       'get_today_interviews',
       'get_notifications',
     ]);
-    expect(text).toContain('Lobb el mochkol');
+    expect(text).toContain('## My read');
     expect(text).toContain('TA Screening');
     expect(text).toContain('UX Research');
+    expect(text).not.toContain('Draft answer without evidence.');
+    expect(text).not.toContain('Second unsupported answer.');
     expect(text).toContain('@@META@@');
   });
 

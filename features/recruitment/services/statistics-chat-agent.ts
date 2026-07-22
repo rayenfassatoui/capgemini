@@ -9,6 +9,10 @@ import {
   appendChatResponseCardsToContent,
   extractChatResponseCardsFromContent,
 } from "../chat-card-events";
+import {
+  appendChatArtifactsToContent,
+  extractChatArtifactsFromContent,
+} from "../chat-artifact-events";
 import type { UserRole } from "../types";
 import {
   getChatHistory,
@@ -39,7 +43,10 @@ import {
   isCandidateSearchOrRankingIntent,
 } from "./candidate-grounding";
 import {
+  buildDeterministicAnalyticsResponse,
   buildDeterministicFallbackFromRecords,
+  buildDeterministicJobRosterResponse,
+  isJobRosterIntent,
   logGroundingGuardBlock,
 } from "./statistics-chat-formatting";
 import { requestAgentCompletionWithRetryPolicy } from "./statistics-chat-llm";
@@ -61,6 +68,9 @@ import {
 } from "./statistics-chat-prompt";
 import {
   buildAgentSkillPrompt,
+  buildExplicitMutationToolCall,
+  buildMissingCandidateStageToolCall,
+
   buildMissingCloseJobToolCall,
   buildMissingCreateJobToolCall,
   buildMissingToolRetryMessage,
@@ -146,6 +156,7 @@ export async function handleStatisticsChatPost(
   }
 
   const {
+    locale,
     messages,
     conversationId: reqConversationId,
     attachments,
@@ -160,11 +171,22 @@ export async function handleStatisticsChatPost(
 
   const lastUserMessage = messages[messages.length - 1];
   if (lastUserMessage?.role === "user") {
+    const persistedUserContent = appendChatArtifactsToContent(
+      lastUserMessage.content,
+      {
+        attachments: attachments?.map(({ filename, contentType, size }) => ({
+          filename,
+          contentType,
+          size,
+        })),
+        references,
+      },
+    );
     await saveChatMessage(
       conversation.id,
       session.user.id,
       "user",
-      lastUserMessage.content,
+      persistedUserContent,
     );
   }
 
@@ -199,16 +221,30 @@ export async function handleStatisticsChatPost(
           text,
           userMessage: lastMessageText,
           role,
+          locale,
           records: toolExecutionHistory,
         });
 
       const prepareGroundedResponse = (text: string) => {
-        const finalizedText = finalizeResponse(text);
+        const deterministicJobRoster = buildDeterministicJobRosterResponse(
+          toolExecutionHistory,
+          lastMessageText,
+          locale,
+        );
+        const deterministicAnalytics = buildDeterministicAnalyticsResponse(
+          toolExecutionHistory,
+          lastMessageText,
+          locale,
+        );
+        const finalizedText = finalizeResponse(
+          deterministicJobRoster ?? deterministicAnalytics ?? text,
+        );
         const grounded = groundAssistantResponse(
           finalizedText,
           toolExecutionHistory,
           {
             userMessage: lastMessageText,
+            locale,
             forceDeterministicRanking:
               isCandidateSearchOrRankingIntent(lastMessageText),
           },
@@ -230,13 +266,16 @@ export async function handleStatisticsChatPost(
           toolExecutionHistory,
           {
             question: lastMessageText,
+            locale,
           },
         );
         const cards = buildResponseCardsFromToolRecords(toolExecutionHistory, {
           question: lastMessageText,
+          locale,
           role,
+          maxCards: isJobRosterIntent(lastMessageText) ? 12 : undefined,
         });
-        emitMetaEvent(controller, encoder, {
+        const metadata = {
           groundingGuard: {
             blocked: grounded.blocked,
             deterministic: grounded.deterministic,
@@ -247,28 +286,44 @@ export async function handleStatisticsChatPost(
           evidence,
           charts,
           cards,
-        });
+        };
+        emitMetaEvent(controller, encoder, metadata);
 
         const responseText = normalizeMermaidCodeFences(
           ensureAgenticResponseStructure({
             text: grounded.text,
             userMessage: lastMessageText,
             role,
+            locale,
             records: toolExecutionHistory,
           }),
         );
 
         const diagram = buildRecruitmentMermaidDiagramFromToolRecords(
           toolExecutionHistory,
-          { question: lastMessageText },
+          { question: lastMessageText, locale },
         );
         const responseWithDiagram = diagram
           ? `${stripMermaidCodeFences(responseText)}\n\n${diagram}`
           : responseText;
 
-        return appendChatResponseCardsToContent(
-          appendChatChartsToContent(responseWithDiagram, charts),
-          cards,
+        return appendChatArtifactsToContent(
+          appendChatResponseCardsToContent(
+            appendChatChartsToContent(responseWithDiagram, charts),
+            cards,
+          ),
+          {
+            toolEvents: toolExecutionHistory.flatMap((record) =>
+              record.trace ? [record.trace] : [],
+            ),
+            fileDownloads: toolExecutionHistory.flatMap((record) =>
+              record.fileDownload ? [record.fileDownload] : [],
+            ),
+            metadata: {
+              groundingGuard: metadata.groundingGuard,
+              evidence,
+            },
+          },
         );
       };
 
@@ -278,6 +333,7 @@ export async function handleStatisticsChatPost(
           conversationId,
           userId: session.user.id,
           role,
+          locale,
           controller,
           encoder,
           prepareGroundedResponse,
@@ -383,6 +439,70 @@ export async function handleStatisticsChatPost(
           return;
         }
 
+        const allRoleTools = getToolsForRole(role);
+        const allRoleToolNames = allRoleTools.map(
+          (tool) => tool.function.name,
+        );
+        const explicitMutationToolCall = buildExplicitMutationToolCall({
+          message: lastMessageText,
+          availableToolNames: allRoleToolNames,
+        });
+
+        if (explicitMutationToolCall) {
+          const explicitToolExecutionCache = new Map<
+            string,
+            ToolExecutionRecord
+          >();
+          queueToolCalls({
+            toolCalls: [explicitMutationToolCall],
+            attachments,
+            toolExecutionCache: explicitToolExecutionCache,
+            controller,
+            encoder,
+            locale,
+          });
+          const explicitResult = await executeToolCalls({
+            toolCalls: [explicitMutationToolCall],
+            attachments,
+            toolExecutionCache: explicitToolExecutionCache,
+            toolExecutionHistory,
+            llmMessages: [],
+            controller,
+            encoder,
+            userId: session.user.id,
+            role,
+            locale,
+            conversationId,
+            prepareGroundedResponse,
+            persistAssistantMessage: async (text: string) => {
+              await saveChatMessage(
+                conversationId,
+                session.user.id,
+                "assistant",
+                text,
+              );
+            },
+            consecutiveToolFailures: 0,
+            sawMutatingTool: false,
+          });
+
+          if (explicitResult.shouldReturn) return;
+
+          fullResponse =
+            explicitResult.fullResponse ||
+            prepareGroundedResponse(
+              "I could not prepare that action because its arguments were invalid. No recruitment data was changed.",
+            );
+          await streamImmediateText(controller, encoder, fullResponse);
+          await saveChatMessage(
+            conversationId,
+            session.user.id,
+            "assistant",
+            fullResponse,
+          );
+          return;
+        }
+
         let nvidiaClient: ReturnType<typeof getNvidiaClient>;
         try {
           nvidiaClient = getNvidiaClient();
@@ -401,12 +521,13 @@ export async function handleStatisticsChatPost(
         const selectedToolNames = selectToolNamesForSkills(selectedSkills);
         let tools = getToolsForRole(role, { toolNames: selectedToolNames });
         if (tools.length === 0) {
-          tools = getToolsForRole(role);
+          tools = allRoleTools;
         }
         const activeToolNames = tools.map((tool) => tool.function.name);
         const systemPrompt = buildStatisticsChatSystemPrompt({
           role,
           today: new Date().toISOString().split("T")[0],
+          locale,
           attachments,
           skillInstructions: buildAgentSkillPrompt(
             selectedSkills,
@@ -433,8 +554,15 @@ export async function handleStatisticsChatPost(
         const llmMessages: LLMMessage[] = [
           { role: "system", content: systemPrompt },
           ...contextualHistory.map((message, index) => {
-            const withoutCards = extractChatResponseCardsFromContent(message.content);
-            const visibleContent = extractChatChartsFromContent(withoutCards.content).content;
+            const withoutArtifacts = extractChatArtifactsFromContent(
+              message.content,
+            );
+            const withoutCards = extractChatResponseCardsFromContent(
+              withoutArtifacts.content,
+            );
+            const visibleContent = extractChatChartsFromContent(
+              withoutCards.content,
+            ).content;
             return {
               role: message.role as "user" | "assistant",
               content:
@@ -527,7 +655,13 @@ export async function handleStatisticsChatPost(
               continue;
             }
 
-            const missingJobActionToolCall =
+            const missingActionToolCall =
+              buildMissingCandidateStageToolCall({
+                message: lastMessageText,
+                availableToolNames: activeToolNames,
+                records: toolExecutionHistory,
+                step,
+              }) ??
               buildMissingCloseJobToolCall({
                 message: lastMessageText,
                 skills: selectedSkills,
@@ -542,10 +676,10 @@ export async function handleStatisticsChatPost(
                 records: toolExecutionHistory,
                 step,
               });
-            if (!missingToolRecoveryUsed && missingJobActionToolCall) {
+            if (!missingToolRecoveryUsed && missingActionToolCall) {
               missingToolRecoveryUsed = true;
               const recoveryToolCalls: ResponseToolCall[] = [
-                missingJobActionToolCall,
+                missingActionToolCall,
               ];
 
               llmMessages.push({
@@ -560,6 +694,7 @@ export async function handleStatisticsChatPost(
                 toolExecutionCache,
                 controller,
                 encoder,
+                locale,
               });
 
               const recoveryResult = await executeToolCalls({
@@ -572,6 +707,7 @@ export async function handleStatisticsChatPost(
                 encoder,
                 userId: session.user.id,
                 role,
+                locale,
                 conversationId,
                 prepareGroundedResponse,
                 persistAssistantMessage: async (text: string) => {
@@ -638,6 +774,7 @@ export async function handleStatisticsChatPost(
                 toolExecutionCache,
                 controller,
                 encoder,
+                locale,
               });
 
               const recoveryResult = await executeToolCalls({
@@ -650,6 +787,7 @@ export async function handleStatisticsChatPost(
                 encoder,
                 userId: session.user.id,
                 role,
+                locale,
                 conversationId,
                 prepareGroundedResponse,
                 persistAssistantMessage: async (text: string) => {
@@ -723,6 +861,7 @@ export async function handleStatisticsChatPost(
             toolExecutionCache,
             controller,
             encoder,
+            locale,
           });
 
           const toolCallResult = await executeToolCalls({
@@ -735,6 +874,7 @@ export async function handleStatisticsChatPost(
             encoder,
             userId: session.user.id,
             role,
+            locale,
             conversationId,
             prepareGroundedResponse,
             persistAssistantMessage: async (text: string) => {
@@ -755,7 +895,13 @@ export async function handleStatisticsChatPost(
             fullResponse = toolCallResult.fullResponse;
           }
 
-          const missingJobActionAfterToolCall =
+          const missingActionAfterToolCall =
+            buildMissingCandidateStageToolCall({
+              message: lastMessageText,
+              availableToolNames: activeToolNames,
+              records: toolExecutionHistory,
+              step,
+            }) ??
             buildMissingCloseJobToolCall({
               message: lastMessageText,
               skills: selectedSkills,
@@ -770,10 +916,10 @@ export async function handleStatisticsChatPost(
               records: toolExecutionHistory,
               step,
             });
-          if (!missingToolRecoveryUsed && missingJobActionAfterToolCall) {
+          if (!missingToolRecoveryUsed && missingActionAfterToolCall) {
             missingToolRecoveryUsed = true;
             const recoveryToolCalls: ResponseToolCall[] = [
-              missingJobActionAfterToolCall,
+              missingActionAfterToolCall,
             ];
 
             llmMessages.push({
@@ -788,6 +934,7 @@ export async function handleStatisticsChatPost(
               toolExecutionCache,
               controller,
               encoder,
+              locale,
             });
 
             const recoveryResult = await executeToolCalls({
@@ -800,6 +947,7 @@ export async function handleStatisticsChatPost(
               encoder,
               userId: session.user.id,
               role,
+              locale,
               conversationId,
               prepareGroundedResponse,
               persistAssistantMessage: async (text: string) => {

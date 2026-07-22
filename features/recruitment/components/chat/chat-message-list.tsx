@@ -5,15 +5,22 @@ import { useRef, useEffect, useCallback, useState } from "react";
 import { motion } from "framer-motion";
 import { Streamdown } from "streamdown";
 import { createMermaidPlugin, type MermaidConfig } from "@streamdown/mermaid";
-import { IconAlertTriangle, IconArrowDown, IconChartBar, IconCheck, IconCopy, IconDatabase, IconDownload, IconExternalLink, IconFile, IconInfoCircle, IconLoader2, IconQuote, IconShieldCheck, IconUserCheck, IconX } from "@tabler/icons-react";
+import { IconAlertTriangle, IconArrowDown, IconBriefcase, IconChartBar, IconCheck, IconCopy, IconDatabase, IconDownload, IconExternalLink, IconFile, IconInfoCircle, IconLoader2, IconQuote, IconRefresh, IconShieldCheck, IconUserCheck, IconX } from "@tabler/icons-react";
 import { cn } from "@/lib/utils";
 import { CapgeminiIcons } from "@/components/shared/icons";
+import {
+  localizeAgentEvidenceText,
+  localizeAgentSourceLabel,
+  localizeAgentToolName,
+} from "../../agent-localization";
+import { useTranslation } from "@/components/shared/i18n-provider";
 import type { AgentActionConfirmation, ChatMessage, ToolEvent } from "./chat-types";
 import type { AgentEvidenceMetadata, RecruitmentResponseCard, RecruitmentResponseCardTone } from "../../types";
-import { SUGGESTIONS, formatToolName } from "./chat-types";
+import { formatToolName } from "./chat-types";
 import {
   buildConfirmationPreview,
   getConfirmationExpiryState,
+  localizeFollowUpSuggestions,
   getFollowUpSuggestions,
   summarizeEvidenceConfidence,
 } from "./chat-message-helpers";
@@ -30,7 +37,12 @@ interface ChatMessageListProps {
   onConfirmAction: (confirmation: AgentActionConfirmation, decision: "confirm" | "cancel") => void;
 }
 
-const STATUS_TEXT_THINKING = "Thinking...";
+const SUGGESTION_KEYS = [
+  "agent.suggestionReview",
+  "agent.suggestionBottleneck",
+  "agent.suggestionGaps",
+  "agent.suggestionPlan",
+] as const;
 
 const RECRUITMENT_MERMAID_CONFIG = {
   startOnLoad: false,
@@ -161,11 +173,13 @@ function ActionConfirmationCard({
   disabled: boolean;
   onConfirmAction: (confirmation: AgentActionConfirmation, decision: "confirm" | "cancel") => void;
 }) {
-  const preview = buildConfirmationPreview(confirmation);
+  const { locale, t } = useTranslation();
+  const preview = buildConfirmationPreview(confirmation, locale);
   const [expiryNow, setExpiryNow] = useState(() => Date.now());
   const expiryState = getConfirmationExpiryState(
     confirmation.expiresAt,
     expiryNow,
+    locale,
   );
 
   useEffect(() => {
@@ -179,13 +193,14 @@ function ActionConfirmationCard({
   }, [confirmation.status]);
 
   const isPending = confirmation.status === "pending" && !expiryState.expired;
-  const statusLabel = expiryState.expired && confirmation.status === "pending"
-    ? "Expired"
-    : confirmation.status === "confirmed"
-      ? "Confirmed"
-      : confirmation.status === "cancelled"
-        ? "Cancelled"
-        : "Awaiting confirmation";
+  const statusLabel =
+    expiryState.expired && confirmation.status === "pending"
+      ? t("agent.expired")
+      : confirmation.status === "confirmed"
+        ? t("agent.confirmed")
+        : confirmation.status === "cancelled"
+          ? t("agent.cancelled")
+          : t("agent.awaitingConfirmation");
 
   const riskToneClass =
     preview.riskLevel === "high"
@@ -204,7 +219,7 @@ function ActionConfirmationCard({
           <div className="space-y-2">
             <div className="flex flex-wrap items-center gap-2">
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-amber-700 dark:text-amber-300">
-                Confirmation required
+                {t("agent.confirmationRequired")}
               </p>
               <span
                 className={cn(
@@ -219,16 +234,19 @@ function ActionConfirmationCard({
               </span>
             </div>
             <h3 className="text-sm font-bold text-amber-950 dark:text-amber-50">
-              {formatToolName(confirmation.toolName)}
+              {localizeAgentToolName(confirmation.toolName, locale)}
             </h3>
           </div>
 
           <p className="text-sm leading-6 text-amber-900/90 dark:text-amber-100/85">
-            {confirmation.summary}
+            {localizeAgentEvidenceText(confirmation.summary, locale)}
           </p>
 
           {preview.entities.length > 0 && (
-            <div className="flex flex-wrap gap-2" aria-label="Affected entities">
+            <div
+              className="flex flex-wrap gap-2"
+              aria-label={t("agent.affectedEntities")}
+            >
               {preview.entities.map((entity) => (
                 <span
                   key={`${entity.label}-${entity.value}`}
@@ -243,7 +261,7 @@ function ActionConfirmationCard({
 
           <div className="rounded-xl border border-amber-300/50 bg-background/60 p-3">
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-amber-800 dark:text-amber-200">
-              Expected impact
+              {t("agent.expectedImpact")}
             </p>
             <ul className="mt-2 space-y-1.5 text-sm leading-6 text-foreground/85">
               {preview.impact.map((item) => (
@@ -257,7 +275,7 @@ function ActionConfirmationCard({
 
           <details className="rounded-xl border border-amber-300/50 bg-background/60 p-3">
             <summary className="cursor-pointer text-xs font-semibold text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-              Review exact arguments
+              {t("agent.reviewArguments")}
             </summary>
             <pre className="mt-3 max-h-48 overflow-auto whitespace-pre-wrap break-words text-xs text-muted-foreground">
               {JSON.stringify(confirmation.args, null, 2)}
@@ -274,19 +292,19 @@ function ActionConfirmationCard({
                   type="button"
                   disabled={disabled}
                   onClick={() => onConfirmAction(confirmation, "cancel")}
-                  className="inline-flex min-h-9 items-center gap-1.5 rounded-full border border-border bg-background px-3 py-1 text-xs font-semibold text-foreground transition-colors hover:border-destructive/40 hover:text-destructive disabled:cursor-not-allowed disabled:opacity-60"
+                  className="inline-flex min-h-11 items-center gap-1.5 rounded-full border border-border bg-background px-4 py-2 text-xs font-semibold text-foreground transition-colors hover:border-destructive/40 hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   <IconX className="size-3.5" />
-                  Cancel
+                  {t("common.cancel")}
                 </button>
                 <button
                   type="button"
                   disabled={disabled}
                   onClick={() => onConfirmAction(confirmation, "confirm")}
-                  className="inline-flex min-h-9 items-center gap-1.5 rounded-full bg-amber-600 px-3 py-1 text-xs font-semibold text-white transition-colors hover:bg-amber-700 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="inline-flex min-h-11 items-center gap-1.5 rounded-full bg-amber-600 px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-amber-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   <IconCheck className="size-3.5" />
-                  Confirm
+                  {t("agent.confirm")}
                 </button>
               </div>
             )}
@@ -297,17 +315,20 @@ function ActionConfirmationCard({
   );
 }
 
-function getSourceKindLabel(kind: string): string {
+function getSourceKindLabel(
+  kind: string,
+  locale: "en" | "fr",
+): string {
   if (kind === "cv") return "CV";
-  if (kind === "job") return "Job";
-  if (kind === "candidate") return "Candidate";
-  if (kind === "analytics") return "Analytics";
-  if (kind === "interview") return "Interview";
+  if (kind === "job") return locale === "fr" ? "Poste" : "Job";
+  if (kind === "candidate") return locale === "fr" ? "Candidat" : "Candidate";
+  if (kind === "analytics") return locale === "fr" ? "Analytique" : "Analytics";
+  if (kind === "interview") return locale === "fr" ? "Entretien" : "Interview";
   if (kind === "operation") return "Workflow";
-  if (kind === "search") return "Search";
-  if (kind === "system") return "System";
-  if (kind === "onboarding") return "Onboarding";
-  return "Tool";
+  if (kind === "search") return locale === "fr" ? "Recherche" : "Search";
+  if (kind === "system") return locale === "fr" ? "Systeme" : "System";
+  if (kind === "onboarding") return locale === "fr" ? "Integration" : "Onboarding";
+  return locale === "fr" ? "Outil" : "Tool";
 }
 
 function SourceEvidencePanel({
@@ -315,9 +336,10 @@ function SourceEvidencePanel({
 }: {
   evidence?: AgentEvidenceMetadata;
 }) {
+  const { locale, t } = useTranslation();
   if (!evidence || evidence.sources.length === 0) return null;
 
-  const confidence = summarizeEvidenceConfidence(evidence);
+  const confidence = summarizeEvidenceConfidence(evidence, locale);
   const confidenceToneClass =
     confidence?.level === "high"
       ? "border-emerald-300/60 bg-emerald-100/80 text-emerald-900 dark:border-emerald-500/30 dark:bg-emerald-950/30 dark:text-emerald-100"
@@ -328,7 +350,7 @@ function SourceEvidencePanel({
   return (
     <section
       className="mb-4 w-full max-w-2xl rounded-2xl border border-border/70 bg-card/55 p-3 shadow-sm"
-      aria-label="Source-backed evidence"
+      aria-label={t("agent.evidence")}
     >
       <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
         <div className="flex items-center gap-2">
@@ -337,11 +359,14 @@ function SourceEvidencePanel({
           </span>
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-              Source-backed
+              {t("agent.sourceBacked")}
             </p>
             <p className="text-sm font-medium text-foreground">
-              {confidence?.verifiedSources ?? 0} verified source{confidence?.verifiedSources === 1 ? "" : "s"}
-              {confidence && confidence.failedSources > 0 ? `, ${confidence.failedSources} failed` : ""}
+              {confidence?.verifiedSources ?? 0}{" "}
+              {t(confidence?.verifiedSources === 1 ? "agent.verifiedSource" : "agent.verifiedSources")}
+              {confidence && confidence.failedSources > 0
+                ? `, ${confidence.failedSources} ${t("agent.failedSources")}`
+                : ""}
             </p>
             {confidence?.summary ? (
               <p className="mt-1 text-xs leading-5 text-muted-foreground">
@@ -358,23 +383,24 @@ function SourceEvidencePanel({
             )}
           >
             {confidence?.level === "high"
-              ? "High confidence"
+              ? t("agent.highConfidence")
               : confidence?.level === "medium"
-                ? "Medium confidence"
-                : "Low confidence"}
+                ? t("agent.mediumConfidence")
+                : t("agent.lowConfidence")}
           </span>
           <span className="inline-flex rounded-full border border-border/60 bg-background/70 px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
-            {confidence?.observedFactCount ?? 0} observed
+            {confidence?.observedFactCount ?? 0} {t("agent.observed").toLowerCase()}
           </span>
           {confidence && confidence.inferenceLimitCount > 0 ? (
             <span className="inline-flex rounded-full border border-border/60 bg-background/70 px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
-              {confidence.inferenceLimitCount} limit{confidence.inferenceLimitCount === 1 ? "" : "s"}
+              {confidence.inferenceLimitCount}{" "}
+              {t(confidence.inferenceLimitCount === 1 ? "agent.limit" : "agent.limits")}
             </span>
           ) : null}
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-2" aria-label="Source chips">
+      <div className="flex flex-wrap gap-2" aria-label={t("agent.sourceChips")}>
         {evidence.sources.map((source) => {
           const chipClass = cn(
             "inline-flex max-w-full items-center gap-2 rounded-full border px-2.5 py-1 text-[11px] font-medium",
@@ -386,9 +412,11 @@ function SourceEvidencePanel({
           const content = (
             <>
               <span className="rounded-full bg-background/70 px-1.5 py-0.5 text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
-                {getSourceKindLabel(source.kind)}
+                {getSourceKindLabel(source.kind, locale)}
               </span>
-              <span className="truncate">{source.label}</span>
+              <span className="truncate">
+                {localizeAgentSourceLabel(source.label, locale)}
+              </span>
               {typeof source.count === "number" ? (
                 <span className="text-muted-foreground">{source.count}</span>
               ) : null}
@@ -401,7 +429,13 @@ function SourceEvidencePanel({
               key={source.id}
               href={source.link.href}
               className={chipClass}
-              aria-label={`${source.label}: ${source.status}. ${source.link.label}.`}
+              aria-label={`${localizeAgentSourceLabel(source.label, locale)}: ${
+                locale === "fr"
+                  ? source.status === "success"
+                    ? "reussie"
+                    : "en echec"
+                  : source.status
+              }. ${source.link.label}.`}
             >
               {content}
             </Link>
@@ -409,7 +443,13 @@ function SourceEvidencePanel({
             <span
               key={source.id}
               className={chipClass}
-              aria-label={`${source.label}: ${source.status}`}
+              aria-label={`${localizeAgentSourceLabel(source.label, locale)}: ${
+                locale === "fr"
+                  ? source.status === "success"
+                    ? "reussie"
+                    : "en echec"
+                  : source.status
+              }`}
             >
               {content}
             </span>
@@ -420,7 +460,7 @@ function SourceEvidencePanel({
         <div className="mt-3 rounded-xl border border-amber-300/40 bg-amber-50/60 p-3 dark:border-amber-500/20 dark:bg-amber-950/20">
           <div className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.16em] text-amber-900 dark:text-amber-100">
             <IconInfoCircle className="size-3.5" />
-            Main caveats
+            {t("agent.mainCaveats")}
           </div>
           <ul className="space-y-1.5 text-xs leading-5 text-amber-950/85 dark:text-amber-100/85">
             {confidence.issues.map((issue, issueIndex) => (
@@ -437,24 +477,28 @@ function SourceEvidencePanel({
         <div className="rounded-xl border border-border/60 bg-background/60 p-3">
           <div className="mb-2 flex items-center gap-1.5 text-xs font-semibold text-foreground">
             <IconQuote className="size-3.5 text-primary" />
-            Observed
+            {t("agent.observed")}
           </div>
           <ul className="space-y-1.5 text-xs leading-5 text-muted-foreground">
             {evidence.observedFacts.slice(0, 3).map((fact, factIndex) => (
-              <li key={`${fact}-${factIndex}`}>{fact}</li>
+              <li key={`${fact}-${factIndex}`}>
+                {localizeAgentEvidenceText(fact, locale)}
+              </li>
             ))}
           </ul>
         </div>
         <div className="rounded-xl border border-border/60 bg-background/60 p-3">
           <div className="mb-2 flex items-center gap-1.5 text-xs font-semibold text-foreground">
             <IconInfoCircle className="size-3.5 text-muted-foreground" />
-            Inferred with limits
+            {t("agent.inferred")}
           </div>
           <ul className="space-y-1.5 text-xs leading-5 text-muted-foreground">
             {(evidence.inferenceLimits.length > 0
               ? evidence.inferenceLimits.slice(0, 3)
-              : ["No additional inference limit was recorded for this answer."]).map((limit, limitIndex) => (
-              <li key={`${limit}-${limitIndex}`}>{limit}</li>
+              : [t("agent.noInference")]).map((limit, limitIndex) => (
+              <li key={`${limit}-${limitIndex}`}>
+                {localizeAgentEvidenceText(limit, locale)}
+              </li>
             ))}
           </ul>
         </div>
@@ -463,7 +507,7 @@ function SourceEvidencePanel({
       {evidence.evidenceBlocks.length > 0 && (
         <details className="mt-3 rounded-xl border border-border/60 bg-background/50 p-3">
           <summary className="cursor-pointer text-xs font-semibold text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-            Evidence blocks
+            {t("agent.evidenceBlocks")}
           </summary>
           <div className="mt-3 space-y-3">
             {evidence.evidenceBlocks.map((block) => (
@@ -477,7 +521,9 @@ function SourceEvidencePanel({
                       key={item.id ?? `${block.id}-item-${itemIndex}`}
                       className="flex items-start justify-between gap-3"
                     >
-                      <span className="flex-1">{item.text}</span>
+                      <span className="flex-1">
+                        {localizeAgentEvidenceText(item.text, locale)}
+                      </span>
                       {item.link ? (
                         <Link
                           href={item.link.href}
@@ -498,10 +544,14 @@ function SourceEvidencePanel({
     </section>
   );
 }
-function getResponseCardKindLabel(kind: RecruitmentResponseCard["kind"]): string {
-  if (kind === "candidate") return "Candidate card";
-  if (kind === "pipeline") return "Pipeline card";
-  return "Governance card";
+function getResponseCardKindLabel(
+  kind: RecruitmentResponseCard["kind"],
+  t: (key: string) => string,
+): string {
+  if (kind === "candidate") return t("agent.candidateCard");
+  if (kind === "job") return t("agent.jobCard");
+  if (kind === "pipeline") return t("agent.pipelineCard");
+  return t("agent.governanceCard");
 }
 
 function getResponseCardToneClass(tone: RecruitmentResponseCardTone | undefined): string {
@@ -528,6 +578,10 @@ function ResponseCardIcon({ kind }: { kind: RecruitmentResponseCard["kind"] }) {
   if (kind === "candidate") {
     return <IconUserCheck className="size-4" />;
   }
+  if (kind === "job") {
+    return <IconBriefcase className="size-4" />;
+  }
+
 
   if (kind === "pipeline") {
     return <IconChartBar className="size-4" />;
@@ -544,7 +598,7 @@ function ResponseCardAction({
   onSendSuggestion: (text: string) => void;
 }) {
   const className =
-    "inline-flex min-h-8 items-center gap-1.5 rounded-full border border-border/70 bg-background/80 px-3 py-1 text-xs font-semibold text-foreground transition-colors hover:border-primary/40 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
+    "inline-flex min-h-11 items-center gap-1.5 rounded-full border border-border/70 bg-background/80 px-4 py-2 text-xs font-semibold text-foreground transition-colors hover:border-primary/40 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
 
   if (action.href) {
     return (
@@ -578,6 +632,7 @@ function ResponseCard({
   card: RecruitmentResponseCard;
   onSendSuggestion: (text: string) => void;
 }) {
+  const { locale, t } = useTranslation();
   const toneClass = getResponseCardToneClass(card.tone);
 
   return (
@@ -586,7 +641,7 @@ function ResponseCard({
         "rounded-2xl border p-4 shadow-sm backdrop-blur",
         toneClass,
       )}
-      aria-label={getResponseCardKindLabel(card.kind)}
+      aria-label={getResponseCardKindLabel(card.kind, t)}
     >
       <div className="mb-3 flex items-start justify-between gap-3">
         <div className="flex min-w-0 items-start gap-3">
@@ -595,7 +650,7 @@ function ResponseCard({
           </span>
           <div className="min-w-0">
             <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-current/65">
-              {getResponseCardKindLabel(card.kind)}
+              {getResponseCardKindLabel(card.kind, t)}
             </p>
             <h3 className="mt-1 text-sm font-bold leading-5 text-current">
               {card.title}
@@ -609,7 +664,7 @@ function ResponseCard({
         </div>
         {card.sourceTool ? (
           <span className="hidden rounded-full border border-current/15 bg-background/60 px-2 py-0.5 text-[10px] font-semibold text-current/65 sm:inline-flex">
-            {formatToolName(card.sourceTool)}
+            {localizeAgentToolName(card.sourceTool, locale)}
           </span>
         ) : null}
       </div>
@@ -673,10 +728,11 @@ function ResponseCardsPanel({
   cards?: RecruitmentResponseCard[];
   onSendSuggestion: (text: string) => void;
 }) {
+  const { t } = useTranslation();
   if (!cards || cards.length === 0) return null;
 
   return (
-    <section className="flex flex-col gap-3 pt-1" aria-label="Structured response cards">
+    <section className="flex flex-col gap-3 pt-1" aria-label={t("agent.structuredCards")}>
       {cards.map((card) => (
         <ResponseCard
           key={card.id}
@@ -695,9 +751,11 @@ function EmptyState({
   onSendSuggestion: (text: string) => void;
   variant?: "panel" | "workspace";
 }) {
+  const { t } = useTranslation();
+  const suggestions = SUGGESTION_KEYS.map((key) => t(key));
   const showSuggestions = variant !== "workspace";
   return (
-    <div className="flex min-h-[60vh] flex-col items-center justify-center gap-8 px-5 py-14">
+    <div className="flex flex-col items-center justify-start gap-6 px-2 py-8 sm:min-h-[60vh] sm:justify-center sm:gap-8 sm:px-5 sm:py-14">
       <motion.div
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
@@ -705,19 +763,19 @@ function EmptyState({
         className="mx-auto flex max-w-xl flex-col items-center gap-3 text-center"
       >
         <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
-          Ready
+          {t("agent.eyebrow")}
         </p>
         <h1 className="text-2xl font-semibold tracking-[-0.03em] text-foreground">
-          Ask the recruitment agent
+          {t("agent.emptyTitle")}
         </h1>
         <p className="max-w-md text-sm leading-6 text-muted-foreground">
-          Use a direct request. The agent will fetch data, cite tools, and return charts when useful.
+          {t("agent.emptyDescription")}
         </p>
       </motion.div>
 
       {showSuggestions && (
         <div className="grid w-full max-w-xl gap-2">
-          {SUGGESTIONS.map((suggestion, index) => (
+          {suggestions.map((suggestion, index) => (
             <motion.button
               key={suggestion}
               initial={{ opacity: 0, y: 8 }}
@@ -790,10 +848,11 @@ function AssistantWorkingIndicator({
 }: {
   toolEvents?: ToolEvent[];
 }) {
+  const { t } = useTranslation();
   const runningTool = toolEvents?.find((evt) => evt.status === "running");
   const statusText = runningTool
-    ? `Working on ${formatToolName(runningTool.tool)}`
-    : STATUS_TEXT_THINKING;
+    ? `${t("agent.workingOn")} ${formatToolName(runningTool.tool)}`
+    : t("agent.thinking");
 
   return (
     <div className="mt-3 flex items-center gap-2 rounded-[10px] border border-border/70 bg-muted/30 px-3 py-2">
@@ -845,15 +904,19 @@ function AssistantMessageActions({
   showFollowUps: boolean;
   onSendSuggestion: (text: string) => void;
 }) {
+  const { locale, t } = useTranslation();
   const [copied, setCopied] = useState(false);
-  const followUps = getFollowUpSuggestions({
-    content: message.content,
-    metadata: message.metadata,
-    charts: message.charts,
-    cards: message.cards ?? message.metadata?.cards,
-    confirmations: message.confirmations,
-    toolEvents: message.toolEvents,
-  });
+  const followUps = localizeFollowUpSuggestions(
+    getFollowUpSuggestions({
+      content: message.content,
+      metadata: message.metadata,
+      charts: message.charts,
+      cards: message.cards ?? message.metadata?.cards,
+      confirmations: message.confirmations,
+      toolEvents: message.toolEvents,
+    }),
+    locale,
+  );
 
   const handleCopy = useCallback(() => {
     navigator.clipboard
@@ -867,30 +930,54 @@ function AssistantMessageActions({
 
   return (
     <div className="mt-3 flex flex-col gap-3">
+      {(message.deliveryStatus === "stopped" ||
+        message.deliveryStatus === "error") && (
+        <div
+          role="status"
+          className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-400/40 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-950 dark:border-amber-400/30 dark:bg-amber-950/35 dark:text-amber-100"
+        >
+          <span>
+            {message.deliveryStatus === "stopped"
+              ? t("agent.stopped")
+              : t("agent.failed")}
+          </span>
+          {message.retryPrompt && (
+            <button
+              type="button"
+              onClick={() => onSendSuggestion(message.retryPrompt!)}
+              className="inline-flex min-h-11 items-center gap-2 rounded-full border border-current/25 bg-background/80 px-4 py-2 font-semibold text-foreground transition-colors hover:border-primary/50 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              aria-label={t("agent.retryRequest")}
+            >
+              <IconRefresh className="size-4" />
+              {t("agent.retry")}
+            </button>
+          )}
+        </div>
+      )}
       <div className="flex flex-wrap items-center gap-2">
         <button
           type="button"
           onClick={handleCopy}
-          className="inline-flex min-h-8 items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1 text-xs font-medium text-muted-foreground transition-colors hover:border-primary/30 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          aria-label={copied ? "Response copied" : "Copy response"}
+          className="inline-flex min-h-11 items-center gap-1.5 rounded-full border border-border bg-card px-4 py-2 text-xs font-medium text-muted-foreground transition-colors hover:border-primary/30 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          aria-label={copied ? t("agent.responseCopied") : t("agent.copyResponse")}
         >
           {copied ? (
             <IconCheck className="size-3.5 text-primary" />
           ) : (
             <IconCopy className="size-3.5" />
           )}
-          {copied ? "Copied" : "Copy"}
+          {copied ? t("agent.copied") : t("agent.copy")}
         </button>
       </div>
 
       {showFollowUps && (
-        <div className="flex flex-wrap gap-2" aria-label="Suggested follow-up questions">
+        <div className="flex flex-wrap gap-2" aria-label={t("agent.suggestedFollowUps")}>
           {followUps.map((suggestion) => (
             <button
               key={suggestion}
               type="button"
               onClick={() => onSendSuggestion(suggestion)}
-              className="rounded-full border border-border bg-background/70 px-3 py-1.5 text-xs font-medium text-foreground/80 transition-colors hover:border-primary/40 hover:bg-primary/10 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="min-h-11 rounded-full border border-border bg-background/70 px-4 py-2 text-xs font-medium text-foreground/80 transition-colors hover:border-primary/40 hover:bg-primary/10 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               {suggestion}
             </button>
@@ -915,6 +1002,28 @@ function MessageBubble({
   onSendSuggestion: (text: string) => void;
   onConfirmAction: (confirmation: AgentActionConfirmation, decision: "confirm" | "cancel") => void;
 }) {
+  const { t } = useTranslation();
+  const markdownRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const root = markdownRef.current;
+    if (!root) return;
+
+    const enhanceMermaidRegions = () => {
+      for (const region of root.querySelectorAll<HTMLElement>(
+        '[data-streamdown="mermaid"]',
+      )) {
+        region.tabIndex = 0;
+        region.setAttribute("role", "region");
+        region.setAttribute("aria-label", t("agent.scrollableDiagram"));
+      }
+    };
+
+    enhanceMermaidRegions();
+    const observer = new MutationObserver(enhanceMermaidRegions);
+    observer.observe(root, { childList: true, subtree: true });
+    return () => observer.disconnect();
+  }, [msg.content, t]);
+
   const isUser = msg.role === "user";
   const hasToolEvents = (msg.toolEvents?.length ?? 0) > 0;
   const hasRunningTool =
@@ -929,19 +1038,19 @@ function MessageBubble({
       animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
       transition={{ duration: 0.7, ease: [0.32, 0.72, 0, 1] }}
       className={cn(
-        "group flex w-full gap-4 pb-4",
+        "group flex w-full gap-2 pb-4 sm:gap-4",
         isUser ? "justify-end" : "justify-start",
       )}
     >
       {!isUser && (
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 border border-primary/10 shadow-sm mt-1">
+        <div className="mt-1 flex size-7 shrink-0 items-center justify-center rounded-full border border-primary/10 bg-primary/10 shadow-sm sm:size-8">
           <CapgeminiIcons className="h-4 w-4" />
         </div>
       )}
 
       <div
         className={cn(
-          "flex min-w-0 max-w-[85%] flex-col lg:max-w-[75%]",
+          "flex min-w-0 max-w-[calc(100%_-_2.25rem)] flex-col sm:max-w-[85%] lg:max-w-[75%]",
           isUser ? "items-end" : "items-start",
         )}
       >
@@ -958,7 +1067,7 @@ function MessageBubble({
         {!isUser && msg.content && (
           <div className="pl-1 pb-1">
             <span className="text-[12px] font-semibold text-muted-foreground tracking-wide uppercase">
-              Agent
+              {t("agent.agentLabel")}
             </span>
           </div>
         )}
@@ -1001,6 +1110,7 @@ function MessageBubble({
           ) : msg.content ? (
             <div className="flex min-w-0 max-w-full flex-col gap-4 font-sans">
               <div
+                ref={markdownRef}
                 className="prose prose-sm max-w-full overflow-hidden text-foreground/90 dark:prose-invert
                 [&_p]:leading-[1.7] [&_p]:mb-4
                 [&_strong]:font-bold [&_strong]:text-foreground
@@ -1089,6 +1199,7 @@ export function ChatMessageList({
   onSendSuggestion,
   onConfirmAction,
 }: ChatMessageListProps) {
+  const { t } = useTranslation();
   const containerRef = useRef<HTMLDivElement>(null);
   const pinnedToBottomRef = useRef(true);
   const previousMessageCountRef = useRef(0);
@@ -1126,10 +1237,15 @@ export function ChatMessageList({
   useEffect(() => {
     const previousCount = previousMessageCountRef.current;
     const messageCountChanged = previousCount !== messages.length;
+    const appendedMessages =
+      messages.length > previousCount ? messages.slice(previousCount) : [];
     previousMessageCountRef.current = messages.length;
 
-    const latestMessage = messages[messages.length - 1];
-    const userJustSent = messageCountChanged && latestMessage?.role === "user";
+    if (messages.length === 0) return;
+
+    const userJustSent = appendedMessages.some(
+      (message) => message.role === "user",
+    );
 
     if (pinnedToBottomRef.current || userJustSent) {
       scrollContainerToBottom(messageCountChanged ? "smooth" : "auto");
@@ -1157,7 +1273,7 @@ export function ChatMessageList({
       ref={containerRef}
       onScroll={handleScroll}
       className={cn(
-        "relative flex-1 overflow-y-auto px-4 py-6 scrollbar-hide md:px-6",
+        "relative flex-1 overflow-y-auto px-3 py-5 scrollbar-hide sm:px-4 sm:py-6 md:px-6",
         variant === "workspace" ? "bg-transparent" : "bg-background",
       )}
     >
@@ -1181,14 +1297,14 @@ export function ChatMessageList({
           ))
         )}
       </div>
-      {!isPinnedToBottom && (
+      {messages.length > 0 && !isPinnedToBottom && (
         <button
           type="button"
           onClick={() => scrollToBottom()}
-          className="sticky bottom-4 z-10 ml-auto mt-4 flex items-center gap-2 rounded-full border border-border bg-card/95 px-3 py-2 text-xs font-semibold text-foreground shadow-lg backdrop-blur transition-colors hover:border-primary/40 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="sticky bottom-4 z-10 ml-auto mt-4 flex min-h-11 items-center gap-2 rounded-full border border-border bg-card/95 px-4 py-2 text-xs font-semibold text-foreground shadow-lg backdrop-blur transition-colors hover:border-primary/40 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           <IconArrowDown className="size-3.5" />
-          Latest
+          {t("agent.latest")}
         </button>
       )}
     </div>

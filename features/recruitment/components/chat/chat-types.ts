@@ -1,75 +1,25 @@
-import type { AgentEvidenceMetadata, RecruitmentAnalyticsChart, RecruitmentResponseCard } from "../../types";
+import type { RecruitmentAnalyticsChart, RecruitmentResponseCard } from "../../types";
+import type {
+  AgentActionConfirmation,
+  ChatAttachment,
+  ChatResponseMetadata,
+  FileDownload,
+  ToolEvent,
+  ToolEventStatus,
+} from "../../chat-artifact-events";
 import type { AgentReference } from "./agent-prompts";
 
-export type ToolEventStatus = "queued" | "running" | "pending_confirmation" | "success" | "error";
+export type {
+  AgentActionConfirmation,
+  ChatAttachment,
+  ChatResponseMetadata,
+  FileDownload,
+  ToolEvent,
+  ToolEventStatus,
+  ToolTraceJson,
+} from "../../chat-artifact-events";
 
 export type ToolTraceFilter = "all" | ToolEventStatus;
-
-export type ToolTraceJson =
-  | null
-  | boolean
-  | number
-  | string
-  | ToolTraceJson[]
-  | { [key: string]: ToolTraceJson };
-
-export interface ToolRetryMetadata {
-  attempt?: number;
-  maxAttempts?: number;
-  retried?: boolean;
-  reason?: string;
-}
-
-export interface ToolEvent {
-  id: string;
-  tool: string;
-  status: ToolEventStatus;
-  summary?: string;
-  purpose?: string;
-  startedAt?: string;
-  endedAt?: string;
-  durationMs?: number;
-  input?: ToolTraceJson;
-  output?: ToolTraceJson;
-  error?: string;
-  retry?: ToolRetryMetadata;
-}
-
-export interface GroundingGuardMetadata {
-  blocked: boolean;
-  deterministic: boolean;
-  candidateCount: number;
-  rejectedCount: number;
-  sourceToolCount: number;
-}
-
-export interface ChatResponseMetadata {
-  groundingGuard?: GroundingGuardMetadata;
-  evidence?: AgentEvidenceMetadata;
-  charts?: RecruitmentAnalyticsChart[];
-  cards?: RecruitmentResponseCard[];
-}
-
-export interface ChatAttachment {
-  filename: string;
-  size: number;
-  contentType: string;
-}
-
-export interface FileDownload {
-  filename: string;
-  base64: string;
-  contentType: string;
-}
-
-export interface AgentActionConfirmation {
-  id: string;
-  toolName: string;
-  summary: string;
-  args: ToolTraceJson;
-  expiresAt: string;
-  status: "pending" | "confirmed" | "cancelled";
-}
 
 export interface ChatMessage {
   id: string;
@@ -83,6 +33,8 @@ export interface ChatMessage {
   cards?: RecruitmentResponseCard[];
   metadata?: ChatResponseMetadata;
   confirmations?: AgentActionConfirmation[];
+  deliveryStatus?: "complete" | "stopped" | "error";
+  retryPrompt?: string;
 }
 
 export interface Conversation {
@@ -106,17 +58,22 @@ export function formatToolName(name: string): string {
   return name.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
-export function formatRelativeTime(dateStr: string): string {
+export function formatRelativeTime(
+  dateStr: string,
+  locale: "en" | "fr" = "en",
+): string {
   const date = new Date(dateStr);
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
+  if (Number.isNaN(date.getTime())) return "";
+
+  const diffMs = Date.now() - date.getTime();
   const diffMin = Math.floor(diffMs / 60_000);
   const diffHr = Math.floor(diffMs / 3_600_000);
   const diffDays = Math.floor(diffMs / 86_400_000);
+  const formatter = new Intl.RelativeTimeFormat(locale, { numeric: "auto" });
 
-  if (diffMin < 1) return "Just now";
-  if (diffMin < 60) return `${diffMin}m ago`;
-  if (diffHr < 24) return `${diffHr}h ago`;
-  if (diffDays < 7) return `${diffDays}d ago`;
-  return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  if (diffMin < 1) return formatter.format(0, "minute");
+  if (diffMin < 60) return formatter.format(-diffMin, "minute");
+  if (diffHr < 24) return formatter.format(-diffHr, "hour");
+  if (diffDays < 7) return formatter.format(-diffDays, "day");
+  return date.toLocaleDateString(locale, { month: "short", day: "numeric" });
 }

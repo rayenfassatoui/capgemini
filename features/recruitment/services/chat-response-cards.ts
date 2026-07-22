@@ -12,6 +12,7 @@ import type { ToolExecutionRecord } from './statistics-chat-types';
 interface BuildResponseCardsOptions {
   question?: string;
   role?: UserRole;
+  locale?: "en" | "fr";
   maxCards?: number;
 }
 
@@ -22,6 +23,7 @@ interface CandidateSummary {
   score?: number;
   stage?: string;
   jobTitle?: string;
+  owner?: string;
   skills: string[];
   gaps: string[];
   concerns: string[];
@@ -30,6 +32,17 @@ interface CandidateSummary {
 }
 
 const DEFAULT_MAX_CARDS = 3;
+const JOB_CARD_TOOL_NAMES: ReadonlySet<string> = new Set([
+  'list_jobs',
+  'get_job',
+  'create_job',
+  'close_job',
+  'save_job_as_template',
+  'list_job_templates',
+  'create_job_from_template',
+  'generate_job_description',
+]);
+
 
 const dashboardStatsSchema = z.object({
   totalCandidates: z.number().finite().nonnegative(),
@@ -79,6 +92,21 @@ const STAGE_LABELS: Record<string, string> = {
   hired: 'Hired',
 };
 
+const FR_STAGE_LABELS: Readonly<Record<string, string>> = {
+  new: 'Nouveau',
+  ta_screening: 'Preselection TA',
+  ta_interview: 'Entretien TA',
+  ta_accepted: 'Accepte par TA',
+  ta_rejected: 'Refuse par TA',
+  manager_interview: 'Entretien manager',
+  manager_accepted: 'Accepte par le manager',
+  manager_rejected: 'Refuse par le manager',
+  hr_interview: 'Entretien RH',
+  hr_accepted: 'Accepte par les RH',
+  hr_rejected: 'Refuse par les RH',
+  hired: 'Embauche',
+};
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
@@ -93,6 +121,34 @@ function readString(record: Record<string, unknown>, keys: readonly string[]): s
   }
 
   return undefined;
+}
+
+function readCandidateOwner(record: Record<string, unknown>): string | undefined {
+  const namedOwner = readString(record, [
+    'ownerName',
+    'assignedToName',
+    'assignedManagerName',
+    'assignedHrName',
+    'assignedByName',
+  ]);
+  if (namedOwner) return namedOwner;
+  if (readString(record, ['assignedHrId'])) return 'hr';
+  if (readString(record, ['assignedManagerId'])) return 'manager';
+  if (readString(record, ['assignedBy'])) return 'ta';
+  return undefined;
+}
+
+function formatOwner(
+  owner: string | undefined,
+  locale: "en" | "fr",
+): string | undefined {
+  if (!owner) return undefined;
+  if (owner === 'ta') return locale === "fr" ? "Responsable TA" : "TA assignee";
+  if (owner === 'manager') {
+    return locale === "fr" ? "Manager assigne" : "Manager assignee";
+  }
+  if (owner === 'hr') return locale === "fr" ? "Responsable RH" : "HR assignee";
+  return owner;
 }
 
 function readNumber(record: Record<string, unknown>, keys: readonly string[]): number | undefined {
@@ -131,9 +187,13 @@ function readStringArray(record: Record<string, unknown>, keys: readonly string[
   return [];
 }
 
-function formatStage(value: string | undefined): string | undefined {
+function formatStage(
+  value: string | undefined,
+  locale: "en" | "fr" = "en",
+): string | undefined {
   if (!value) return undefined;
-  return STAGE_LABELS[value] ?? value.replace(/_/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase());
+  const labels = locale === "fr" ? FR_STAGE_LABELS : STAGE_LABELS;
+  return labels[value] ?? value.replace(/_/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
 function formatScore(value: number): string {
@@ -259,8 +319,9 @@ function summarizeCandidate(record: ToolExecutionRecord): CandidateSummary | nul
       'similarityScore',
       'rrfScore',
     ]),
-    stage: formatStage(readString(best, ['candidateStage', 'stage', 'status'])),
+    stage: readString(best, ['candidateStage', 'stage', 'status']),
     jobTitle: readString(best, ['jobTitle', 'title']),
+    owner: readCandidateOwner(best),
     skills,
     gaps,
     concerns,
@@ -269,17 +330,25 @@ function summarizeCandidate(record: ToolExecutionRecord): CandidateSummary | nul
   };
 }
 
-function candidateDetailLink(candidate: CandidateSummary, role: UserRole): RecruitmentResponseCardAction | null {
+function candidateDetailLink(
+  candidate: CandidateSummary,
+  role: UserRole,
+  locale: "en" | "fr",
+): RecruitmentResponseCardAction | null {
+  const openCandidate = locale === "fr" ? "Ouvrir le candidat" : "Open candidate";
   if (candidate.candidateId && role === 'manager') {
-    return { label: 'Open candidate', href: `/manager/candidates/${candidate.candidateId}` };
+    return { label: openCandidate, href: `/manager/candidates/${candidate.candidateId}` };
   }
 
   if (candidate.candidateId && role === 'hr') {
-    return { label: 'Open candidate', href: `/hr/candidates/${candidate.candidateId}` };
+    return { label: openCandidate, href: `/hr/candidates/${candidate.candidateId}` };
   }
 
   if (candidate.cvId) {
-    return { label: 'Open CV', href: `/ta/cv-pool?reviewCvId=${candidate.cvId}` };
+    return {
+      label: locale === "fr" ? "Ouvrir le CV" : "Open CV",
+      href: `/ta/cv-pool?reviewCvId=${candidate.cvId}`,
+    };
   }
 
   return null;
@@ -288,6 +357,7 @@ function candidateDetailLink(candidate: CandidateSummary, role: UserRole): Recru
 function buildCandidateCard(
   candidate: CandidateSummary,
   role: UserRole,
+  locale: "en" | "fr",
 ): RecruitmentResponseCard | null {
   const isRoleScopedRoster =
     candidate.sourceTool === 'get_candidates_by_stage' ||
@@ -295,31 +365,84 @@ function buildCandidateCard(
   const metrics: RecruitmentResponseCardMetric[] = [];
   pushMetric(
     metrics,
-    'Fit',
+    locale === "fr" ? "Adequation" : "Fit",
     candidate.score === undefined ? undefined : formatScore(candidate.score),
     undefined,
     candidate.score !== undefined && (candidate.score > 80 || (candidate.score > 0 && candidate.score <= 1 && candidate.score > 0.8))
       ? 'success'
       : undefined,
   );
-  pushMetric(metrics, 'Stage', candidate.stage);
-  pushMetric(metrics, 'Skills', candidate.skills.length > 0 ? String(candidate.skills.length) : undefined, compactList(candidate.skills, 4));
+  pushMetric(
+    metrics,
+    locale === "fr" ? "Etape" : "Stage",
+    formatStage(candidate.stage, locale),
+  );
+  pushMetric(
+    metrics,
+    locale === "fr" ? "Proprietaire" : "Owner",
+    formatOwner(candidate.owner, locale),
+  );
+  pushMetric(
+    metrics,
+    locale === "fr" ? "Competences" : "Skills",
+    candidate.skills.length > 0 ? String(candidate.skills.length) : undefined,
+    compactList(candidate.skills, 4),
+  );
   if (!isRoleScopedRoster || candidate.gaps.length > 0) {
-    pushMetric(metrics, 'Gaps', candidate.gaps.length > 0 ? String(candidate.gaps.length) : '0', candidate.gaps.length > 0 ? compactList(candidate.gaps, 3) : 'No explicit gap returned.', candidate.gaps.length > 0 ? 'warning' : 'success');
+    pushMetric(
+      metrics,
+      locale === "fr" ? "Ecarts" : "Gaps",
+      candidate.gaps.length > 0 ? String(candidate.gaps.length) : '0',
+      candidate.gaps.length > 0
+        ? compactList(candidate.gaps, 3)
+        : locale === "fr"
+          ? "Aucun ecart explicite retourne."
+          : "No explicit gap returned.",
+      candidate.gaps.length > 0 ? 'warning' : 'success',
+    );
   }
 
   if (metrics.length === 0) return null;
 
   const bullets: string[] = [];
-  pushUnique(bullets, candidate.jobTitle ? `${isRoleScopedRoster ? 'Assigned to' : 'Matched against'} ${candidate.jobTitle}.` : undefined);
-  pushUnique(bullets, candidate.alreadyAssigned ? 'This CV is already assigned to a job.' : undefined);
-  pushUnique(bullets, candidate.concerns[0] ? `Concern: ${candidate.concerns[0]}` : undefined);
+  pushUnique(
+    bullets,
+    candidate.jobTitle
+      ? `${isRoleScopedRoster
+          ? locale === "fr"
+            ? "Assigne a"
+            : "Assigned to"
+          : locale === "fr"
+            ? "Compare a"
+            : "Matched against"} ${candidate.jobTitle}.`
+      : undefined,
+  );
+  pushUnique(
+    bullets,
+    candidate.alreadyAssigned
+      ? locale === "fr"
+        ? "Ce CV est deja assigne a un poste."
+        : "This CV is already assigned to a job."
+      : undefined,
+  );
+  pushUnique(
+    bullets,
+    candidate.concerns[0]
+      ? `${locale === "fr" ? "Point de vigilance" : "Concern"}: ${candidate.concerns[0]}`
+      : undefined,
+  );
 
   const actions: RecruitmentResponseCardAction[] = [];
-  const detailLink = candidateDetailLink(candidate, role);
+  const detailLink = candidateDetailLink(candidate, role, locale);
   if (detailLink) actions.push(detailLink);
   if (!isRoleScopedRoster) {
-    actions.push({ label: 'Compare top candidates', prompt: 'Compare the top matching candidates from this result' });
+    actions.push({
+      label: locale === "fr" ? "Comparer les meilleurs candidats" : "Compare top candidates",
+      prompt:
+        locale === "fr"
+          ? "Comparer les meilleurs candidats correspondants de ce resultat"
+          : "Compare the top matching candidates from this result",
+    });
   }
 
   return {
@@ -327,8 +450,12 @@ function buildCandidateCard(
     kind: 'candidate',
     title: candidate.name,
     description: isRoleScopedRoster
-      ? 'Candidate returned by the current role-scoped pipeline query.'
-      : 'Best surfaced candidate from the latest grounded tool result.',
+      ? locale === "fr"
+        ? "Candidat retourne par la requete pipeline limitee au role courant."
+        : "Candidate returned by the current role-scoped pipeline query."
+      : locale === "fr"
+        ? "Meilleur candidat issu du dernier resultat d'outil fonde sur les donnees."
+        : "Best surfaced candidate from the latest grounded tool result.",
     tone: candidate.gaps.length > 0 ? 'warning' : 'success',
     sourceTool: candidate.sourceTool,
     metrics,
@@ -337,7 +464,110 @@ function buildCandidateCard(
   };
 }
 
-function topStageLabel(stageBreakdown: Record<string, number>): string | undefined {
+function buildJobCards(
+  record: ToolExecutionRecord,
+  role: UserRole,
+  locale: "en" | "fr",
+): RecruitmentResponseCard[] {
+  if (!JOB_CARD_TOOL_NAMES.has(record.toolName) || !record.result.success) {
+    return [];
+  }
+
+  return extractResultItems(record.result.data).map((job, index) => {
+    const id = readString(job, ['id', 'jobId']);
+    const title =
+      readString(job, ['title', 'name']) ??
+      (locale === "fr" ? `Poste ${index + 1}` : `Job ${index + 1}`);
+    const seniority =
+      readString(job, ['seniority']) ??
+      (locale === "fr" ? "Non precise" : "Not specified");
+    const businessUnit =
+      readString(job, ['businessUnit', 'business_unit']) ??
+      (locale === "fr" ? "Non precise" : "Not specified");
+    const isDraft = record.toolName === 'generate_job_description';
+    const isTemplate =
+      record.toolName === 'list_job_templates' ||
+      record.toolName === 'save_job_as_template' ||
+      readBoolean(job, ['isTemplate']) === true;
+    const rawStatus =
+      readString(job, ['status']) ??
+      (isDraft ? 'draft' : isTemplate ? 'template' : 'not_specified');
+    const normalizedStatus = rawStatus.toLowerCase();
+    const status =
+      locale === "fr"
+        ? normalizedStatus === "open"
+          ? "Ouvert"
+          : normalizedStatus === "closed"
+            ? "Ferme"
+            : normalizedStatus === "draft"
+              ? "Brouillon"
+              : normalizedStatus === "template"
+                ? "Modele"
+                : normalizedStatus === "not_specified"
+                  ? "Non precise"
+                  : rawStatus
+        : normalizedStatus === "not_specified"
+          ? "Not specified"
+          : rawStatus.replace(/\b\w/g, (character) => character.toUpperCase());
+    const mustHave = readStringArray(job, ['mustHave', 'must_have']);
+    const niceToHave = readStringArray(job, ['niceToHave', 'nice_to_have']);
+    const metrics: RecruitmentResponseCardMetric[] = [
+      { label: locale === "fr" ? "Seniorite" : "Seniority", value: seniority },
+      {
+        label: locale === "fr" ? "Unite commerciale" : "Business unit",
+        value: businessUnit,
+      },
+      {
+        label: locale === "fr" ? "Statut" : "Status",
+        value: status,
+        tone: normalizedStatus === 'open' ? 'success' : 'neutral',
+      },
+    ];
+    const bullets = [
+      mustHave.length > 0
+        ? `${locale === "fr" ? "Indispensables" : "Must-have"}: ${compactList(mustHave, 5)}.`
+        : locale === "fr"
+          ? "Aucune competence indispensable n'a ete retournee."
+          : 'No must-have skills were returned.',
+      ...(niceToHave.length > 0
+        ? [`${locale === "fr" ? "Souhaitees" : "Nice-to-have"}: ${compactList(niceToHave, 4)}.`]
+        : []),
+    ];
+    const actions: RecruitmentResponseCardAction[] = [];
+    if (id && (role === 'ta' || role === 'admin')) {
+      actions.push({
+        label: locale === "fr" ? "Ouvrir le poste" : "Open job",
+        href: `/ta/jobs/${id}`,
+      });
+    }
+
+    return {
+      id: id
+        ? `job-${id}`
+        : `job-${record.toolName}-${index}-${title}`,
+      kind: 'job',
+      title,
+      description:
+        isDraft
+          ? locale === "fr"
+            ? "Description de poste generee, pas encore publiee."
+            : "Generated job description that has not been published yet."
+          : locale === "fr"
+            ? "Poste retourne par la source limitee au role courant."
+            : "Job returned by the current role-scoped job source.",
+      tone: normalizedStatus === 'open' ? 'success' : 'neutral',
+      sourceTool: record.toolName,
+      metrics,
+      bullets,
+      actions,
+    };
+  });
+}
+
+function topStageLabel(
+  stageBreakdown: Record<string, number>,
+  locale: "en" | "fr",
+): string | undefined {
   let selectedStage: string | undefined;
   let selectedCount = Number.NEGATIVE_INFINITY;
 
@@ -349,7 +579,10 @@ function topStageLabel(stageBreakdown: Record<string, number>): string | undefin
   }
 
   if (!selectedStage || selectedCount <= 0) return undefined;
-  return `${formatStage(selectedStage) ?? selectedStage} has ${formatCount(selectedCount)} candidate${selectedCount === 1 ? '' : 's'}.`;
+  const stageLabel = formatStage(selectedStage, locale) ?? selectedStage;
+  return locale === "fr"
+    ? `${stageLabel} compte ${formatCount(selectedCount)} candidat${selectedCount === 1 ? "" : "s"}.`
+    : `${stageLabel} has ${formatCount(selectedCount)} candidate${selectedCount === 1 ? "" : "s"}.`;
 }
 
 function roleDashboardHref(role: UserRole): string {
@@ -362,42 +595,80 @@ function roleDashboardHref(role: UserRole): string {
 function buildDashboardCard(
   record: ToolExecutionRecord,
   role: UserRole,
+  locale: "en" | "fr",
 ): RecruitmentResponseCard | null {
   const parsed = dashboardStatsSchema.safeParse(record.result.data);
   if (!record.result.success || !parsed.success) return null;
 
   const metrics: RecruitmentResponseCardMetric[] = [];
-  pushMetric(metrics, 'Pipeline candidates', formatCount(parsed.data.totalCandidates));
-  pushMetric(metrics, 'Jobs', formatCount(parsed.data.totalJobs));
-  pushMetric(metrics, 'Pending screenings', formatCount(parsed.data.pendingScreenings), undefined, parsed.data.pendingScreenings > 0 ? 'warning' : 'success');
-  pushMetric(metrics, 'Interviews today', formatCount(parsed.data.totalInterviewsToday));
+  pushMetric(
+    metrics,
+    locale === "fr" ? "Candidats du pipeline" : "Pipeline candidates",
+    formatCount(parsed.data.totalCandidates),
+  );
+  pushMetric(
+    metrics,
+    locale === "fr" ? "Postes" : "Jobs",
+    formatCount(parsed.data.totalJobs),
+  );
+  pushMetric(
+    metrics,
+    locale === "fr" ? "Preselections en attente" : "Pending screenings",
+    formatCount(parsed.data.pendingScreenings),
+    undefined,
+    parsed.data.pendingScreenings > 0 ? 'warning' : 'success',
+  );
+  pushMetric(
+    metrics,
+    locale === "fr" ? "Entretiens aujourd'hui" : "Interviews today",
+    formatCount(parsed.data.totalInterviewsToday),
+  );
 
   const bullets: string[] = [];
-  pushUnique(bullets, topStageLabel(parsed.data.stageBreakdown));
+  pushUnique(bullets, topStageLabel(parsed.data.stageBreakdown, locale));
   pushUnique(
     bullets,
     parsed.data.pendingScreenings > 0
-      ? `${formatCount(parsed.data.pendingScreenings)} screening${parsed.data.pendingScreenings === 1 ? '' : 's'} still need review.`
-      : 'No pending screening backlog was returned.',
+      ? locale === "fr"
+        ? `${formatCount(parsed.data.pendingScreenings)} preselection${parsed.data.pendingScreenings === 1 ? "" : "s"} reste${parsed.data.pendingScreenings === 1 ? "" : "nt"} a verifier.`
+        : `${formatCount(parsed.data.pendingScreenings)} screening${parsed.data.pendingScreenings === 1 ? '' : 's'} still need review.`
+      : locale === "fr"
+        ? "Aucun retard de preselection en attente n'a ete retourne."
+        : "No pending screening backlog was returned.",
   );
 
   return {
     id: 'pipeline-dashboard',
     kind: 'pipeline',
-    title: 'Pipeline snapshot',
-    description: 'Live recruitment counters from the dashboard source.',
+    title: locale === "fr" ? "Apercu du pipeline" : "Pipeline snapshot",
+    description:
+      locale === "fr"
+        ? "Compteurs de recrutement en direct issus du tableau de bord."
+        : "Live recruitment counters from the dashboard source.",
     tone: parsed.data.pendingScreenings > 0 ? 'warning' : 'success',
     sourceTool: record.toolName,
     metrics,
     bullets,
     actions: [
-      { label: 'Open dashboard', href: roleDashboardHref(role) },
-      { label: 'Explain bottleneck', prompt: 'Explain the main pipeline bottleneck and next actions' },
+      {
+        label: locale === "fr" ? "Ouvrir le tableau de bord" : "Open dashboard",
+        href: roleDashboardHref(role),
+      },
+      {
+        label: locale === "fr" ? "Expliquer le blocage" : "Explain bottleneck",
+        prompt:
+          locale === "fr"
+            ? "Expliquer le principal blocage du pipeline et les prochaines actions"
+            : "Explain the main pipeline bottleneck and next actions",
+      },
     ],
   };
 }
 
-function buildSmartInsightsCard(record: ToolExecutionRecord): RecruitmentResponseCard | null {
+function buildSmartInsightsCard(
+  record: ToolExecutionRecord,
+  locale: "en" | "fr",
+): RecruitmentResponseCard | null {
   const parsed = smartInsightsSchema.safeParse(record.result.data);
   if (!record.result.success || !parsed.success) return null;
 
@@ -413,34 +684,76 @@ function buildSmartInsightsCard(record: ToolExecutionRecord): RecruitmentRespons
   const topSkill = parsed.data.mostCommonCvSkills[0];
 
   const metrics: RecruitmentResponseCardMetric[] = [];
-  pushMetric(metrics, 'Pipeline total', formatCount(pipelineTotal));
-  pushMetric(metrics, 'Top role', topProfile ? topProfile.title : undefined, topProfile ? `${formatCount(topProfile.count)} demand signal${topProfile.count === 1 ? '' : 's'}` : undefined);
-  pushMetric(metrics, 'Largest gap', largestGap ? largestGap.skill : undefined, largestGap ? `Demand ${formatCount(largestGap.demand)} vs supply ${formatCount(largestGap.supply)}` : undefined, largestGap && largestGap.demand > largestGap.supply ? 'warning' : undefined);
-  pushMetric(metrics, 'Common skill', topSkill ? topSkill.skill : undefined, topSkill ? `${formatCount(topSkill.count)} CV${topSkill.count === 1 ? '' : 's'}` : undefined);
+  pushMetric(
+    metrics,
+    locale === "fr" ? "Total du pipeline" : "Pipeline total",
+    formatCount(pipelineTotal),
+  );
+  pushMetric(
+    metrics,
+    locale === "fr" ? "Role principal" : "Top role",
+    topProfile ? topProfile.title : undefined,
+    topProfile
+      ? locale === "fr"
+        ? `${formatCount(topProfile.count)} signal${topProfile.count === 1 ? "" : "s"} de demande`
+        : `${formatCount(topProfile.count)} demand signal${topProfile.count === 1 ? '' : 's'}`
+      : undefined,
+  );
+  pushMetric(
+    metrics,
+    locale === "fr" ? "Ecart principal" : "Largest gap",
+    largestGap ? largestGap.skill : undefined,
+    largestGap
+      ? locale === "fr"
+        ? `Demande ${formatCount(largestGap.demand)} contre offre ${formatCount(largestGap.supply)}`
+        : `Demand ${formatCount(largestGap.demand)} vs supply ${formatCount(largestGap.supply)}`
+      : undefined,
+    largestGap && largestGap.demand > largestGap.supply ? 'warning' : undefined,
+  );
+  pushMetric(
+    metrics,
+    locale === "fr" ? "Competence courante" : "Common skill",
+    topSkill ? topSkill.skill : undefined,
+    topSkill ? `${formatCount(topSkill.count)} CV` : undefined,
+  );
 
   if (metrics.length === 0) return null;
 
   const bullets: string[] = [];
-  pushUnique(bullets, topStageLabel(parsed.data.pipelineFunnel));
+  pushUnique(bullets, topStageLabel(parsed.data.pipelineFunnel, locale));
   pushUnique(
     bullets,
     largestGap && largestGap.demand > largestGap.supply
-      ? `${largestGap.skill} has more demand than supply in the observed data.`
+      ? locale === "fr"
+        ? `${largestGap.skill} presente plus de demande que d'offre dans les donnees observees.`
+        : `${largestGap.skill} has more demand than supply in the observed data.`
       : undefined,
   );
 
   return {
     id: 'pipeline-insights',
     kind: 'pipeline',
-    title: 'Pipeline intelligence',
-    description: 'Demand, supply, and stage signals from smart insights.',
+    title: locale === "fr" ? "Intelligence du pipeline" : "Pipeline intelligence",
+    description:
+      locale === "fr"
+        ? "Signaux de demande, d'offre et d'etapes issus des analyses intelligentes."
+        : "Demand, supply, and stage signals from smart insights.",
     tone: bullets.length > 1 ? 'warning' : 'neutral',
     sourceTool: record.toolName,
     metrics,
     ...(bullets.length > 0 ? { bullets } : {}),
     actions: [
-      { label: 'Open analytics', href: '/admin/analytics' },
-      { label: 'Turn into actions', prompt: 'Turn these pipeline insights into role-specific next actions' },
+      {
+        label: locale === "fr" ? "Ouvrir les analyses" : "Open analytics",
+        href: '/admin/analytics',
+      },
+      {
+        label: locale === "fr" ? "Transformer en actions" : "Turn into actions",
+        prompt:
+          locale === "fr"
+            ? "Transformer ces analyses du pipeline en prochaines actions par role"
+            : "Turn these pipeline insights into role-specific next actions",
+      },
     ],
   };
 }
@@ -545,12 +858,12 @@ function addUniqueCard(cards: RecruitmentResponseCard[], next: RecruitmentRespon
 
   cards[existingIndex] = next;
 }
-
 export function buildResponseCardsFromToolRecords(
   records: readonly ToolExecutionRecord[],
   options: BuildResponseCardsOptions = {},
 ): RecruitmentResponseCard[] {
   const role = options.role ?? 'ta';
+  const locale = options.locale ?? "en";
   const cards: RecruitmentResponseCard[] = [];
 
   let bestCandidate: CandidateSummary | null = null;
@@ -566,11 +879,17 @@ export function buildResponseCardsFromToolRecords(
     const bestScore = bestCandidate.score ?? 0;
     if (currentScore > bestScore) bestCandidate = candidate;
   }
-  addUniqueCard(cards, bestCandidate ? buildCandidateCard(bestCandidate, role) : null);
+  addUniqueCard(
+    cards,
+    bestCandidate ? buildCandidateCard(bestCandidate, role, locale) : null,
+  );
 
   for (const record of records) {
-    addUniqueCard(cards, buildDashboardCard(record, role));
-    addUniqueCard(cards, buildSmartInsightsCard(record));
+    for (const jobCard of buildJobCards(record, role, locale)) {
+      addUniqueCard(cards, jobCard);
+    }
+    addUniqueCard(cards, buildDashboardCard(record, role, locale));
+    addUniqueCard(cards, buildSmartInsightsCard(record, locale));
     addUniqueCard(cards, buildActivityGovernanceCard(record));
     addUniqueCard(cards, buildEmailGovernanceCard(record));
   }

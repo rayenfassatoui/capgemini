@@ -1,4 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  appendChatArtifactsToContent,
+  extractChatArtifactsFromContent,
+} from '../chat-artifact-events';
+
 
 vi.mock('server-only', () => ({}));
 
@@ -74,7 +79,7 @@ describe('statistics chat confirmation flow', () => {
 
   it('ignores requests without a confirmation decision', async () => {
     const { controller, chunks } = createStreamCapture();
-    const persistAssistantMessage = vi.fn<() => Promise<void>>();
+    const persistAssistantMessage = vi.fn<(text: string) => Promise<void>>();
 
     const result = await executeConfirmedActionIfRequested({
       conversationId: 'conversation-1',
@@ -102,7 +107,7 @@ describe('statistics chat confirmation flow', () => {
     });
 
     const { controller, chunks } = createStreamCapture();
-    const persistAssistantMessage = vi.fn<() => Promise<void>>();
+    const persistAssistantMessage = vi.fn<(text: string) => Promise<void>>();
 
     const result = await executeConfirmedActionIfRequested({
       confirmation: { actionId: 'action-1', decision: 'cancel' },
@@ -127,7 +132,18 @@ describe('statistics chat confirmation flow', () => {
       fullResponse: 'Cancelled. I did not execute **close job**.',
     });
     expect(decodeChunks(chunks)).toBe(result.fullResponse);
-    expect(persistAssistantMessage).toHaveBeenCalledWith(result.fullResponse);
+    const persistedContent = persistAssistantMessage.mock.calls[0]?.[0];
+    expect(persistedContent).toContain(result.fullResponse);
+    const { artifacts } = extractChatArtifactsFromContent(
+      persistedContent ?? '',
+    );
+    expect(artifacts.confirmations).toMatchObject([
+      {
+        id: 'action-1',
+        toolName: 'close_job',
+        status: 'cancelled',
+      },
+    ]);
   });
 
   it('executes confirmed actions, strips file payloads from persisted tool history, and emits stream events', async () => {
@@ -151,13 +167,14 @@ describe('statistics chat confirmation flow', () => {
         exported: true,
         _fileDownload: {
           filename: 'candidate-report.csv',
+          base64: 'Y2FuZGlkYXRl',
           contentType: 'text/csv',
         },
       },
     });
 
     const { controller, chunks } = createStreamCapture();
-    const persistAssistantMessage = vi.fn<() => Promise<void>>();
+    const persistAssistantMessage = vi.fn<(text: string) => Promise<void>>();
     const toolExecutionHistory: ToolExecutionRecord[] = [];
 
     const result = await executeConfirmedActionIfRequested({
@@ -167,7 +184,15 @@ describe('statistics chat confirmation flow', () => {
       role: 'admin',
       controller,
       encoder: new TextEncoder(),
-      prepareGroundedResponse: (text) => `grounded:${text}`,
+      prepareGroundedResponse: (text) =>
+        appendChatArtifactsToContent(`grounded:${text}`, {
+          toolEvents: toolExecutionHistory.flatMap((record) =>
+            record.trace ? [record.trace] : [],
+          ),
+          fileDownloads: toolExecutionHistory.flatMap((record) =>
+            record.fileDownload ? [record.fileDownload] : [],
+          ),
+        }),
       persistAssistantMessage,
       toolExecutionHistory,
     });
@@ -204,25 +229,54 @@ describe('statistics chat confirmation flow', () => {
       '@@TOOL_START@@',
       '@@FILE@@',
       '@@TOOL_END@@',
+      '@@ARTIFACTS@@',
     ]);
     expect(events[1].payload).toEqual({
       filename: 'candidate-report.csv',
+      base64: 'Y2FuZGlkYXRl',
       contentType: 'text/csv',
     });
-    expect(result).toEqual({
-      handled: true,
-      fullResponse:
-        'grounded:Done. Confirmed action **export candidate report** was executed.',
-    });
+    expect(result.handled).toBe(true);
+    const { content: visibleResponse, artifacts: responseArtifacts } =
+      extractChatArtifactsFromContent(result.fullResponse);
+    expect(visibleResponse).toBe(
+      'grounded:Done. Confirmed action **export candidate report** was executed.',
+    );
+    expect(responseArtifacts.fileDownloads).toHaveLength(1);
     expect(streamed.endsWith(result.fullResponse)).toBe(true);
-    expect(persistAssistantMessage).toHaveBeenCalledWith(result.fullResponse);
+    const persistedContent = persistAssistantMessage.mock.calls[0]?.[0];
+    const {
+      content: persistedVisibleResponse,
+      artifacts: persistedArtifacts,
+    } = extractChatArtifactsFromContent(persistedContent ?? '');
+    expect(persistedVisibleResponse).toBe(visibleResponse);
+    expect(persistedArtifacts.fileDownloads).toEqual([
+      {
+        filename: 'candidate-report.csv',
+        base64: 'Y2FuZGlkYXRl',
+        contentType: 'text/csv',
+      },
+    ]);
+    expect(persistedArtifacts.confirmations).toMatchObject([
+      {
+        id: 'action-1',
+        toolName: 'export_candidate_report',
+        status: 'confirmed',
+      },
+    ]);
+    expect(persistedArtifacts.toolEvents).toMatchObject([
+      {
+        tool: 'export_candidate_report',
+        status: 'success',
+      },
+    ]);
   });
 
   it('does not execute tools when confirmation lookup fails', async () => {
     confirmPendingAgentActionMock.mockRejectedValue(new Error('Pending action expired'));
 
     const { controller } = createStreamCapture();
-    const persistAssistantMessage = vi.fn<() => Promise<void>>();
+    const persistAssistantMessage = vi.fn<(text: string) => Promise<void>>();
 
     await expect(
       executeConfirmedActionIfRequested({
@@ -254,7 +308,7 @@ describe('statistics chat confirmation flow', () => {
     });
 
     const { controller, chunks } = createStreamCapture();
-    const persistAssistantMessage = vi.fn<() => Promise<void>>();
+    const persistAssistantMessage = vi.fn<(text: string) => Promise<void>>();
 
     const response = await requestAgentActionConfirmation({
       toolName: 'bulk_update_candidate_stage',
@@ -301,6 +355,23 @@ describe('statistics chat confirmation flow', () => {
     });
     expect(response).toContain('Confirmation required.');
     expect(response).toContain('Review the action card below');
-    expect(persistAssistantMessage).toHaveBeenCalledWith(response);
+    const persistedContent = persistAssistantMessage.mock.calls[0]?.[0];
+    expect(persistedContent).toContain(response);
+    const { artifacts: persistedArtifacts } =
+      extractChatArtifactsFromContent(persistedContent ?? '');
+    expect(persistedArtifacts.confirmations).toMatchObject([
+      {
+        id: 'pending-1',
+        toolName: 'bulk_update_candidate_stage',
+        status: 'pending',
+      },
+    ]);
+    expect(persistedArtifacts.toolEvents).toMatchObject([
+      {
+        id: 'tool-call-1',
+        tool: 'bulk_update_candidate_stage',
+        status: 'pending_confirmation',
+      },
+    ]);
   });
 });

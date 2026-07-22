@@ -1,4 +1,10 @@
 import type { UserRole } from "@/features/recruitment/types";
+import type {
+  FileDownload,
+  ToolEvent,
+} from "../chat-artifact-events";
+
+export type { ToolTraceJson } from "../chat-artifact-events";
 
 export const MAX_AGENT_STEPS = 8;
 export const MAX_OUTPUT_TOKENS = 2048;
@@ -32,20 +38,16 @@ export interface ToolExecutionRecord {
   args: Record<string, unknown>;
   result: { success: boolean; data?: unknown; error?: string };
   mutating: boolean;
+  trace?: ToolEvent;
+  fileDownload?: FileDownload;
 }
 
-export type ToolTraceJson =
-  | null
-  | boolean
-  | number
-  | string
-  | ToolTraceJson[]
-  | { [key: string]: ToolTraceJson };
 
 export interface AgenticResponseParams {
   text: string;
   userMessage: string;
   role: UserRole;
+  locale?: "en" | "fr";
   records: ToolExecutionRecord[];
 }
 

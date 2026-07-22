@@ -1,6 +1,10 @@
 import { and, asc, desc, eq } from 'drizzle-orm';
 import { db } from '@/lib/db';
-import { chatConversations, chatMessages } from '@/db/schema';
+import {
+  chatConversations,
+  chatMessages,
+  pendingAgentActions,
+} from '@/db/schema';
 import { callOpenRouter } from './ai';
 import { getCvPoolStats, getJobsStats, getSmartInsights } from './statistics';
 
@@ -119,18 +123,32 @@ export async function getChatHistory(conversationId: string, userId: string) {
     throw new Error('Conversation not found or unauthorized access');
   }
 
-  const messages = await db
-    .select({
-      id: chatMessages.id,
-      role: chatMessages.role,
-      content: chatMessages.content,
-      createdAt: chatMessages.createdAt,
-    })
-    .from(chatMessages)
-    .where(eq(chatMessages.conversationId, conversationId))
-    .orderBy(asc(chatMessages.createdAt));
+  const [messages, agentActions] = await Promise.all([
+    db
+      .select({
+        id: chatMessages.id,
+        role: chatMessages.role,
+        content: chatMessages.content,
+        createdAt: chatMessages.createdAt,
+      })
+      .from(chatMessages)
+      .where(eq(chatMessages.conversationId, conversationId))
+      .orderBy(asc(chatMessages.createdAt)),
+    db
+      .select({
+        id: pendingAgentActions.id,
+        status: pendingAgentActions.status,
+      })
+      .from(pendingAgentActions)
+      .where(
+        and(
+          eq(pendingAgentActions.conversationId, conversationId),
+          eq(pendingAgentActions.userId, userId),
+        ),
+      ),
+  ]);
 
-  return { conversationId, messages };
+  return { conversationId, messages, agentActions };
 }
 
 export async function saveChatMessage(

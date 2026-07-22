@@ -301,7 +301,7 @@ describe("candidate name grounding guard", () => {
     expect(grounded.candidateCount).toBe(1);
     expect(grounded.text).toContain("## Assigned candidate roster");
     expect(grounded.text).toContain(
-      "| Mohamed Khayredine Gabsi | Manager Interview | Senior AI Engineer |",
+      "| Mohamed Khayredine Gabsi | Not available | Manager Interview | Senior AI Engineer | Not available |",
     );
     expect(grounded.text).toContain(
       "This is a factual roster, not a ranking, shortlist, or hiring recommendation.",
@@ -309,6 +309,47 @@ describe("candidate name grounding guard", () => {
     expect(grounded.text).not.toContain("Rayen Fassatoui");
     expect(grounded.text).not.toContain("## Shortlist read");
     expect(grounded.text).not.toContain("screened first");
+  });
+
+  it("keeps separate pipeline applications that share one CV", () => {
+    const records: GroundingToolRecord[] = [
+      {
+        toolName: "get_candidates_by_stage",
+        result: {
+          success: true,
+          data: [
+            {
+              id: "candidate-application-1",
+              cvId: "shared-cv-1",
+              fullName: "Mohamed Achref Ben Abdallah",
+              stage: "hr_rejected",
+              jobTitle: "Senior AI Engineer",
+            },
+            {
+              id: "candidate-application-2",
+              cvId: "shared-cv-1",
+              fullName: "Mohamed Achref Ben Abdallah",
+              stage: "hired",
+              jobTitle: "Frontend React Developer",
+            },
+          ],
+        },
+      },
+    ];
+
+    const grounded = groundAssistantResponse(
+      "Only use the current role-scoped records.",
+      records,
+      { userMessage: "List my candidates with current stage and job title." },
+    );
+
+    expect(grounded.candidateCount).toBe(2);
+    expect(grounded.text).toContain(
+      "| Mohamed Achref Ben Abdallah | Not available | HR Rejected | Senior AI Engineer | Not available |",
+    );
+    expect(grounded.text).toContain(
+      "| Mohamed Achref Ben Abdallah | Not available | Hired | Frontend React Developer | Not available |",
+    );
   });
 
   it("does not allow non-admin responses to reuse names absent from current user-scoped tool output", () => {

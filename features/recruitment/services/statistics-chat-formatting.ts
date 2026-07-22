@@ -59,26 +59,77 @@ export function sanitizeToolTraceValue(value: unknown): ToolTraceJson {
 export function inferToolPurpose(
   toolName: string,
   args: Record<string, unknown>,
+  locale: "en" | "fr" = "en",
 ): string {
+  const localized = (english: string, french: string) =>
+    locale === "fr" ? french : english;
+
   if (toolName.includes("search")) {
     const query = typeof args.query === "string" ? args.query : undefined;
     return query
-      ? `Search recruitment data for "${query}"`
-      : "Search recruitment data";
+      ? localized(
+          `Search recruitment data for "${query}"`,
+          `Rechercher dans les donnees de recrutement pour "${query}"`,
+        )
+      : localized(
+          "Search recruitment data",
+          "Rechercher dans les donnees de recrutement",
+        );
   }
 
-  if (toolName.startsWith("list_")) return "List available recruitment records";
-  if (toolName.startsWith("get_")) return "Fetch detailed recruitment data";
-  if (toolName.includes("compare")) return "Compare candidate fit and ranking";
-  if (toolName.includes("match")) return "Score candidate/job fit";
-  if (toolName.includes("upload")) return "Process an uploaded CV file";
+  if (toolName.startsWith("list_")) {
+    return localized(
+      "List available recruitment records",
+      "Lister les enregistrements de recrutement disponibles",
+    );
+  }
+  if (toolName.startsWith("get_")) {
+    return localized(
+      "Fetch detailed recruitment data",
+      "Recuperer les donnees de recrutement detaillees",
+    );
+  }
+  if (toolName.includes("compare")) {
+    return localized(
+      "Compare candidate fit and ranking",
+      "Comparer l'adequation et le classement des candidats",
+    );
+  }
+  if (toolName.includes("match")) {
+    return localized(
+      "Score candidate/job fit",
+      "Evaluer l'adequation entre le candidat et le poste",
+    );
+  }
+  if (toolName.includes("upload")) {
+    return localized(
+      "Process an uploaded CV file",
+      "Traiter un fichier CV televerse",
+    );
+  }
   if (toolName.includes("generate")) {
-    return "Generate AI-assisted recruitment output";
+    return localized(
+      "Generate AI-assisted recruitment output",
+      "Generer un resultat de recrutement assiste par IA",
+    );
   }
-  if (toolName.includes("update")) return "Update recruitment workflow state";
-  if (toolName.includes("delete")) return "Delete recruitment data";
+  if (toolName.includes("update")) {
+    return localized(
+      "Update recruitment workflow state",
+      "Mettre a jour l'etat du workflow de recrutement",
+    );
+  }
+  if (toolName.includes("delete")) {
+    return localized(
+      "Delete recruitment data",
+      "Supprimer des donnees de recrutement",
+    );
+  }
 
-  return `Run ${toolName.replace(/_/g, " ")}`;
+  return localized(
+    `Run ${toolName.replace(/_/g, " ")}`,
+    `Executer ${toolName.replace(/_/g, " ")}`,
+  );
 }
 
 export function buildDeterministicFallbackFromRecords(
@@ -130,8 +181,160 @@ export function buildDeterministicFallbackFromRecords(
   return `I’m returning a deterministic fallback summary from the data that was already fetched successfully. Latest successful tool: **${prioritized.toolName}**.`;
 }
 
+export function isJobRosterIntent(message: string): boolean {
+  const normalized = message.toLowerCase();
+  const asksForJobs =
+    /\b(jobs?|roles?|positions?|requisitions?|postes?|emplois?)\b/.test(
+      normalized,
+    );
+  const asksForRoster =
+    /\b(list|show|display|all|open|exact|title|seniority|business\s+unit|status|liste|affiche|tous|toutes|ouverts?|exact|titre|seniorite|unite\s+commerciale|statut)\b/.test(
+      normalized,
+    );
+  const asksForMutation =
+    /\b(create|publish|write|generate|close|delete|update|creer|publier|rediger|generer|fermer|supprimer|modifier)\b/.test(
+      normalized,
+    );
+
+  return asksForJobs && asksForRoster && !asksForMutation;
+}
+
+function escapeMarkdownTableValue(value: string): string {
+  return value.replace(/\|/g, "\\|").replace(/\r?\n/g, " ").trim();
+}
+
+export function buildDeterministicJobRosterResponse(
+  records: readonly ToolExecutionRecord[],
+  userMessage: string,
+  locale: "en" | "fr" = "en",
+): string | null {
+  if (!isJobRosterIntent(userMessage)) return null;
+
+  const listJobsRecord = [...records]
+    .reverse()
+    .find(
+      (record) =>
+        record.toolName === "list_jobs" &&
+        record.result.success &&
+        Array.isArray(record.result.data),
+    );
+  if (!listJobsRecord || !Array.isArray(listJobsRecord.result.data)) {
+    return null;
+  }
+
+  const onlyOpen = /\bopen\b/i.test(userMessage);
+  const jobs = listJobsRecord.result.data
+    .map(toRecord)
+    .filter((job): job is Record<string, unknown> => job !== null)
+    .filter((job) => {
+      if (!onlyOpen) return true;
+      return typeof job.status === "string" && job.status.toLowerCase() === "open";
+    })
+    .map((job) => ({
+      title:
+        typeof job.title === "string" && job.title.trim()
+          ? job.title.trim()
+          : locale === "fr" ? "Poste sans titre" : "Untitled job",
+      seniority:
+        typeof job.seniority === "string" && job.seniority.trim()
+          ? job.seniority.trim()
+          : locale === "fr" ? "Non precise" : "Not specified",
+      businessUnit:
+        typeof job.businessUnit === "string" && job.businessUnit.trim()
+          ? job.businessUnit.trim()
+          : locale === "fr" ? "Non precise" : "Not specified",
+      status:
+        typeof job.status === "string" && job.status.trim()
+          ? locale === "fr" && job.status.trim().toLowerCase() === "open"
+            ? "Ouvert"
+            : job.status.trim()
+          : locale === "fr"
+            ? "Non precise"
+            : "Not specified",
+    }));
+
+  if (locale === "fr") {
+    if (jobs.length === 0) {
+      return [
+        "## Liste des postes",
+        onlyOpen
+          ? "Aucun poste ouvert n'a ete retourne par la source limitee a votre role."
+          : "Aucun poste n'a ete retourne par la source limitee a votre role.",
+        "",
+        "## Source",
+        "- `list_jobs` a retourne 0 resultat pour l'utilisateur courant.",
+      ].join("\n");
+    }
+
+    const frenchTable = [
+      "| Titre | Seniorite | Unite commerciale | Statut |",
+      "|-------|-----------|--------------------|--------|",
+      ...jobs.map(
+        (job) =>
+          `| ${escapeMarkdownTableValue(job.title)} | ${escapeMarkdownTableValue(job.seniority)} | ${escapeMarkdownTableValue(job.businessUnit)} | ${escapeMarkdownTableValue(job.status)} |`,
+      ),
+    ].join("\n");
+
+    return [
+      "## Liste des postes",
+      `J'ai trouve **${jobs.length}** poste${jobs.length === 1 ? "" : "s"}${onlyOpen ? " ouvert" + (jobs.length === 1 ? "" : "s") : ""} dans le perimetre de votre role.`,
+      "",
+      frenchTable,
+      "",
+      "## Source",
+      `- Resultat de \`list_jobs\` limite au role : ${jobs.length} enregistrement${jobs.length === 1 ? "" : "s"}.`,
+      "- Les titres, niveaux de seniorite, unites commerciales et statuts proviennent directement du resultat de l'outil ; aucun candidat de secours n'a ete utilise.",
+    ].join("\n");
+  }
+
+  if (jobs.length === 0) {
+    return [
+      "## Job roster",
+      onlyOpen
+        ? "No open jobs were returned by the role-scoped job source."
+        : "No jobs were returned by the role-scoped job source.",
+      "",
+      "## Source",
+      "- `list_jobs` returned 0 records for the current user.",
+    ].join("\n");
+  }
+
+  const table = [
+    "| Title | Seniority | Business unit | Status |",
+    "|-------|-----------|---------------|--------|",
+    ...jobs.map(
+      (job) =>
+        `| ${escapeMarkdownTableValue(job.title)} | ${escapeMarkdownTableValue(job.seniority)} | ${escapeMarkdownTableValue(job.businessUnit)} | ${escapeMarkdownTableValue(job.status)} |`,
+    ),
+  ].join("\n");
+
+  return [
+    "## Job roster",
+    `I found **${jobs.length}** ${onlyOpen ? "open " : ""}job${jobs.length === 1 ? "" : "s"} in your role scope.`,
+    "",
+    table,
+    "",
+    "## Source",
+    `- Role-scoped \`list_jobs\` result: ${jobs.length} record${jobs.length === 1 ? "" : "s"}.`,
+    "- Titles, seniority levels, business units, and statuses above are copied from the tool result; no candidate fallback was used.",
+  ].join("\n");
+}
+
+const ANALYTICS_RESPONSE_INTENT_RE =
+  /\b(?:analytics?|analyses?|chart|charts|dashboard|diagram|diagramme|funnel|graph|graphe|graphique|kpi|mermaid|pipeline|repartition|répartition|statistiques?)\b/i;
+
+export function buildDeterministicAnalyticsResponse(
+  records: ToolExecutionRecord[],
+  userMessage: string,
+  locale: "en" | "fr" = "en",
+): string | null {
+  if (!ANALYTICS_RESPONSE_INTENT_RE.test(userMessage)) return null;
+  return buildAnalyticsFallbackFromRecords(records, locale);
+}
+
 function buildAnalyticsFallbackFromRecords(
   records: ToolExecutionRecord[],
+  locale: "en" | "fr" = "en",
 ): string | null {
   const dashboard = getToolRecordData(records, "get_dashboard_stats");
   const insights = getToolRecordData(records, "get_smart_insights");
@@ -144,66 +347,93 @@ function buildAnalyticsFallbackFromRecords(
   const totalCandidates = getNumber(dashboardRecord, "totalCandidates");
   const totalJobs = getNumber(dashboardRecord, "totalJobs");
   const pendingScreenings = getNumber(dashboardRecord, "pendingScreenings");
+  const totalInterviewsToday = getNumber(
+    dashboardRecord,
+    "totalInterviewsToday",
+  );
   const stageBreakdown = toNumberRecord(dashboardRecord?.stageBreakdown);
   const pipelineFunnel = toNumberRecord(insightsRecord?.pipelineFunnel);
-  const bottleneck = findTopEntry(stageBreakdown ?? pipelineFunnel);
+  const stages = stageBreakdown ?? pipelineFunnel;
+  const bottleneck = findTopEntry(stages);
   const skillGap = findLargestSkillGap(insightsRecord?.skillGapAnalysis);
   const topRole = findTopCount(insightsRecord?.mostDemandedJobProfiles, "title");
 
-  const rootCauseParts: string[] = [];
-  if (bottleneck) {
-    rootCauseParts.push(
-      `${formatStageLabel(bottleneck.key)} is the largest visible stage with ${bottleneck.value} candidate${bottleneck.value === 1 ? "" : "s"}`,
-    );
-  }
-  if (skillGap) {
-    rootCauseParts.push(
-      `${skillGap.skill} demand is ${skillGap.demand} while CV supply is ${skillGap.supply}`,
-    );
-  }
+  const evidence =
+    locale === "fr"
+      ? [
+          totalCandidates === null
+            ? null
+            : `Candidats assignes au pipeline : **${totalCandidates}**.`,
+          totalJobs === null ? null : `Postes accessibles : **${totalJobs}**.`,
+          pendingScreenings === null
+            ? null
+            : `Preselections en attente : **${pendingScreenings}**.`,
+          totalInterviewsToday === null
+            ? null
+            : `Entretiens planifies aujourd'hui : **${totalInterviewsToday}**.`,
+          bottleneck
+            ? `Etape la plus chargee : **${formatStageLabel(bottleneck.key, locale)}** avec **${bottleneck.value}** candidat${bottleneck.value === 1 ? "" : "s"}.`
+            : null,
+          skillGap
+            ? `Principal ecart de competences : **${skillGap.skill}**, demande **${skillGap.demand}** contre offre **${skillGap.supply}**.`
+            : null,
+          topRole
+            ? `Role le plus demande : **${topRole.label}** avec **${topRole.count}** signal${topRole.count === 1 ? "" : "s"}.`
+            : null,
+        ]
+      : [
+          totalCandidates === null
+            ? null
+            : `Assigned pipeline candidates: **${totalCandidates}**.`,
+          totalJobs === null ? null : `Accessible jobs: **${totalJobs}**.`,
+          pendingScreenings === null
+            ? null
+            : `Pending screenings: **${pendingScreenings}**.`,
+          totalInterviewsToday === null
+            ? null
+            : `Interviews scheduled today: **${totalInterviewsToday}**.`,
+          bottleneck
+            ? `Largest stage: **${formatStageLabel(bottleneck.key, locale)}** with **${bottleneck.value}** candidate${bottleneck.value === 1 ? "" : "s"}.`
+            : null,
+          skillGap
+            ? `Largest skill gap: **${skillGap.skill}**, demand **${skillGap.demand}** versus supply **${skillGap.supply}**.`
+            : null,
+          topRole
+            ? `Most demanded role: **${topRole.label}** with **${topRole.count}** signal${topRole.count === 1 ? "" : "s"}.`
+            : null,
+        ];
 
-  const lobb =
-    rootCauseParts.length > 0
-      ? rootCauseParts.join("; ")
-      : "the fetched dashboard does not expose a single dominant bottleneck";
-
-  const evidence = [
-    totalCandidates === null ? null : `Assigned pipeline candidates: **${totalCandidates}**.`,
-    totalJobs === null ? null : `Open jobs / job records: **${totalJobs}**.`,
-    pendingScreenings === null
-      ? null
-      : `Pending screenings: **${pendingScreenings}**.`,
-    bottleneck
-      ? `Largest stage: **${formatStageLabel(bottleneck.key)}** with **${bottleneck.value}** candidate${bottleneck.value === 1 ? "" : "s"}.`
-      : null,
-    skillGap
-      ? `Largest skill gap: **${skillGap.skill}** demand **${skillGap.demand}** vs supply **${skillGap.supply}**.`
-      : null,
-    topRole
-      ? `Most demanded role: **${topRole.label}** with **${topRole.count}** signal${topRole.count === 1 ? "" : "s"}.`
-      : null,
-  ].filter((line): line is string => Boolean(line));
+  const distribution = Object.entries(stages ?? {})
+    .filter(([, count]) => count > 0)
+    .map(
+      ([stage, count]) =>
+        `- **${formatStageLabel(stage, locale)}** : ${count}`,
+    );
 
   return [
-    "# My read",
-    `Lobb el mochkol: ${lobb}.`,
+    locale === "fr" ? "# Apercu du pipeline" : "# Pipeline overview",
+    ...(evidence.filter((line): line is string => Boolean(line)).map(
+      (line) => `- ${line}`,
+    )),
     "",
-    "# Evidence",
-    ...evidence.map((line) => `- ${line}`),
+    locale === "fr" ? "## Repartition par etape" : "## Stage distribution",
+    ...(distribution.length > 0
+      ? distribution
+      : [
+          locale === "fr"
+            ? "- Aucune repartition par etape n'a ete retournee."
+            : "- No stage distribution was returned.",
+        ]),
     "",
-    "# Charts and diagram",
-    "I fetched dashboard and insight tools first. The UI renders the Mermaid pipeline and chart cards below from those exact tool records.",
+    locale === "fr" ? "## Graphiques et diagramme" : "## Charts and diagram",
+    locale === "fr"
+      ? "Les graphiques et le diagramme Mermaid ci-dessous proviennent des memes resultats verifies du tableau de bord et des analyses."
+      : "The charts and Mermaid diagram below come from the same verified dashboard and insight results.",
     "",
-    "# Actions",
-    "1. Clear the largest stage first; assign an owner and daily exit target.",
-    skillGap
-      ? `2. Source or reskill for **${skillGap.skill}** before opening more similar demand.`
-      : "2. Compare job demand against CV supply before opening more requisitions.",
-    "3. Re-check the funnel after the next hiring-cycle update and keep only evidence-backed claims.",
-    "",
-    "# Caveats",
-    "- This is deterministic recovery output because the model skipped required tool calls.",
-    "- Recommendations are inferred from fetched dashboard and insight data only.",
+    locale === "fr" ? "## Limite" : "## Caveat",
+    locale === "fr"
+      ? "- Ces chiffres decrivent uniquement les donnees accessibles au role actuel ; aucune valeur manquante n'a ete deduite."
+      : "- These figures describe only data accessible to the current role; no missing value was inferred.",
   ].join("\n");
 }
 
@@ -318,7 +548,28 @@ function findTopCount(
     .sort((left, right) => right.count - left.count)[0] ?? null;
 }
 
-function formatStageLabel(stage: string): string {
+const FR_STAGE_LABELS: Readonly<Record<string, string>> = {
+  new: "Nouveau",
+  ta_screening: "Preselection TA",
+  ta_interview: "Entretien TA",
+  ta_accepted: "Accepte par TA",
+  ta_rejected: "Refuse par TA",
+  manager_interview: "Entretien manager",
+  manager_accepted: "Accepte par le manager",
+  manager_rejected: "Refuse par le manager",
+  hr_interview: "Entretien RH",
+  hr_accepted: "Accepte par les RH",
+  hr_rejected: "Refuse par les RH",
+  hired: "Embauche",
+};
+
+function formatStageLabel(
+  stage: string,
+  locale: "en" | "fr" = "en",
+): string {
+  if (locale === "fr" && FR_STAGE_LABELS[stage]) {
+    return FR_STAGE_LABELS[stage];
+  }
   return stage
     .split("_")
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
@@ -344,23 +595,34 @@ export function logGroundingGuardBlock({
   });
 }
 
-export function buildActionConfirmationResponse(summary: string): string {
+export function buildActionConfirmationResponse(
+  summary: string,
+  locale: "en" | "fr" = "en",
+): string {
   return [
-    "Confirmation required.",
+    locale === "fr" ? "Confirmation requise." : "Confirmation required.",
     "",
     summary,
     "",
-    "Review the action card below, then choose Confirm or Cancel.",
+    locale === "fr"
+      ? "Verifiez la carte d'action ci-dessous, puis choisissez Confirmer ou Annuler."
+      : "Review the action card below, then choose Confirm or Cancel.",
   ].join("\n");
 }
 
 export function buildConfirmedActionResponse(
   toolName: string,
   result: { success: boolean; error?: string },
+  locale: "en" | "fr" = "en",
 ): string {
+  const actionName = toolName.replace(/_/g, " ");
   if (!result.success) {
-    return `I couldn't complete **${toolName.replace(/_/g, " ")}** because: ${result.error ?? "the tool failed"}.`;
+    return locale === "fr"
+      ? `Je n'ai pas pu terminer **${actionName}** : ${result.error ?? "l'outil a echoue"}.`
+      : `I couldn't complete **${actionName}** because: ${result.error ?? "the tool failed"}.`;
   }
 
-  return `Done. Confirmed action **${toolName.replace(/_/g, " ")}** was executed.`;
+  return locale === "fr"
+    ? `Termine. L'action confirmee **${actionName}** a ete executee.`
+    : `Done. Confirmed action **${actionName}** was executed.`;
 }

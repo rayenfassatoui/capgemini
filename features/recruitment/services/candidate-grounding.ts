@@ -14,6 +14,7 @@ export interface GroundedCandidate {
   score?: number;
   stage?: string;
   jobTitle?: string;
+  owner?: string;
   createdAt?: string;
   skills: string[];
   languages: string[];
@@ -47,6 +48,7 @@ export interface GroundedAssistantResponse {
 export interface GroundAssistantResponseOptions {
   userMessage: string;
   forceDeterministicRanking?: boolean;
+  locale?: "en" | "fr";
 }
 
 const GROUNDED_CANDIDATE_TOOL_NAMES = new Set([
@@ -121,14 +123,14 @@ export function normalizeCandidateNameLoose(value: string): string {
 
 export function isCandidateRosterIntent(message: string): boolean {
   const normalized = String(message ?? "").toLowerCase();
-  const hasCandidateNoun = /\b(candidates?|profiles?)\b/.test(normalized);
+  const hasCandidateNoun = /\b(candidates?|candidats?|profiles?|profils?)\b/.test(normalized);
   const hasRosterLanguage =
-    /\b(assigned\s+to\s+me|my\s+(?:assigned\s+)?candidates?|current\s+stage|job\s+title|candidate\s+roster|who\s+is\s+assigned)\b/.test(
+    /\b(assigned\s+to\s+me|my\s+(?:assigned\s+)?candidates?|current\s+stage|job\s+title|candidate\s+roster|who\s+is\s+assigned|mes\s+candidats?|[eé]tape\s+actuelle|poste|propri[eé]taire)\b/.test(
       normalized,
     ) ||
-    /\b(list|show)\b.*\b(candidates?|profiles?)\b/.test(normalized);
+    /\b(list|show|liste|lister|montre|montrer|affiche|afficher)\b.*\b(candidates?|candidats?|profiles?|profils?)\b/.test(normalized);
   const hasRankingLanguage =
-    /\b(top|best|rank(?:ing|ed)?|shortlist|match(?:es|ing)?|recommend(?:ation|ed)?|compare|comparison|prioriti[sz]e|priority)\b/.test(
+    /\b(top|best|meilleur|meilleurs|rank(?:ing|ed)?|classement|shortlist|match(?:es|ing)?|correspondance|recommend(?:ation|ed)?|recommandation|compare|comparison|comparer|prioriti[sz]e|prioriser|priority)\b/.test(
       normalized,
     );
 
@@ -151,10 +153,10 @@ export function isCandidateSearchOrRankingIntent(message: string): boolean {
 
 
   return (
-    /\b(transferable\s+skills?|top\s+\d*\s*candidates?|best\s+fit|best\s+candidates?|rank(?:ing|ed)?|shortlist|recommend(?:ation|ed)?|compare|comparison)\b/.test(
+    /\b(transferable\s+skills?|competences?\s+transferables?|top\s+\d*\s*(?:candidates?|candidats?)|best\s+fit|best\s+candidates?|meilleurs?\s+candidats?|rank(?:ing|ed)?|classement|shortlist|recommend(?:ation|ed)?|recommandation|compare|comparison|comparer)\b/.test(
       normalized,
     ) ||
-    /\b(match(?:es|ed)?|find|search|show|list)\b.*\b(candidates?|cvs?|resumes?|profiles?)\b/.test(
+    /\b(match(?:es|ed)?|find|search|show|list|trouve|trouver|recherche|rechercher|montre|montrer|liste|lister)\b.*\b(candidates?|candidats?|cvs?|resumes?|profiles?|profils?)\b/.test(
       normalized,
     )
   );
@@ -292,7 +294,10 @@ export function groundAssistantResponse(
     );
 
     return {
-      text: buildDeterministicCandidateRosterResponse(allowedCandidates),
+      text: buildDeterministicCandidateRosterResponse(
+        allowedCandidates,
+        options.locale,
+      ),
       blocked: !validation.ok,
       deterministic: true,
       candidateCount: allowedCandidates.candidates.length,
@@ -314,6 +319,7 @@ export function groundAssistantResponse(
       text: buildDeterministicGroundedCandidateResponse(
         allowedCandidates,
         options.userMessage,
+        options.locale,
       ),
       blocked: !validation.ok,
       deterministic: true,
@@ -346,6 +352,7 @@ export function groundAssistantResponse(
     text: buildDeterministicGroundedCandidateResponse(
       allowedCandidates,
       options.userMessage,
+      options.locale,
     ),
     blocked: true,
     deterministic: true,
@@ -357,32 +364,80 @@ export function groundAssistantResponse(
 
 export function buildDeterministicCandidateRosterResponse(
   allowedCandidates: AllowedCandidateSet,
+  locale: "en" | "fr" = "en",
 ): string {
   const rows = allowedCandidates.candidates.slice(0, 20);
 
   if (rows.length === 0) {
-    return [
-      "## Assigned candidate roster",
-      "No candidates are accessible in the current role scope for the requested stages.",
-      "",
-      "## Caveats",
-      "- No names are inferred from prior conversations or model assumptions.",
-      "",
-      "## Next Steps",
-      "1. Verify the requested stages.",
-      "2. Check whether a candidate has been assigned to the current user.",
-      "3. Ask an administrator to review the assignment if the roster should not be empty.",
-    ].join("\n");
+    return locale === "fr"
+      ? [
+          "## Liste des candidats assignes",
+          "Aucun candidat n'est accessible dans le perimetre de votre role pour les etapes demandees.",
+          "",
+          "## Limites",
+          "- Aucun nom n'est deduit des conversations precedentes ni d'hypotheses du modele.",
+          "",
+          "## Prochaines etapes",
+          "1. Verifier les etapes demandees.",
+          "2. Verifier si un candidat a ete assigne a l'utilisateur courant.",
+          "3. Demander a un administrateur de verifier l'assignation si la liste ne devrait pas etre vide.",
+        ].join("\n")
+      : [
+          "## Assigned candidate roster",
+          "No candidates are accessible in the current role scope for the requested stages.",
+          "",
+          "## Caveats",
+          "- No names are inferred from prior conversations or model assumptions.",
+          "",
+          "## Next Steps",
+          "1. Verify the requested stages.",
+          "2. Check whether a candidate has been assigned to the current user.",
+          "3. Ask an administrator to review the assignment if the roster should not be empty.",
+        ].join("\n");
   }
 
+  const unavailable = locale === "fr" ? "Non disponible" : "Not available";
   const table = [
-    "| Name | Current stage | Job |",
-    "|------|---------------|-----|",
+    locale === "fr"
+      ? "| Nom | Score | Etape actuelle | Poste | Proprietaire |"
+      : "| Name | Score | Current stage | Job | Owner |",
+    "|-----|-------|----------------|-------|--------------|",
     ...rows.map(
       (candidate) =>
-        `| ${escapeMarkdownTableCell(candidate.name)} | ${escapeMarkdownTableCell(formatStageLabel(candidate.stage) ?? "Not available")} | ${escapeMarkdownTableCell(candidate.jobTitle ?? "Not available")} |`,
+        `| ${escapeMarkdownTableCell(candidate.name)} | ${
+          candidate.score === undefined
+            ? unavailable
+            : formatScore(candidate.score)
+        } | ${escapeMarkdownTableCell(
+          formatStageLabel(candidate.stage, locale) ?? unavailable,
+        )} | ${escapeMarkdownTableCell(
+          candidate.jobTitle ?? unavailable,
+        )} | ${escapeMarkdownTableCell(
+          formatOwnerLabel(candidate.owner, locale) ?? unavailable,
+        )} |`,
     ),
   ].join("\n");
+
+  if (locale === "fr") {
+    return [
+      "## Liste des candidats assignes",
+      `J'ai trouve **${rows.length}** candidat${rows.length === 1 ? "" : "s"} accessible${rows.length === 1 ? "" : "s"} dans le perimetre de votre role.`,
+      "",
+      table,
+      "",
+      "## Preuves",
+      `- Outils sources limites au role : ${allowedCandidates.sourceTools.join(", ") || "resultat d'un outil candidat"}.`,
+      "",
+      "## Limites",
+      "- Cette liste est factuelle ; ce n'est ni un classement, ni une shortlist, ni une recommandation d'embauche.",
+      "- Seuls les candidats retournes par les outils limites au role pendant ce cycle sont affiches.",
+      "",
+      "## Prochaines etapes",
+      "1. Ouvrir un candidat de la liste pour consulter ses preuves et l'historique de ses etapes.",
+      "2. Demander les preuves manquantes pour un candidat de la liste.",
+      "3. Utiliser le workflow direct de l'etape actuelle ; aucune etape n'a ete modifiee.",
+    ].join("\n");
+  }
 
   return [
     "## Assigned candidate roster",
@@ -407,18 +462,30 @@ export function buildDeterministicCandidateRosterResponse(
 export function buildDeterministicGroundedCandidateResponse(
   allowedCandidates: AllowedCandidateSet,
   userMessage: string,
+  locale: "en" | "fr" = "en",
 ): string {
   if (allowedCandidates.candidates.length === 0) {
-    return [
-      "I couldn’t find any accessible candidates in the current tool results for this request.",
-      "",
-      "No candidate names will be inferred from prior chat context or model assumptions.",
-      "",
-      "Try a safer next query such as:",
-      "1. Search CVs for a specific skill, seniority, or language.",
-      "2. List the accessible CV pool first.",
-      "3. Run a narrower candidate search with explicit must-have criteria.",
-    ].join("\n");
+    return locale === "fr"
+      ? [
+          "Je n'ai trouve aucun candidat accessible dans les resultats d'outils pour cette requete.",
+          "",
+          "Aucun nom de candidat ne sera deduit de l'historique du chat ni d'hypotheses du modele.",
+          "",
+          "Essayez une requete plus sure :",
+          "1. Rechercher des CV par competence, seniorite ou langue.",
+          "2. Lister d'abord le pool de CV accessible.",
+          "3. Lancer une recherche plus precise avec des criteres indispensables explicites.",
+        ].join("\n")
+      : [
+          "I couldn’t find any accessible candidates in the current tool results for this request.",
+          "",
+          "No candidate names will be inferred from prior chat context or model assumptions.",
+          "",
+          "Try a safer next query such as:",
+          "1. Search CVs for a specific skill, seniority, or language.",
+          "2. List the accessible CV pool first.",
+          "3. Run a narrower candidate search with explicit must-have criteria.",
+        ].join("\n");
   }
 
   const rows = allowedCandidates.candidates.slice(0, 10);
@@ -429,34 +496,61 @@ export function buildDeterministicGroundedCandidateResponse(
   const topScore = normalizeScore(topCandidate.score);
   const scoreText = formatScore(topCandidate.score);
   const fitLabel =
-    typeof topScore !== "number"
-      ? "a profile that still needs validation"
-      : topScore >= 75
-        ? "a strong match"
-        : topScore >= 60
-          ? "a promising match"
-          : topScore >= 45
-            ? "a workable but not automatic match"
-            : "an exploratory match";
+    locale === "fr"
+      ? typeof topScore !== "number"
+        ? "un profil qui doit encore etre valide"
+        : topScore >= 75
+          ? "une excellente correspondance"
+          : topScore >= 60
+            ? "une correspondance prometteuse"
+            : topScore >= 45
+              ? "une correspondance possible mais non automatique"
+              : "une correspondance exploratoire"
+      : typeof topScore !== "number"
+        ? "a profile that still needs validation"
+        : topScore >= 75
+          ? "a strong match"
+          : topScore >= 60
+            ? "a promising match"
+            : topScore >= 45
+              ? "a workable but not automatic match"
+              : "an exploratory match";
   const recommendation =
-    typeof topScore !== "number"
-      ? "start with a structured screening because the score is missing"
-      : topScore >= 75
-        ? "shortlist them, then compare against the target job must-haves"
-        : topScore >= 60
-          ? "screen them against the job requirements before moving forward"
-          : topScore >= 45
-            ? "run a focused screening before shortlisting"
-            : "keep them as a backup unless the target role matches their skills closely";
+    locale === "fr"
+      ? typeof topScore !== "number"
+        ? "commencer par une preselection structuree car le score est absent"
+        : topScore >= 75
+          ? "placer ce profil dans la shortlist, puis le comparer aux criteres indispensables du poste cible"
+          : topScore >= 60
+            ? "evaluer ce profil par rapport aux exigences du poste avant de poursuivre"
+            : topScore >= 45
+              ? "effectuer une preselection ciblee avant de placer ce profil dans la shortlist"
+              : "garder ce profil en reserve, sauf si le role cible correspond precisement a ses competences"
+      : typeof topScore !== "number"
+        ? "start with a structured screening because the score is missing"
+        : topScore >= 75
+          ? "shortlist them, then compare against the target job must-haves"
+          : topScore >= 60
+            ? "screen them against the job requirements before moving forward"
+            : topScore >= 45
+              ? "run a focused screening before shortlisting"
+              : "keep them as a backup unless the target role matches their skills closely";
 
-  const hasPipelineContext = rows.some((candidate) => candidate.stage || candidate.jobTitle);
+  const hasPipelineContext = rows.some(
+    (candidate) => candidate.stage || candidate.jobTitle,
+  );
+  const notProvided = locale === "fr" ? "Non fourni" : "Not provided";
   const table = [
     hasPipelineContext
-      ? "| Rank | Name | Score | Stage | Job | Key Skills | Experience | Languages |"
-      : "| Rank | Name | Score | Key Skills | Experience | Languages |",
+      ? locale === "fr"
+        ? "| Rang | Nom | Score | Etape | Poste | Competences cles | Experience | Langues |"
+        : "| Rank | Name | Score | Stage | Job | Key Skills | Experience | Languages |"
+      : locale === "fr"
+        ? "| Rang | Nom | Score | Competences cles | Experience | Langues |"
+        : "| Rank | Name | Score | Key Skills | Experience | Languages |",
     hasPipelineContext
-      ? "|------|------|-------|-------|-----|------------|------------|-----------|"
-      : "|------|------|-------|------------|------------|-----------|",
+      ? "|------|-----|-------|-------|-------|------------------|------------|---------|"
+      : "|------|-----|-------|------------------|------------|---------|",
     ...rows
       .map((candidate, index) => {
         const skills = safeList(candidate.skills, 5);
@@ -466,19 +560,21 @@ export function buildDeterministicGroundedCandidateResponse(
               String(index + 1),
               escapeMarkdownTableCell(candidate.name),
               formatScore(candidate.score),
-              escapeMarkdownTableCell(formatStageLabel(candidate.stage) ?? "N/A"),
+              escapeMarkdownTableCell(
+                formatStageLabel(candidate.stage, locale) ?? "N/A",
+              ),
               escapeMarkdownTableCell(candidate.jobTitle ?? "N/A"),
-              escapeMarkdownTableCell(skills || "Not provided"),
-              escapeMarkdownTableCell(candidate.experience ?? "Not provided"),
-              escapeMarkdownTableCell(languages || "Not provided"),
+              escapeMarkdownTableCell(skills || notProvided),
+              escapeMarkdownTableCell(candidate.experience ?? notProvided),
+              escapeMarkdownTableCell(languages || notProvided),
             ]
           : [
               String(index + 1),
               escapeMarkdownTableCell(candidate.name),
               formatScore(candidate.score),
-              escapeMarkdownTableCell(skills || "Not provided"),
-              escapeMarkdownTableCell(candidate.experience ?? "Not provided"),
-              escapeMarkdownTableCell(languages || "Not provided"),
+              escapeMarkdownTableCell(skills || notProvided),
+              escapeMarkdownTableCell(candidate.experience ?? notProvided),
+              escapeMarkdownTableCell(languages || notProvided),
             ];
         return cells.join(" | ");
       })
@@ -489,6 +585,44 @@ export function buildDeterministicGroundedCandidateResponse(
     const evidence = candidate.evidence.slice(0, 2).join(", ");
     return `${index + 1}. **${candidate.name}** — ${candidate.sourceTools.join(", ")}${evidence ? ` (${evidence})` : ""}.`;
   });
+
+  if (locale === "fr") {
+    const intro = isRanking
+      ? `J'ai trouve ${rows.length} profil${rows.length === 1 ? "" : "s"} candidat${rows.length === 1 ? "" : "s"} fonde${rows.length === 1 ? "" : "s"} sur les donnees. Ma premiere lecture place **${topCandidate.name}** en tete avec **${scoreText}**.`
+      : `**${topCandidate.name}** est **${fitLabel}** a **${scoreText}**, d'apres les preuves de recrutement disponibles.`;
+
+    return [
+      isRanking ? "## Lecture de la shortlist" : "## Lecture du candidat",
+      intro,
+      "",
+      "### Mon analyse",
+      `Je recommande de ${recommendation}.`,
+      "",
+      "### Points saillants",
+      `- **Competences** : ${topSkills || "Aucune competence n'a ete extraite des donnees CV disponibles."}`,
+      `- **Signal d'experience** : ${topCandidate.experience ?? "Non fourni dans les donnees consultees."}`,
+      `- **Langues** : ${topLanguages || "Non fournies dans les donnees consultees."}`,
+      "",
+      "### Risques et informations manquantes",
+      `- ${
+        typeof topScore === "number" && topScore < 60
+          ? `Le score est de **${scoreText}** ; je ne traiterais donc pas ce profil comme une shortlist automatique.`
+          : "Le score doit encore etre verifie par rapport aux exigences exactes du poste."
+      }`,
+      `- ${
+        topCandidate.stage
+          ? `L'etape actuelle est **${formatStageLabel(topCandidate.stage, locale)}** ; choisissez l'action suivante qui fait avancer ce workflow, pas une action generique du pool CV.`
+          : "Les donnees CV analysees peuvent manquer de contexte ; validez les competences indispensables pendant la preselection."
+      }`,
+      "- Les champs manquants restent des limites ; ne deduisez pas une experience, des langues ou des resultats d'entretien caches.",
+      "",
+      "### Tableau de decision",
+      table,
+      "",
+      "### Preuves",
+      ...evidenceLines,
+    ].join("\n");
+  }
 
   const intro = isRanking
     ? `I found ${rows.length} grounded candidate profile${rows.length === 1 ? "" : "s"}. My first read puts **${topCandidate.name}** on top at **${scoreText}**.`
@@ -507,8 +641,16 @@ export function buildDeterministicGroundedCandidateResponse(
     `- **Languages**: ${topLanguages || "Not provided in the fetched data."}`,
     "",
     "### Risks / missing info",
-    `- ${typeof topScore === "number" && topScore < 60 ? `The score is **${scoreText}**, so I would not treat this as an automatic shortlist.` : "The score should still be checked against the exact job requirements."}`,
-    `- ${topCandidate.stage ? `Current stage is **${formatStageLabel(topCandidate.stage)}**; choose the next action that moves this workflow, not a generic CV-pool action.` : "Parsed CV data can miss context, so validate the must-have skills in screening."}`,
+    `- ${
+      typeof topScore === "number" && topScore < 60
+        ? `The score is **${scoreText}**, so I would not treat this as an automatic shortlist.`
+        : "The score should still be checked against the exact job requirements."
+    }`,
+    `- ${
+      topCandidate.stage
+        ? `Current stage is **${formatStageLabel(topCandidate.stage, locale)}**; choose the next action that moves this workflow, not a generic CV-pool action.`
+        : "Parsed CV data can miss context, so validate the must-have skills in screening."
+    }`,
     "- Missing fields stay caveats; do not infer hidden experience, languages, or interview outcomes.",
     "",
     "### Decision table",
@@ -749,6 +891,7 @@ function candidateFromPipelineItem(
       ]),
       stage,
       jobTitle,
+      owner: readCandidateOwner(value),
       createdAt: readDateField(value, ["createdAt", "updatedAt"]),
       skills: readStringArrayField(value, [
         "skills",
@@ -831,10 +974,10 @@ function mergeCandidate(
   byIdentity: Map<string, GroundedCandidate>,
   candidate: GroundedCandidate,
 ): void {
-  const key = candidate.cvId
-    ? `cv:${candidate.cvId}`
-    : candidate.candidateId
-      ? `candidate:${candidate.candidateId}`
+  const key = candidate.candidateId
+    ? `candidate:${candidate.candidateId}`
+    : candidate.cvId
+      ? `cv:${candidate.cvId}`
       : `name:${normalizeCandidateName(candidate.name)}`;
 
   const existing = byIdentity.get(key);
@@ -853,6 +996,7 @@ function mergeCandidate(
   if (existing.score < 0) existing.score = undefined;
   existing.stage = existing.stage ?? candidate.stage;
   existing.jobTitle = existing.jobTitle ?? candidate.jobTitle;
+  existing.owner = existing.owner ?? candidate.owner;
   existing.createdAt = existing.createdAt ?? candidate.createdAt;
   existing.skills = uniqueStrings([...existing.skills, ...candidate.skills]);
   existing.languages = uniqueStrings([
@@ -1141,6 +1285,34 @@ function formatExperience(value: Record<string, unknown>): string | undefined {
   return undefined;
 }
 
+function readCandidateOwner(value: Record<string, unknown>): string | undefined {
+  const namedOwner = readStringField(value, [
+    "ownerName",
+    "assignedToName",
+    "assignedManagerName",
+    "assignedHrName",
+    "assignedByName",
+  ]);
+  if (namedOwner) return namedOwner;
+  if (readStringField(value, ["assignedHrId"])) return "hr";
+  if (readStringField(value, ["assignedManagerId"])) return "manager";
+  if (readStringField(value, ["assignedBy"])) return "ta";
+  return undefined;
+}
+
+function formatOwnerLabel(
+  owner: string | undefined,
+  locale: "en" | "fr",
+): string | undefined {
+  if (!owner) return undefined;
+  if (owner === "ta") return locale === "fr" ? "Responsable TA" : "TA assignee";
+  if (owner === "manager") {
+    return locale === "fr" ? "Manager assigne" : "Manager assignee";
+  }
+  if (owner === "hr") return locale === "fr" ? "Responsable RH" : "HR assignee";
+  return owner;
+}
+
 function normalizeScore(score: number | undefined): number | undefined {
   if (typeof score !== "number" || !Number.isFinite(score)) return undefined;
   return score > 0 && score <= 1 ? score * 100 : score;
@@ -1152,8 +1324,31 @@ function formatScore(score: number | undefined): string {
   return `${Math.round(normalizedScore)}%`;
 }
 
-function formatStageLabel(stage: string | undefined): string | undefined {
+function formatStageLabel(
+  stage: string | undefined,
+  locale: "en" | "fr" = "en",
+): string | undefined {
   if (!stage) return undefined;
+
+  if (locale === "fr") {
+    const labels: Readonly<Record<string, string>> = {
+      new: "Nouveau",
+      ta_screening: "Preselection TA",
+      ta_interview: "Entretien TA",
+      ta_accepted: "Accepte par TA",
+      ta_rejected: "Refuse par TA",
+      manager_interview: "Entretien manager",
+      manager_accepted: "Accepte par le manager",
+      manager_rejected: "Refuse par le manager",
+      hr_interview: "Entretien RH",
+      hr_accepted: "Accepte par les RH",
+      hr_rejected: "Refuse par les RH",
+      hired: "Embauche",
+    };
+    const localized = labels[stage.toLowerCase()];
+    if (localized) return localized;
+  }
+
   const acronyms = new Map([
     ["ai", "AI"],
     ["cv", "CV"],

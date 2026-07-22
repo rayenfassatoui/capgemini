@@ -214,14 +214,25 @@
   }
 
   [data-streamdown="mermaid-block"] [data-streamdown="mermaid"] {
-    @apply overflow-x-auto bg-background/80 p-3 ring-1 ring-border/70;
+    @apply overflow-auto bg-background/80 p-3 ring-1 ring-border/70;
     min-height: 18rem;
+    max-height: min(36rem, 42dvh);
     border-radius: calc(var(--radius) + 0.75rem) !important;
   }
 
-  [data-streamdown="mermaid-block"] [data-streamdown="mermaid"] svg[aria-roledescription] {
-    width: min(100%, 760px) !important;
-    max-width: 100% !important;
+  [data-streamdown="mermaid-block"] [data-streamdown="mermaid"]:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+
+  [data-streamdown="mermaid-block"] [role="img"]:has(> svg[aria-roledescription]) {
+    width: 100%;
+    min-width: 0;
+  }
+
+  [data-streamdown="mermaid-block"] svg[aria-roledescription] {
+    width: 100% !important;
+    max-width: min(100%, 760px) !important;
     height: auto !important;
     filter: drop-shadow(0 18px 28px color-mix(in oklch, var(--foreground), transparent 88%));
     border-radius: calc(var(--radius) + 0.5rem);

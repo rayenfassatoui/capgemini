@@ -5,6 +5,8 @@ import { IconFileText, IconX } from "@tabler/icons-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { useTranslation } from "@/components/shared/i18n-provider";
+
 import { cn } from "@/lib/utils";
 import type { AgentReference } from "./agent-prompts";
 
@@ -21,6 +23,7 @@ export function AgentReferenceChip({
   placement = "composer",
   onRemove,
 }: AgentReferenceChipProps) {
+  const { t } = useTranslation();
   const previewFacts = reference.facts?.slice(0, placement === "message" ? 4 : 3) ?? [];
 
   const chip = (
@@ -54,9 +57,9 @@ export function AgentReferenceChip({
             type="button"
             variant="ghost"
             size="icon-xs"
-            className="-mr-1 size-5 rounded-[4px] text-muted-foreground hover:bg-background hover:text-foreground"
+            className="-my-0.5 -mr-1.5 size-6 rounded-[4px] text-muted-foreground hover:bg-background hover:text-foreground"
             onClick={onRemove}
-            aria-label={`Remove ${reference.title} reference`}
+            aria-label={`${t("agent.removeReference")}: ${reference.title}`}
           >
             <IconX />
           </Button>

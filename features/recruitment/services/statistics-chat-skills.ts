@@ -61,6 +61,18 @@ interface MissingCloseJobRecoveryParams {
   records: readonly ToolExecutionRecord[];
   step: number;
 }
+interface MissingCandidateStageRecoveryParams {
+  message: string;
+  availableToolNames: readonly string[];
+  records: readonly ToolExecutionRecord[];
+  step: number;
+}
+
+
+interface ExplicitMutationToolCallParams {
+  message: string;
+  availableToolNames: readonly string[];
+}
 
 const RECRUITMENT_TRIAGE_RE =
   /\b(recruit(?:ment|ing)?|talent|candidate|candidates|cv|cvs|resume|resumes|job|jobs|pipeline|screening|interview|interviews|hire|hiring|onboarding|offer|skills?|seniority|profile|profiles)\b/i;
@@ -571,6 +583,207 @@ export function shouldRetryForMissingToolUse({
     (RECRUITMENT_TRIAGE_RE.test(message) ||
       skills.some((skill) => skill.id === "proactive-operations"))
   );
+}
+
+const EXPLICIT_MUTATION_TOOL_NAMES = new Set([
+  "upload_cv",
+  "delete_cv",
+  "create_job",
+  "close_job",
+  "save_job_as_template",
+  "create_job_from_template",
+  "update_candidate_stage",
+  "assign_cv_to_job",
+  "add_candidate_note",
+  "bulk_update_candidate_stage",
+  "generate_screening",
+  "bulk_assign_cvs_to_job",
+  "generate_interview_questions",
+  "schedule_interview",
+  "reschedule_interview",
+  "cancel_interview",
+  "create_interview_report",
+  "send_interview_invite_email",
+  "send_rejection_email",
+  "mark_notification_read",
+  "mark_all_notifications_read",
+  "toggle_onboarding_task",
+  "add_onboarding_task",
+]);
+
+const EXPLICIT_TOOL_INVOCATION_RE =
+  /\b(?:invoke|run|execute|use|call|lancer|executer|exécuter|utiliser|appeler)\s+(?:the\s+|le\s+|l['’])?(?:tool\s+|outil\s+)?([a-z][a-z0-9_]+)(?:\s+(?:tool|outil))?\b/i;
+const UUID_RE =
+  /\b[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\b/gi;
+const CANDIDATE_STAGE_RE =
+  /\b(new|ta_screening|ta_interview|ta_accepted|ta_rejected|manager_interview|manager_accepted|manager_rejected|hr_interview|hr_accepted|hr_rejected|hired)\b/i;
+const CANDIDATE_STAGE_MUTATION_RE =
+  /\b(move|change|update|set|reset|return|advance|transition|execute|remet(?:s|tre)?|mettre|passe(?:r)?|deplace(?:r)?|déplace(?:r)?|baddel|radd)\b/i;
+
+function extractRequestedCandidateStage(message: string): string | undefined {
+  const explicitTarget = message.match(
+    /\b(?:newStage|new\s+stage|target\s+stage|to|into|vers|a|à)\s*[:=]?\s*(new|ta_screening|ta_interview|ta_accepted|ta_rejected|manager_interview|manager_accepted|manager_rejected|hr_interview|hr_accepted|hr_rejected|hired)\b/i,
+  )?.[1];
+  if (explicitTarget) return explicitTarget.toLowerCase();
+
+  const stages = Array.from(
+    message.matchAll(new RegExp(CANDIDATE_STAGE_RE.source, "gi")),
+    (match) => match[1]?.toLowerCase(),
+  ).filter((stage): stage is string => Boolean(stage));
+  return stages.at(-1);
+}
+
+function isCandidateStageMutationRequest(message: string): boolean {
+  return (
+    CANDIDATE_STAGE_RE.test(message) &&
+    (CANDIDATE_STAGE_MUTATION_RE.test(message) ||
+      /\bupdate_candidate_stage\b/i.test(message))
+  );
+}
+
+
+function parseExplicitJsonArguments(
+  message: string,
+): Record<string, unknown> | null {
+  const rawJson = message.match(/\barguments?\s*[:=]\s*(\{[\s\S]*\})\s*$/i)?.[1];
+  if (!rawJson) return null;
+
+  try {
+    const parsed: unknown = JSON.parse(rawJson);
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed)
+      ? (parsed as Record<string, unknown>)
+      : null;
+  } catch {
+    return null;
+  }
+}
+
+function buildExplicitMutationArgs(
+  toolName: string,
+  message: string,
+): Record<string, unknown> | null {
+  const explicitJson = parseExplicitJsonArguments(message);
+  if (explicitJson) return explicitJson;
+
+  const ids = message.match(UUID_RE) ?? [];
+  const firstId = ids[0];
+  const secondId = ids[1];
+
+  if (toolName === "mark_all_notifications_read") return {};
+  if (toolName === "delete_cv" && firstId) return { cvId: firstId };
+  if (toolName === "close_job" && firstId) return { jobId: firstId };
+  if (toolName === "save_job_as_template" && firstId) {
+    return { jobId: firstId };
+  }
+  if (toolName === "cancel_interview" && firstId) {
+    return { interviewId: firstId };
+  }
+  if (toolName === "mark_notification_read" && firstId) {
+    return { notificationId: firstId };
+  }
+  if (toolName === "update_candidate_stage" && firstId) {
+    const newStage = extractRequestedCandidateStage(message);
+    return newStage ? { candidateId: firstId, newStage } : null;
+  }
+  if (toolName === "assign_cv_to_job" && firstId && secondId) {
+    return { cvId: firstId, jobId: secondId };
+  }
+  if (toolName === "generate_screening" && firstId && secondId) {
+    return { candidateId: firstId, jobId: secondId };
+  }
+  if (toolName === "send_rejection_email" && firstId && secondId) {
+    return { candidateId: firstId, jobId: secondId };
+  }
+
+  return null;
+}
+
+export function buildExplicitMutationToolCall({
+  message,
+  availableToolNames,
+}: ExplicitMutationToolCallParams): ResponseToolCall | null {
+  const invokedToolName = message
+    .match(EXPLICIT_TOOL_INVOCATION_RE)?.[1]
+    ?.toLowerCase();
+  const toolName =
+    invokedToolName ??
+    (isCandidateStageMutationRequest(message) &&
+    availableToolNames.includes("update_candidate_stage")
+      ? "update_candidate_stage"
+      : undefined);
+  if (
+    !toolName ||
+    !EXPLICIT_MUTATION_TOOL_NAMES.has(toolName) ||
+    !availableToolNames.includes(toolName)
+  ) {
+    return null;
+  }
+
+  const args = buildExplicitMutationArgs(toolName, message);
+  if (!args) return null;
+
+  return {
+    id: `explicit-mutation-${crypto.randomUUID()}`,
+    type: "function",
+    function: {
+      name: toolName,
+      arguments: JSON.stringify(args),
+    },
+  };
+}
+
+export function buildMissingCandidateStageToolCall({
+  message,
+  availableToolNames,
+  records,
+  step,
+}: MissingCandidateStageRecoveryParams): ResponseToolCall | null {
+  if (
+    !isCandidateStageMutationRequest(message) ||
+    !availableToolNames.includes("update_candidate_stage") ||
+    records.some((record) => record.toolName === "update_candidate_stage")
+  ) {
+    return null;
+  }
+
+  const newStage = extractRequestedCandidateStage(message);
+  if (!newStage) return null;
+
+  const candidateRecord = [...records]
+    .reverse()
+    .find(
+      (record) =>
+        record.toolName === "get_candidate" &&
+        record.result.success &&
+        record.result.data &&
+        typeof record.result.data === "object" &&
+        !Array.isArray(record.result.data),
+    );
+  if (
+    !candidateRecord?.result.data ||
+    typeof candidateRecord.result.data !== "object" ||
+    Array.isArray(candidateRecord.result.data)
+  ) {
+    return null;
+  }
+
+  const candidate = candidateRecord.result.data as Record<string, unknown>;
+  const candidateId =
+    typeof candidate.candidateId === "string"
+      ? candidate.candidateId
+      : typeof candidate.id === "string"
+        ? candidate.id
+        : undefined;
+  if (!candidateId) return null;
+
+  return {
+    id: `missing-stage-recovery-${step}`,
+    type: "function",
+    function: {
+      name: "update_candidate_stage",
+      arguments: JSON.stringify({ candidateId, newStage }),
+    },
+  };
 }
 
 const CREATE_JOB_REQUEST_RE =

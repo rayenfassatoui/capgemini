@@ -13,7 +13,14 @@ import {
   normalizeRecruitmentResponseCard,
   parseChatResponseCardEvent,
 } from "../../chat-card-events";
+import {
+  CHAT_ARTIFACT_EVENT_PREFIX,
+  chatHistoryResponseSchema,
+  extractChatArtifactsFromContent,
+} from "../../chat-artifact-events";
 import type { RecruitmentAnalyticsChart, RecruitmentResponseCard } from "../../types";
+import { useTranslation } from "@/components/shared/i18n-provider";
+import { localizeAgentToolName } from "../../agent-localization";
 
 import type { AgentReference } from "./agent-prompts";
 import type {
@@ -118,6 +125,7 @@ export function useStatisticsChatController({
   enabled,
   references,
 }: UseStatisticsChatControllerOptions): StatisticsChatController {
+  const { locale, t } = useTranslation();
   const [view, setView] = useState<ChatView>("chat");
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeConversationId, setActiveConversationId] = useState<
@@ -133,6 +141,10 @@ export function useStatisticsChatController({
     references ?? [],
   );
   const abortRef = useRef<AbortController | null>(null);
+  const activeRequestRef = useRef<{
+    assistantMessageId: string;
+    retryPrompt: string;
+  } | null>(null);
 
   const loadMessages = useCallback(async (conversationId: string) => {
     setIsLoadingHistory(true);
@@ -141,22 +153,78 @@ export function useStatisticsChatController({
         `/api/chat/statistics?conversationId=${conversationId}`,
       );
       if (!res.ok) return;
-      const data = (await res.json()) as {
-        messages: Array<{ id: string; role: string; content: string }>;
-      };
-      setMessages(
-        (data.messages ?? []).map((m) => {
-          const parsedCards = extractChatResponseCardsFromContent(m.content);
-          const parsedCharts = extractChatChartsFromContent(parsedCards.content);
 
-          return {
-            id: m.id,
-            role: m.role as "user" | "assistant",
-            content: parsedCharts.content,
-            charts: parsedCharts.charts.length > 0 ? parsedCharts.charts : undefined,
-            cards: parsedCards.cards.length > 0 ? parsedCards.cards : undefined,
-          };
-        }),
+      const parsedResponse = chatHistoryResponseSchema.safeParse(await res.json());
+      if (!parsedResponse.success) {
+        setMessages([]);
+        return;
+      }
+
+      const actionStatuses = new Map(
+        (parsedResponse.data.agentActions ?? []).map((action) => [
+          action.id,
+          action.status,
+        ]),
+      );
+
+      const hydratedMessages = parsedResponse.data.messages.map((message) => {
+        const parsedArtifacts = extractChatArtifactsFromContent(message.content);
+        const parsedCards = extractChatResponseCardsFromContent(
+          parsedArtifacts.content,
+        );
+        const parsedCharts = extractChatChartsFromContent(parsedCards.content);
+        const confirmations = parsedArtifacts.artifacts.confirmations?.map(
+          (confirmation) => {
+            const persistedStatus = actionStatuses.get(confirmation.id);
+            const status =
+              persistedStatus === "pending"
+                ? "pending"
+                : persistedStatus === "confirmed" ||
+                    persistedStatus === "executed"
+                  ? "confirmed"
+                  : persistedStatus
+                    ? "cancelled"
+                    : confirmation.status;
+
+            return {
+              ...confirmation,
+              status,
+            } satisfies AgentActionConfirmation;
+          },
+        );
+        const metadata = parsedArtifacts.artifacts.metadata;
+
+        return {
+          id: message.id,
+          role: message.role,
+          content: parsedCharts.content,
+          toolEvents: parsedArtifacts.artifacts.toolEvents,
+          attachments: parsedArtifacts.artifacts.attachments,
+          references: parsedArtifacts.artifacts.references,
+          fileDownloads: parsedArtifacts.artifacts.fileDownloads,
+          confirmations,
+          charts:
+            parsedCharts.charts.length > 0
+              ? parsedCharts.charts
+              : normalizeMetadataCharts(metadata?.charts),
+          cards:
+            parsedCards.cards.length > 0
+              ? parsedCards.cards
+              : normalizeMetadataCards(metadata?.cards),
+          metadata,
+        } satisfies ChatMessage;
+      });
+
+      const seenConfirmationIds = new Set<string>();
+      setMessages(
+        hydratedMessages.map((message) => ({
+          ...message,
+          confirmations: message.confirmations?.filter((confirmation) => {
+            if (seenConfirmationIds.has(confirmation.id)) return false;
+            seenConfirmationIds.add(confirmation.id);
+            return true;
+          }),
+        })),
       );
     } catch {
       setMessages([]);
@@ -276,9 +344,44 @@ export function useStatisticsChatController({
   );
 
   const handleStop = useCallback(() => {
-    abortRef.current?.abort();
+    const activeRequest = activeRequestRef.current;
+    const controller = abortRef.current;
+    controller?.abort();
+    if (abortRef.current === controller) {
+      abortRef.current = null;
+    }
+    if (activeRequestRef.current === activeRequest) {
+      activeRequestRef.current = null;
+    }
+
+    if (activeRequest) {
+      const endedAt = new Date().toISOString();
+      setMessages((previousMessages) =>
+        previousMessages.map((message) =>
+          message.id === activeRequest.assistantMessageId
+            ? {
+                ...message,
+                content: message.content || t("agent.stoppedFallback"),
+                toolEvents: message.toolEvents?.map((event) =>
+                  event.status === "queued" || event.status === "running"
+                    ? {
+                        ...event,
+                        status: "error",
+                        summary: t("agent.stoppedByUser"),
+                        error: t("agent.generationStoppedByUser"),
+                        endedAt,
+                      }
+                    : event,
+                ),
+                deliveryStatus: "stopped",
+                retryPrompt: activeRequest.retryPrompt,
+              }
+            : message,
+        ),
+      );
+    }
     setIsStreaming(false);
-  }, []);
+  }, [t]);
 
   const sendMessage = useCallback(
     async (text: string, confirmationRequest?: { actionId: string; decision: "confirm" | "cancel" }) => {
@@ -332,6 +435,14 @@ export function useStatisticsChatController({
       setMessages((prev) => [...prev, userMsg, assistantMsg]);
       setInput("");
       setIsStreaming(true);
+      const controller = new AbortController();
+      abortRef.current = controller;
+      activeRequestRef.current = {
+        assistantMessageId: assistantMsg.id,
+        retryPrompt: trimmed,
+      };
+
+      try {
 
       let attachments:
         | Array<{
@@ -361,11 +472,8 @@ export function useStatisticsChatController({
         ];
         setAttachedFile(null);
       }
+      if (controller.signal.aborted) return;
 
-      const controller = new AbortController();
-      abortRef.current = controller;
-
-      try {
         const history = [...messages, userMsg].map((m) => ({
           role: m.role,
           content: m.content,
@@ -377,6 +485,7 @@ export function useStatisticsChatController({
           body: JSON.stringify({
             conversationId: convId,
             messages: history,
+            locale,
             ...(attachments ? { attachments } : {}),
             ...(confirmationRequest ? { confirmation: confirmationRequest } : {}),
             ...(activeReferences.length > 0 ? { references: activeReferences } : {}),
@@ -390,7 +499,9 @@ export function useStatisticsChatController({
               m.id === assistantMsg.id
                 ? {
                     ...m,
-                    content: `Sorry, I couldn't process that request. ${response.status === 401 ? "Please sign in again." : response.status === 403 ? "Access denied." : "Please try again."}`,
+                    content: `${t("agent.requestProblem")} ${t(response.status === 401 ? "agent.signInAgain" : response.status === 403 ? "agent.accessDenied" : "agent.tryAgain")}`,
+                    deliveryStatus: "error",
+                    retryPrompt: confirmationRequest ? undefined : trimmed,
                   }
                 : m,
             ),
@@ -665,6 +776,9 @@ export function useStatisticsChatController({
                   ),
                 );
               }
+            } else if (line.startsWith(CHAT_ARTIFACT_EVENT_PREFIX)) {
+              // Persisted history metadata is emitted after the live events above.
+              // Ignore it during this stream to avoid rendering or duplicating it.
             } else {
               textContent += line + "\n";
               setMessages((prev) =>
@@ -692,6 +806,7 @@ export function useStatisticsChatController({
             !accumulated.startsWith("@@FILE@@") &&
             !accumulated.startsWith("@@META@@") &&
             !accumulated.startsWith("@@CONFIRMATION@@") &&
+            !accumulated.startsWith(CHAT_ARTIFACT_EVENT_PREFIX) &&
             !accumulated.startsWith(CHAT_RESPONSE_CARD_EVENT_PREFIX)
           ) {
             textContent += accumulated;
@@ -728,9 +843,28 @@ export function useStatisticsChatController({
                       chartsAccum.length > 0 ? [...chartsAccum] : undefined,
                     cards:
                       cardsAccum.length > 0 ? [...cardsAccum] : undefined,
+                    deliveryStatus: "complete",
                   }
                 : m,
             ),
+          );
+        }
+        if (confirmationRequest) {
+          setMessages((previousMessages) =>
+            previousMessages.map((message) => ({
+              ...message,
+              confirmations: message.confirmations?.map((item) =>
+                item.id === confirmationRequest.actionId
+                  ? {
+                      ...item,
+                      status:
+                        confirmationRequest.decision === "confirm"
+                          ? "confirmed"
+                          : "cancelled",
+                    }
+                  : item,
+              ),
+            })),
           );
         }
 
@@ -759,18 +893,22 @@ export function useStatisticsChatController({
             m.id === assistantMsg.id
               ? {
                   ...m,
-                  content:
-                    "An error occurred while generating the response. Please try again.",
+                  content: t("agent.generationError"),
+                  deliveryStatus: "error",
+                  retryPrompt: confirmationRequest ? undefined : trimmed,
                 }
               : m,
           ),
         );
       } finally {
-        setIsStreaming(false);
-        abortRef.current = null;
+        if (abortRef.current === controller) {
+          setIsStreaming(false);
+          abortRef.current = null;
+          activeRequestRef.current = null;
+        }
       }
     },
-    [isStreaming, messages, activeConversationId, attachedFile, activeReferences],
+    [isStreaming, messages, activeConversationId, attachedFile, activeReferences, locale, t],
   );
 
   const confirmAction = useCallback(
@@ -780,30 +918,29 @@ export function useStatisticsChatController({
     ) => {
       if (isStreaming || confirmation.status !== "pending") return;
 
-      setMessages((prev) =>
-        prev.map((message) => ({
-          ...message,
-          confirmations: message.confirmations?.map((item) =>
-            item.id === confirmation.id
-              ? {
-                  ...item,
-                  status: decision === "confirm" ? "confirmed" : "cancelled",
-                }
-              : item,
-          ),
-        })),
+      const verb =
+        locale === "fr"
+          ? decision === "confirm"
+            ? "Confirmer"
+            : "Annuler"
+          : decision === "confirm"
+            ? "Confirm"
+            : "Cancel";
+      const actionName = localizeAgentToolName(
+        confirmation.toolName,
+        locale,
       );
-
-      const verb = decision === "confirm" ? "Confirm" : "Cancel";
       await sendMessage(
-        `${verb} action: ${confirmation.toolName.replace(/_/g, " ")}`,
+        locale === "fr"
+          ? `${verb} l'action : ${actionName}`
+          : `${verb} action: ${actionName}`,
         {
           actionId: confirmation.id,
           decision,
         },
       );
     },
-    [isStreaming, sendMessage],
+    [isStreaming, locale, sendMessage],
   );
 
   return {

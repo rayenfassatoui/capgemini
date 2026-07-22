@@ -257,6 +257,15 @@ export function AdminGovernanceClient({ report }: AdminGovernanceClientProps) {
   };
 
   const resetFilters = () => {
+    setFilters({
+      from: "",
+      to: "",
+      actorId: "all",
+      candidateId: "all",
+      action: "",
+      status: "all",
+      limit: String(report.filters.limit),
+    });
     startTransition(() => {
       router.push("/admin/governance");
     });

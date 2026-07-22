@@ -132,6 +132,7 @@ STRICT CONSTRAINTS & RULES:
 3. PROBE THE GAPS FAIRLY: For skills the job requires but the candidate lacks (Gaps), DO NOT ask them how to use that specific skill. Instead, ask scenario-based questions to measure their capacity to learn it or their experience with analogous technologies.
 4. CONSULTING MINDSET (BEHAVIORAL): Capgemini is a consulting firm. Include 1-2 behavioral questions testing how they handle difficult clients, changing requirements, or communicating technical debt to non-technical stakeholders.
 5. JSON ONLY: You must output ONLY valid JSON. No markdown wrappers, no intro text, no outro text.
+6. REQUIRED TOP-LEVEL KEYS: Always return interviewerBriefing, technicalQuestions, gapMitigationQuestions, and behavioralQuestions. Never rename or omit a key. Use an empty array only for gapMitigationQuestions when there are no gaps.
 
 OUTPUT SCHEMA (strict JSON):
 {
@@ -230,10 +231,39 @@ Stage: ${stage.toUpperCase()} - ${stageContext[stage]}
 
 Generate the Interview Guide JSON now.`;
 
-  const content = await callOpenRouter(AUTOPILOT_SYSTEM_PROMPT, userPrompt, 'generation');
-  const parsed = aiInterviewAutoPilotOutputSchema.parse(
-    JSON.parse(cleanJsonResponse(content))
+  const content = await callOpenRouter(
+    AUTOPILOT_SYSTEM_PROMPT,
+    userPrompt,
+    'generation',
   );
+  const firstPayload: unknown = JSON.parse(cleanJsonResponse(content));
+  const firstResult = aiInterviewAutoPilotOutputSchema.safeParse(firstPayload);
+  let parsed: InterviewAutoPilotGuide;
+
+  if (firstResult.success) {
+    parsed = firstResult.data;
+  } else {
+    const invalidPaths = firstResult.error.issues
+      .map((issue) => issue.path.join('.') || 'root')
+      .join(', ');
+    const correctionPrompt = `${userPrompt}
+
+Your previous JSON failed validation at: ${invalidPaths}.
+Return the complete JSON object again. All four top-level keys are required:
+- interviewerBriefing: string
+- technicalQuestions: array with 4-6 objects
+- gapMitigationQuestions: array (use [] only when there are no gaps)
+- behavioralQuestions: array with 1-2 objects
+Do not rename, omit, or add top-level keys.`;
+    const correctedContent = await callOpenRouter(
+      AUTOPILOT_SYSTEM_PROMPT,
+      correctionPrompt,
+      'generation',
+    );
+    parsed = aiInterviewAutoPilotOutputSchema.parse(
+      JSON.parse(cleanJsonResponse(correctedContent)),
+    );
+  }
 
   // Extract flat question strings for backward compatibility with the questions column
   const flatQuestions: string[] = [

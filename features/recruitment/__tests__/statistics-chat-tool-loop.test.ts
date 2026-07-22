@@ -308,11 +308,7 @@ describe('statistics chat tool loop', () => {
     const result = await executeToolCalls(params);
 
     expect(requestAgentActionConfirmationMock).not.toHaveBeenCalled();
-    expect(executeAgentToolMock).toHaveBeenCalledWith(
-      'create_job',
-      expect.objectContaining({ mustHave: ['   '] }),
-      { userId: 'user-1', role: 'ta' },
-    );
+    expect(executeAgentToolMock).not.toHaveBeenCalled();
     expect(llmMessages[0]?.content).toContain('Invalid arguments for create_job');
     expect(result.shouldReturn).toBe(false);
   });
@@ -326,6 +322,7 @@ describe('statistics chat tool loop', () => {
         _fileDownload: {
           filename: 'candidates.csv',
           contentType: 'text/csv',
+          base64: 'Y2FuZGlkYXRlcy1jc3Y=',
         },
       },
     });
@@ -343,6 +340,11 @@ describe('statistics chat tool loop', () => {
     });
     expect(toolExecutionHistory).toHaveLength(1);
     expect(toolExecutionHistory[0].result.data).toEqual({ rows: 2 });
+    expect(toolExecutionHistory[0].fileDownload).toEqual({
+      filename: 'candidates.csv',
+      contentType: 'text/csv',
+      base64: 'Y2FuZGlkYXRlcy1jc3Y=',
+    });
     const executedToolMessage = llmMessages[0];
     if (executedToolMessage.role !== 'tool') {
       throw new Error('Expected executed tool message');
@@ -358,6 +360,7 @@ describe('statistics chat tool loop', () => {
     expect(events[1].payload).toEqual({
       filename: 'candidates.csv',
       contentType: 'text/csv',
+      base64: 'Y2FuZGlkYXRlcy1jc3Y=',
     });
   });
 

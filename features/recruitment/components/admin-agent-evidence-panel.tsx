@@ -90,12 +90,15 @@ export function AdminAgentEvidencePanel({
           {actions.map((action) => {
             const Icon = action.icon ?? IconBrain;
             return (
-              <Link key={action.label} href={buildAgentPromptHref(action.prompt)}>
-                <Button variant="outline" className="h-full min-h-24 w-full justify-start rounded-2xl p-3 text-left">
+              <Link key={action.label} href={buildAgentPromptHref(action.prompt)} className="min-w-0">
+                <Button
+                  variant="outline"
+                  className="h-full min-h-24 w-full min-w-0 justify-start whitespace-normal rounded-2xl p-3 text-left"
+                >
                   <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
                     <Icon className="size-4" />
                   </span>
-                  <span className="ml-3 min-w-0 space-y-1">
+                  <span className="ml-3 flex min-w-0 flex-col gap-1">
                     <span className="block text-sm font-semibold text-foreground">{action.label}</span>
                     <span className="block text-xs leading-5 text-muted-foreground">{action.description}</span>
                   </span>

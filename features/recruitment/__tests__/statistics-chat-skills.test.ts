@@ -2,6 +2,9 @@ import { describe, expect, it } from 'vitest';
 
 import {
   buildAgentSkillPrompt,
+  buildExplicitMutationToolCall,
+  buildMissingCandidateStageToolCall,
+
   buildMissingToolRetryMessage,
   selectMissingToolRecoveryToolNames,
   selectAgentRuntimeSkills,
@@ -153,4 +156,64 @@ describe('statistics chat runtime skills', () => {
       }),
     ).toEqual(['get_dashboard_stats', 'get_smart_insights']);
   });
+  it('routes a natural stage mutation with an explicit candidate ID deterministically', () => {
+    const candidateId = '2d4ba18e-2a4d-4ee1-80b3-18f578d98f4a';
+    const toolCall = buildExplicitMutationToolCall({
+      message: `Move candidate ${candidateId} from hr_rejected to hr_interview and ask for confirmation.`,
+      availableToolNames: ['get_candidate', 'update_candidate_stage'],
+    });
+
+    expect(toolCall).toMatchObject({
+      function: { name: 'update_candidate_stage' },
+    });
+    expect(JSON.parse(toolCall?.function.arguments ?? '{}')).toEqual({
+      candidateId,
+      newStage: 'hr_interview',
+    });
+  });
+
+  it('recovers a natural stage mutation from the candidate lookup result', () => {
+    const candidateId = '2d4ba18e-2a4d-4ee1-80b3-18f578d98f4a';
+    const toolCall = buildMissingCandidateStageToolCall({
+      message:
+        'Maintenant, remets CHAIMA NAOUALI de hr_rejected a hr_interview. Prepare la modification et demande ma confirmation.',
+      availableToolNames: ['get_candidate', 'update_candidate_stage'],
+      records: [
+        {
+          toolName: 'get_candidate',
+          args: { candidateId },
+          result: {
+            success: true,
+            data: {
+              id: candidateId,
+              fullName: 'CHAIMA NAOUALI',
+              stage: 'hr_rejected',
+            },
+          },
+          mutating: false,
+        },
+      ],
+      step: 2,
+    });
+
+    expect(toolCall).toMatchObject({
+      id: 'missing-stage-recovery-2',
+      function: { name: 'update_candidate_stage' },
+    });
+    expect(JSON.parse(toolCall?.function.arguments ?? '{}')).toEqual({
+      candidateId,
+      newStage: 'hr_interview',
+    });
+  });
+
+  it('does not infer a mutation from a read-only stage question', () => {
+    expect(
+      buildExplicitMutationToolCall({
+        message:
+          'Show candidate 2d4ba18e-2a4d-4ee1-80b3-18f578d98f4a currently at hr_interview.',
+        availableToolNames: ['get_candidate', 'update_candidate_stage'],
+      }),
+    ).toBeNull();
+  });
+
 });

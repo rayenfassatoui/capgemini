@@ -10,6 +10,7 @@ export const CHAT_RESPONSE_CARD_EVENT_PREFIX = '@@CARD@@';
 
 const VALID_CARD_KINDS = new Set<RecruitmentResponseCardKind>([
   'candidate',
+  'job',
   'pipeline',
   'governance',
 ]);

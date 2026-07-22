@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { useI18n } from "@/components/shared/i18n-provider";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Sheet, SheetContent } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import {
   Tooltip,
   TooltipContent,
@@ -167,16 +167,20 @@ function SidebarContent({
       <div
         className={cn(
           "flex items-center h-16 border-b border-gray-200 dark:border-gray-800 transition-all duration-300",
-          isCollapsed ? "justify-center px-2" : "justify-between px-6",
+          isCollapsed
+            ? "justify-center px-2"
+            : isMobile
+              ? "justify-between pl-6 pr-14"
+              : "justify-between px-6",
         )}
       >
         <div
           className={cn(
-            "flex items-center gap-3 overflow-hidden transition-all duration-300",
+            "flex items-center gap-2 overflow-hidden transition-all duration-300",
             isCollapsed ? "w-0 opacity-0 hidden" : "w-auto opacity-100",
           )}
         >
-          <CapgeminiLogo className="h-8 w-auto shrink-0" />
+          <CapgeminiLogo className="h-6 w-auto shrink-0" />
           <div className="min-w-0">
             <p className="truncate text-sm font-semibold text-gray-900 dark:text-white">
               Talent Intelligence
@@ -277,7 +281,7 @@ function SidebarContent({
             <>
               <div className="my-4 border-t border-gray-200 dark:border-gray-800" />
               {!isCollapsed && (
-                <p className="px-3 mb-2 text-[10px] font-medium uppercase tracking-wider text-gray-400 dark:text-gray-500">
+                <p className="mb-2 px-3 text-[10px] font-medium uppercase tracking-wider text-gray-600 dark:text-gray-400">
                   {t("nav.roleViews")}
                 </p>
               )}
@@ -498,7 +502,16 @@ export function Sidebar({
 
       {/* Mobile Sidebar (Sheet) */}
       <Sheet open={isMobileOpen} onOpenChange={setIsMobileOpen}>
-        <SheetContent side="left" className="p-0 w-72">
+        <SheetContent
+          side="left"
+          className="data-[side=left]:w-[min(18rem,calc(100vw-2rem))] p-0"
+          onKeyDownCapture={(event) => {
+            if (event.key === "Escape") {
+              setIsMobileOpen?.(false);
+            }
+          }}
+        >
+          <SheetTitle className="sr-only">Navigation</SheetTitle>
           <SidebarContent
             role={role}
             userName={userName}

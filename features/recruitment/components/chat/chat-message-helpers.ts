@@ -1,3 +1,4 @@
+import { localizeAgentEvidenceText } from "../../agent-localization";
 import type { AgentEvidenceMetadata, AgentSourceKind, RecruitmentAnalyticsChart, RecruitmentResponseCard } from "../../types";
 import type {
   AgentActionConfirmation,
@@ -78,6 +79,39 @@ const GENERAL_FOLLOW_UPS = [
   "Show the evidence and risks",
   "Summarize this for a hiring manager",
 ] as const;
+const FR_FOLLOW_UP_BY_ENGLISH: Readonly<Record<string, string>> = {
+  "Compare the top matching candidates": "Comparer les meilleurs candidats correspondants",
+  "List the main hiring risks": "Lister les principaux risques de recrutement",
+  "Generate interview questions for this profile": "Generer des questions d'entretien pour ce profil",
+  "Tighten the job requirements": "Preciser les exigences du poste",
+  "Show the strongest matching profiles": "Afficher les profils les plus pertinents",
+  "List the main matching gaps": "Lister les principaux ecarts de correspondance",
+  "Turn this into an interview scorecard": "Transformer ceci en grille d'evaluation d'entretien",
+  "List the red flags to probe next": "Lister les signaux d'alerte a approfondir",
+  "Draft a candidate follow-up email": "Rediger un email de suivi au candidat",
+  "Explain the main bottleneck behind this": "Expliquer le principal blocage",
+  "Turn this into role-specific next actions": "Transformer ceci en actions par role",
+  "Compare this trend with another segment": "Comparer cette tendance a un autre segment",
+  "Summarize the governance risk here": "Resumer le risque de gouvernance",
+  "Show only the failed or pending actions": "Afficher uniquement les actions en echec ou en attente",
+  "Draft an audit-ready summary": "Rediger un resume pret pour l'audit",
+  "Explain the impact of this action before I confirm": "Expliquer l'impact de cette action avant confirmation",
+  "Show the affected records for this action": "Afficher les enregistrements concernes par cette action",
+  "List the risks if I approve this change": "Lister les risques si j'approuve ce changement",
+  "Turn this into next actions": "Transformer ceci en prochaines actions",
+  "Show the evidence and risks": "Afficher les preuves et les risques",
+  "Summarize this for a hiring manager": "Resumer ceci pour un manager recruteur",
+};
+
+export function localizeFollowUpSuggestions(
+  suggestions: readonly string[],
+  locale: "en" | "fr",
+): string[] {
+  if (locale === "en") return [...suggestions];
+  return suggestions.map(
+    (suggestion) => FR_FOLLOW_UP_BY_ENGLISH[suggestion] ?? suggestion,
+  );
+}
 
 const HIGH_RISK_TOOL_RE = /(delete|close|cancel|reject|bulk|hired|mark_.*read)/i;
 const MEDIUM_RISK_TOOL_RE = /(update|assign|create|add|send|schedule|upload)/i;
@@ -95,6 +129,35 @@ function formatToken(value: string): string {
   return value
     .replace(/_/g, " ")
     .replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+const FR_CONFIRMATION_TOKENS: Readonly<Record<string, string>> = {
+  new: "Nouveau",
+  ta_screening: "Preselection TA",
+  ta_interview: "Entretien TA",
+  ta_accepted: "Accepte par TA",
+  ta_rejected: "Refuse par TA",
+  manager_interview: "Entretien manager",
+  manager_accepted: "Accepte par le manager",
+  manager_rejected: "Refuse par le manager",
+  hr_interview: "Entretien RH",
+  hr_accepted: "Accepte par les RH",
+  hr_rejected: "Refuse par les RH",
+  hired: "Embauche",
+  open: "Ouvert",
+  closed: "Cloture",
+  scheduled: "Planifie",
+  completed: "Termine",
+  cancelled: "Annule",
+};
+
+function formatConfirmationToken(
+  value: string,
+  locale: "en" | "fr",
+): string {
+  return locale === "fr"
+    ? (FR_CONFIRMATION_TOKENS[value.toLowerCase()] ?? formatToken(value))
+    : formatToken(value);
 }
 
 function compactValue(value: string): string {
@@ -145,6 +208,10 @@ export function getFollowUpSuggestions({
     return [...GOVERNANCE_FOLLOW_UPS];
   }
 
+  if (cards?.some((card) => card.kind === "job")) {
+    return [...JOB_FOLLOW_UPS];
+  }
+
   if (cards?.some((card) => card.kind === "pipeline")) {
     return [...ANALYTICS_FOLLOW_UPS];
   }
@@ -184,6 +251,7 @@ export function getFollowUpSuggestions({
 
 export function summarizeEvidenceConfidence(
   evidence?: AgentEvidenceMetadata,
+  locale: "en" | "fr" = "en",
 ): EvidenceConfidenceSummary | null {
   if (!evidence) return null;
 
@@ -195,11 +263,13 @@ export function summarizeEvidenceConfidence(
   const issues: string[] = [];
   if (failedSources > 0) {
     issues.push(
-      `${failedSources} source${failedSources === 1 ? " was" : "s were"} unavailable or excluded.`,
+      locale === "fr"
+        ? `${failedSources} source${failedSources === 1 ? "" : "s"} indisponible${failedSources === 1 ? "" : "s"} ou exclue${failedSources === 1 ? "" : "s"}.`
+        : `${failedSources} source${failedSources === 1 ? " was" : "s were"} unavailable or excluded.`,
     );
   }
   for (const limit of evidence.inferenceLimits.slice(0, 2)) {
-    uniquePush(issues, limit);
+    uniquePush(issues, localizeAgentEvidenceText(limit, locale));
   }
 
   if (verifiedSources === 0) {
@@ -209,7 +279,10 @@ export function summarizeEvidenceConfidence(
       failedSources,
       inferenceLimitCount,
       observedFactCount,
-      summary: "No verified live source supports this answer yet.",
+      summary:
+        locale === "fr"
+          ? "Aucune source verifiee en direct ne soutient encore cette reponse."
+          : "No verified live source supports this answer yet.",
       issues,
     };
   }
@@ -221,7 +294,10 @@ export function summarizeEvidenceConfidence(
       failedSources,
       inferenceLimitCount,
       observedFactCount,
-      summary: `${verifiedSources} verified sources support the recommendation.`,
+      summary:
+        locale === "fr"
+          ? `${verifiedSources} sources verifiees soutiennent la recommandation.`
+          : `${verifiedSources} verified sources support the recommendation.`,
       issues,
     };
   }
@@ -232,13 +308,17 @@ export function summarizeEvidenceConfidence(
     failedSources,
     inferenceLimitCount,
     observedFactCount,
-    summary: "Useful evidence exists, but the answer still has limits worth checking.",
+    summary:
+      locale === "fr"
+        ? "Des preuves utiles existent, mais certaines limites doivent etre verifiees."
+        : "Useful evidence exists, but the answer still has limits worth checking.",
     issues,
   };
 }
 
 export function buildConfirmationPreview(
   confirmation: AgentActionConfirmation,
+  locale: "en" | "fr" = "en",
 ): ConfirmationPreview {
   const args = isRecord(confirmation.args) ? confirmation.args : {};
   const entities: ConfirmationEntityChip[] = [];
@@ -263,59 +343,140 @@ export function buildConfirmationPreview(
     ? args.candidateIds.filter((value): value is string => typeof value === "string")
     : [];
 
-  if (candidateId) entities.push({ label: "Candidate", value: compactValue(candidateId) });
-  if (candidateIds.length > 0) {
-    entities.push({ label: "Candidates", value: String(candidateIds.length) });
+  if (candidateId) {
+    entities.push({
+      label: locale === "fr" ? "Candidat" : "Candidate",
+      value: compactValue(candidateId),
+    });
   }
-  if (jobId) entities.push({ label: "Job", value: compactValue(jobId) });
+  if (candidateIds.length > 0) {
+    entities.push({
+      label: locale === "fr" ? "Candidats" : "Candidates",
+      value: String(candidateIds.length),
+    });
+  }
+  if (jobId) {
+    entities.push({
+      label: locale === "fr" ? "Poste" : "Job",
+      value: compactValue(jobId),
+    });
+  }
   if (cvId) entities.push({ label: "CV", value: compactValue(cvId) });
-  if (interviewId) entities.push({ label: "Interview", value: compactValue(interviewId) });
-  if (email) entities.push({ label: "Recipient", value: email });
-  if (seniority) entities.push({ label: "Seniority", value: seniority });
-  if (mustHaveCount > 0) entities.push({ label: "Must-have", value: String(mustHaveCount) });
+  if (interviewId) {
+    entities.push({
+      label: locale === "fr" ? "Entretien" : "Interview",
+      value: compactValue(interviewId),
+    });
+  }
+  if (email) {
+    entities.push({
+      label: locale === "fr" ? "Destinataire" : "Recipient",
+      value: email,
+    });
+  }
+  if (seniority) {
+    entities.push({
+      label: locale === "fr" ? "Seniorite" : "Seniority",
+      value: seniority,
+    });
+  }
+  if (mustHaveCount > 0) {
+    entities.push({
+      label: locale === "fr" ? "Indispensables" : "Must-have",
+      value: String(mustHaveCount),
+    });
+  }
 
   uniquePush(
     impact,
-    newStage ? `Stage will change to ${formatToken(newStage)}.` : null,
+    newStage
+      ? locale === "fr"
+        ? `L'etape passera a ${formatConfirmationToken(newStage, locale)}.`
+        : `Stage will change to ${formatConfirmationToken(newStage, locale)}.`
+      : null,
   );
   uniquePush(
     impact,
-    status ? `Status will become ${formatToken(status)}.` : null,
+    status
+      ? locale === "fr"
+        ? `Le statut passera a ${formatConfirmationToken(status, locale)}.`
+        : `Status will become ${formatConfirmationToken(status, locale)}.`
+      : null,
   );
   uniquePush(
     impact,
-    managerId ? `Responsibility will move to manager ${compactValue(managerId)}.` : null,
+    managerId
+      ? locale === "fr"
+        ? `La responsabilite sera transferee au manager ${compactValue(managerId)}.`
+        : `Responsibility will move to manager ${compactValue(managerId)}.`
+      : null,
   );
   uniquePush(
     impact,
-    hrId ? `Responsibility will move to HR ${compactValue(hrId)}.` : null,
+    hrId
+      ? locale === "fr"
+        ? `La responsabilite sera transferee aux RH ${compactValue(hrId)}.`
+        : `Responsibility will move to HR ${compactValue(hrId)}.`
+      : null,
   );
   uniquePush(
     impact,
-    title ? `A new item titled “${title}” will be created or updated.` : null,
+    title
+      ? locale === "fr"
+        ? `Un nouvel element intitule « ${title} » sera cree ou mis a jour.`
+        : `A new item titled “${title}” will be created or updated.`
+      : null,
   );
   if (/assign_cv_to_job/i.test(toolName)) {
-    uniquePush(impact, "This links a CV to a job and creates a pipeline candidate record.");
+    uniquePush(
+      impact,
+      locale === "fr"
+        ? "Cette action associe un CV a un poste et cree un enregistrement candidat dans le pipeline."
+        : "This links a CV to a job and creates a pipeline candidate record.",
+    );
   }
   if (/create_job/i.test(toolName)) {
     uniquePush(
       impact,
       mustHaveCount > 0
-        ? `A job requirement will be created with ${mustHaveCount} must-have item${mustHaveCount === 1 ? "" : "s"}.`
-        : "A job requirement will be created from the generated description.",
+        ? locale === "fr"
+          ? `Une exigence de poste sera creee avec ${mustHaveCount} element${mustHaveCount === 1 ? "" : "s"} indispensable${mustHaveCount === 1 ? "" : "s"}.`
+          : `A job requirement will be created with ${mustHaveCount} must-have item${mustHaveCount === 1 ? "" : "s"}.`
+        : locale === "fr"
+          ? "Une exigence de poste sera creee a partir de la description generee."
+          : "A job requirement will be created from the generated description.",
     );
   }
   if (/schedule_interview/i.test(toolName)) {
-    uniquePush(impact, "Interview planning data will be persisted and can trigger notifications.");
+    uniquePush(
+      impact,
+      locale === "fr"
+        ? "Les donnees de planification de l'entretien seront enregistrees et pourront declencher des notifications."
+        : "Interview planning data will be persisted and can trigger notifications.",
+    );
   }
   if (/send_/i.test(toolName)) {
-    uniquePush(impact, "A candidate-facing communication will be logged and sent.");
+    uniquePush(
+      impact,
+      locale === "fr"
+        ? "Une communication destinee au candidat sera journalisee et envoyee."
+        : "A candidate-facing communication will be logged and sent.",
+    );
   }
   if (/delete|close|cancel/i.test(toolName)) {
-    uniquePush(impact, "This change can hide, close, or reverse an existing workflow item.");
+    uniquePush(
+      impact,
+      locale === "fr"
+        ? "Cette modification peut masquer, cloturer ou annuler un element existant du workflow."
+        : "This change can hide, close, or reverse an existing workflow item.",
+    );
   }
   if (impact.length === 0) {
-    impact.push("This action changes recruitment data and will be written to the audit trail.");
+    impact.push(
+      locale === "fr"
+        ? "Cette action modifie les donnees de recrutement et sera inscrite dans le journal d'audit."
+        : "This action changes recruitment data and will be written to the audit trail.",
+    );
   }
 
   const riskLevel = HIGH_RISK_TOOL_RE.test(toolName)
@@ -326,7 +487,18 @@ export function buildConfirmationPreview(
 
   return {
     riskLevel,
-    riskLabel: riskLevel === "high" ? "High risk" : riskLevel === "medium" ? "Medium risk" : "Low risk",
+    riskLabel:
+      locale === "fr"
+        ? riskLevel === "high"
+          ? "Risque eleve"
+          : riskLevel === "medium"
+            ? "Risque moyen"
+            : "Risque faible"
+        : riskLevel === "high"
+          ? "High risk"
+          : riskLevel === "medium"
+            ? "Medium risk"
+            : "Low risk",
     entities,
     impact,
   };
@@ -335,15 +507,19 @@ export function buildConfirmationPreview(
 export function getConfirmationExpiryState(
   expiresAt: string,
   now: number = Date.now(),
+  locale: "en" | "fr" = "en",
 ): { expired: boolean; label: string } {
   const expiresAtMs = new Date(expiresAt).getTime();
   if (!Number.isFinite(expiresAtMs)) {
-    return { expired: false, label: "Expiration unavailable" };
+    return {
+      expired: false,
+      label: locale === "fr" ? "Expiration indisponible" : "Expiration unavailable",
+    };
   }
 
   const diffMs = expiresAtMs - now;
   if (diffMs <= 0) {
-    return { expired: true, label: "Expired" };
+    return { expired: true, label: locale === "fr" ? "Expiree" : "Expired" };
   }
 
   const totalSeconds = Math.ceil(diffMs / 1000);
@@ -354,19 +530,28 @@ export function getConfirmationExpiryState(
   if (hours > 0) {
     return {
       expired: false,
-      label: `Expires in ${hours}h ${minutes}m`,
+      label:
+        locale === "fr"
+          ? `Expire dans ${hours} h ${minutes} min`
+          : `Expires in ${hours}h ${minutes}m`,
     };
   }
 
   if (minutes > 0) {
     return {
       expired: false,
-      label: `Expires in ${minutes}m ${seconds}s`,
+      label:
+        locale === "fr"
+          ? `Expire dans ${minutes} min ${seconds} s`
+          : `Expires in ${minutes}m ${seconds}s`,
     };
   }
 
   return {
     expired: false,
-    label: `Expires in ${seconds}s`,
+    label:
+      locale === "fr"
+        ? `Expire dans ${seconds} s`
+        : `Expires in ${seconds}s`,
   };
 }

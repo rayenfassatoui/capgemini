@@ -49,13 +49,13 @@ export function DashboardShell({ children, role, userName }: DashboardShellProps
         isCollapsed ? "lg:pl-[80px]" : "lg:pl-72" // Fixed width reservation for sidebar
       )}>
         {/* Top Navigation / Header Area */}
-        <header className="sticky top-0 z-10 flex h-16 items-center justify-between gap-4 border-b border-gray-200/50 bg-white/80 px-6 backdrop-blur-xl dark:border-gray-800/50 dark:bg-gray-950/80">
+        <header className="sticky top-0 z-10 flex h-16 items-center justify-between gap-4 border-b border-gray-200/50 bg-white/80 px-3 backdrop-blur-xl dark:border-gray-800/50 dark:bg-gray-950/80 sm:px-6">
           <div className="flex items-center gap-4">
              {/* Mobile Toggle */}
             <Button 
               variant="ghost" 
               size="icon" 
-              className="lg:hidden"
+              className="size-11 lg:hidden"
               onClick={() => setIsMobileOpen(true)}
               aria-label="Open navigation"
             >
@@ -71,7 +71,7 @@ export function DashboardShell({ children, role, userName }: DashboardShellProps
         </header>
 
         {/* Main Content Area */}
-      <main id="main-content" tabIndex={-1} className="min-w-0 flex-1 px-6 pb-24 pt-6">
+        <main id="main-content" tabIndex={-1} className="min-w-0 flex-1 px-3 pb-24 pt-3 sm:px-6 sm:pt-6">
           <div className="mx-auto max-w-7xl min-w-0 animate-in fade-in slide-in-from-bottom-4 duration-500">
             {children}
           </div>

@@ -1,7 +1,8 @@
 import type { AnchorHTMLAttributes, ReactNode } from "react";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render as testingRender, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { I18nProvider } from "@/components/shared/i18n-provider";
 import { ChatMessageList } from "../components/chat/chat-message-list";
 import type { ChatMessage } from "../components/chat/chat-types";
 
@@ -14,12 +15,27 @@ vi.mock("next/link", () => ({
 }));
 
 vi.mock("streamdown", () => ({
-  Streamdown: ({ children }: { children: ReactNode }) => <div>{children}</div>,
+  Streamdown: ({ children }: { children: ReactNode }) => (
+    <div>
+      {children}
+      {String(children).includes("```mermaid") && (
+        <div data-streamdown="mermaid" />
+      )}
+    </div>
+  ),
 }));
 
 vi.mock("@streamdown/mermaid", () => ({
   createMermaidPlugin: () => ({}),
 }));
+function render(ui: ReactNode) {
+  return testingRender(ui, {
+    wrapper: ({ children }: { children: ReactNode }) => (
+      <I18nProvider defaultLocale="en">{children}</I18nProvider>
+    ),
+  });
+}
+
 
 describe("ChatMessageList", () => {
   beforeEach(() => {
@@ -141,10 +157,10 @@ describe("ChatMessageList", () => {
       />,
     );
 
-    expect(screen.getByText("Ask the recruitment agent")).toBeInTheDocument();
+    expect(screen.getByText("Ready when you are")).toBeInTheDocument();
     expect(
       screen.getByText(
-        "Use a direct request. The agent will fetch data, cite tools, and return charts when useful.",
+        "Ask about candidates, jobs, pipeline health, or the next recruitment action.",
       ),
     ).toBeInTheDocument();
     expect(
@@ -198,4 +214,99 @@ describe("ChatMessageList", () => {
       ),
     ).toBe(false);
   });
+  it("pins an appended user request after leaving an older conversation scrolled up", () => {
+    const oldMessages: ChatMessage[] = [
+      {
+        id: "old-assistant",
+        role: "assistant",
+        content: "Older response",
+      },
+    ];
+    const renderResult = render(
+      <ChatMessageList
+        messages={oldMessages}
+        isStreaming={false}
+        isLoadingHistory={false}
+        onSendSuggestion={vi.fn()}
+        onConfirmAction={vi.fn()}
+      />,
+    );
+    const scroller = renderResult.container.querySelector(".overflow-y-auto");
+    if (!(scroller instanceof HTMLDivElement)) {
+      throw new Error("Expected chat message scroller");
+    }
+    Object.defineProperties(scroller, {
+      scrollHeight: { configurable: true, value: 1000 },
+      clientHeight: { configurable: true, value: 300 },
+      scrollTop: { configurable: true, writable: true, value: 0 },
+    });
+    const scrollTo = scroller.scrollTo as ReturnType<typeof vi.fn>;
+    scrollTo.mockClear();
+
+    fireEvent.scroll(scroller);
+    scrollTo.mockClear();
+    renderResult.rerender(
+      <ChatMessageList
+        messages={oldMessages}
+        isStreaming
+        isLoadingHistory={false}
+        onSendSuggestion={vi.fn()}
+        onConfirmAction={vi.fn()}
+      />,
+    );
+    expect(scrollTo).not.toHaveBeenCalled();
+
+    renderResult.rerender(
+      <ChatMessageList
+        messages={[]}
+        isStreaming={false}
+        isLoadingHistory={false}
+        onSendSuggestion={vi.fn()}
+        onConfirmAction={vi.fn()}
+      />,
+    );
+    renderResult.rerender(
+      <ChatMessageList
+        messages={[
+          { id: "new-user", role: "user", content: "New request" },
+          { id: "new-assistant", role: "assistant", content: "" },
+        ]}
+        isStreaming
+        isLoadingHistory={false}
+        onSendSuggestion={vi.fn()}
+        onConfirmAction={vi.fn()}
+      />,
+    );
+
+    expect(scrollTo).toHaveBeenLastCalledWith({
+      top: 1000,
+      behavior: "smooth",
+    });
+  });
+
+  it("makes Mermaid diagrams keyboard-scrollable regions", () => {
+    const messages: ChatMessage[] = [
+      {
+        id: "assistant-mermaid",
+        role: "assistant",
+        content: "```mermaid\nflowchart TD\nA --> B\n```",
+      },
+    ];
+
+    render(
+      <ChatMessageList
+        messages={messages}
+        isStreaming={false}
+        isLoadingHistory={false}
+        onSendSuggestion={vi.fn()}
+        onConfirmAction={vi.fn()}
+      />,
+    );
+
+    const region = screen.getByRole("region", {
+      name: "Scrollable recruitment diagram",
+    });
+    expect(region).toHaveAttribute("tabindex", "0");
+  });
+
 });

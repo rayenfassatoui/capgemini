@@ -105,7 +105,7 @@ export function NotificationBell() {
     <div className="relative" ref={panelRef}>
       <button
         onClick={handleOpen}
-        className="relative rounded-md p-1.5 text-gray-500 transition hover:bg-gray-100 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-white"
+        className="relative flex size-11 items-center justify-center rounded-md text-gray-500 transition hover:bg-gray-100 hover:text-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-white"
         aria-label="Notifications"
       >
         <IconBell className="h-5 w-5" />
@@ -117,7 +117,7 @@ export function NotificationBell() {
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full z-50 mt-2 w-80 rounded-lg border border-gray-200 bg-white shadow-lg dark:border-gray-700 dark:bg-gray-900">
+        <div className="absolute right-0 top-full z-50 mt-2 w-[min(20rem,calc(100vw-1.5rem))] rounded-lg border border-gray-200 bg-white shadow-lg dark:border-gray-700 dark:bg-gray-900">
           <div className="flex items-center justify-between border-b border-gray-200 px-4 py-3 dark:border-gray-700">
             <h3 className="text-sm font-semibold text-gray-900 dark:text-white">
               Notifications
@@ -125,7 +125,7 @@ export function NotificationBell() {
             {unreadCount > 0 && (
               <button
                 onClick={handleMarkAllRead}
-                className="inline-flex items-center gap-1 text-xs text-blue-600 transition hover:text-blue-700 dark:text-blue-400"
+                className="inline-flex min-h-11 items-center gap-1 rounded-md px-2 text-xs text-blue-600 transition hover:bg-blue-50 hover:text-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring dark:text-blue-400 dark:hover:bg-blue-950/40"
               >
                 <IconChecks className="h-3.5 w-3.5" />
                 Mark all read

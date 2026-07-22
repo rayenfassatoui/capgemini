@@ -1,4 +1,5 @@
 import type { UserRole } from "@/features/recruitment/types";
+import { localizeAgentEvidenceText } from "../agent-localization";
 import { buildInferenceLimitLines } from "./agent-evidence";
 import type {
   AgenticResponseParams,
@@ -7,9 +8,9 @@ import type {
 } from "./statistics-chat-types";
 
 const SIMPLE_EXCHANGE_RE =
-  /^(?:hi|hello|hey|thanks|thank you|thx|ok|okay|cool|great|nice|salam|aslema|bonjour|bonsoir)[!.?,\s]*$/i;
+  /^(?:hi|hello|hey|thanks|thank you|thx|ok|okay|cool|great|nice|salam|aslema|bonjour|bonsoir|salut|merci)[!.?,\s]*$/i;
 const RECRUITMENT_SIGNAL_RE =
-  /\b(recruit(?:ment|ing)?|talent|candidate|candidates|cv|cvs|resume|resumes|job|jobs|pipeline|screening|interview|interviews|hire|hiring|onboarding|offer|skills?|seniority|position|vacancy|profile|profiles)\b/i;
+  /\b(recruit(?:ment|ing)?|recrutement|talent|candidate|candidates|candidat|candidats|cv|cvs|resume|resumes|job|jobs|poste|postes|pipeline|screening|preselection|interview|interviews|entretien|entretiens|hire|hiring|embauche|onboarding|integration|offer|offre|skills?|competence|competences|seniority|seniorite|position|vacancy|profile|profiles|profil|profils)\b/i;
 const CREATIVE_OFFTOPIC_RE =
   /\b(poem|poetry|joke|story|song|rap|haiku|riddle|quote|lyrics?)\b/i;
 
@@ -59,6 +60,7 @@ export function buildOutOfScopeResponse(role: UserRole): string {
 function buildNextStepOptions(
   records: ToolExecutionRecord[],
   role: UserRole,
+  locale: "en" | "fr",
 ): string[] {
   const options: string[] = [];
   const toolNames = records.map((record) => record.toolName);
@@ -117,13 +119,37 @@ function buildNextStepOptions(
     }
   }
 
-  return options.slice(0, 3);
+  const selected = options.slice(0, 3);
+  if (locale === "en") return selected;
+
+  const frenchOptions: Readonly<Record<string, string>> = {
+    "Compare the top 3 shortlisted candidates with trade-offs.":
+      "Comparer les 3 meilleurs candidats preselectionnes avec leurs compromis.",
+    "Drill down on pipeline bottlenecks by stage and owner.":
+      "Analyser les blocages du pipeline par etape et responsable.",
+    "Run the next workflow action and confirm the impact.":
+      "Executer la prochaine action du workflow et confirmer son impact.",
+    "Generate screening questions for the best-fit candidate.":
+      "Generer des questions de preselection pour le candidat le plus pertinent.",
+    "Request a ranked hiring recommendation for your open role.":
+      "Demander une recommandation de recrutement classee pour le poste ouvert.",
+    "Prepare offer or rejection messaging for the selected candidate.":
+      "Preparer le message d'offre ou de refus pour le candidat selectionne.",
+    "Review cross-team recruitment KPI anomalies for this week.":
+      "Examiner les anomalies des KPI de recrutement inter-equipes cette semaine.",
+    "Run a tighter search with explicit skills, seniority, and location.":
+      "Lancer une recherche plus precise avec competences, seniorite et localisation.",
+    "Ask for a concise action plan for the next 48 hours.":
+      "Demander un plan d'action concis pour les prochaines 48 heures.",
+  };
+  return selected.map((option) => frenchOptions[option] ?? option);
 }
 
 export function ensureAgenticResponseStructure({
   text,
   userMessage,
   role,
+  locale = "en",
   records,
 }: AgenticResponseParams): string {
   const trimmed = text.trim();
@@ -147,10 +173,11 @@ export function ensureAgenticResponseStructure({
     return trimmed;
   }
 
-  const nextOptions = buildNextStepOptions(records, role);
-  const nextStepsHeadingRe = /(^|\n)##\s*next\s*steps?/i;
+  const nextOptions = buildNextStepOptions(records, role, locale);
+  const nextStepsHeadingRe =
+    /(^|\n)##\s*(?:next\s*steps?|prochaines?\s+etapes?)/i;
   const answerHeadingRe =
-    /(^|\n)##\s*(?:assigned\s+candidate\s+roster|candidate\s+read|shortlist\s+read|bottom\s+line|my\s+read|analysis|recommend(?:ation|ed)?|inferred)/i;
+    /(^|\n)##\s*(?:assigned\s+candidate\s+roster|candidate\s+read|shortlist\s+read|bottom\s+line|my\s+read|analysis|recommend(?:ation|ed)?|inferred|mon\s+analyse|analyse|recommandation|liste\s+des\s+candidats\s+assignes|lecture\s+(?:du\s+candidat|de\s+la\s+shortlist))/i;
 
   if (answerHeadingRe.test(trimmed)) {
     if (nextStepsHeadingRe.test(trimmed)) {
@@ -160,21 +187,23 @@ export function ensureAgenticResponseStructure({
     return [
       trimmed,
       "",
-      "## Next Steps",
+      locale === "fr" ? "## Prochaines etapes" : "## Next Steps",
       ...nextOptions.map((option, index) => `${index + 1}. ${option}`),
     ].join("\n");
   }
 
-  const inferenceLimits = buildInferenceLimitLines(records).slice(0, 2);
+  const inferenceLimits = buildInferenceLimitLines(records)
+    .slice(0, 2)
+    .map((line) => localizeAgentEvidenceText(line, locale));
 
   return [
-    "## My read",
+    locale === "fr" ? "## Mon analyse" : "## My read",
     trimmed,
     "",
-    "## Caveats",
+    locale === "fr" ? "## Limites" : "## Caveats",
     ...inferenceLimits.map((line) => `- ${line}`),
     "",
-    "## Next Steps",
+    locale === "fr" ? "## Prochaines etapes" : "## Next Steps",
     ...nextOptions.map((option, index) => `${index + 1}. ${option}`),
   ].join("\n");
 }
@@ -182,17 +211,18 @@ export function ensureAgenticResponseStructure({
 export function buildStatisticsChatSystemPrompt({
   role,
   today,
+  locale = "en",
   attachments,
   skillInstructions = "",
 }: {
   role: UserRole;
   today: string;
+  locale?: "en" | "fr";
   attachments?: AttachmentPayload[];
   skillInstructions?: string;
 }): string {
   return `You are the AI recruitment agent for Capgemini TalentIQ.
 
-═══════════════════════════════════════
 SECTION 1: HARD CONSTRAINTS (never violate)
 ═══════════════════════════════════════
 
@@ -219,6 +249,7 @@ SECTION 2: ROLE & SESSION
 Current user role: ${role}
 Role description: ${ROLE_DESCRIPTIONS[role]}
 Today's date: ${today}
+Response language: ${locale === "fr" ? "French. Write every user-facing heading, explanation, recommendation, status, and follow-up in French. Preserve proper names, IDs, filenames, and exact tool tokens." : "English."}
 
 ═══════════════════════════════════════
 SECTION 2.5: PROACTIVE OPERATING MODE

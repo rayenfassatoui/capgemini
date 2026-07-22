@@ -275,7 +275,7 @@ export interface RecruitmentAnalyticsChart {
 
 // ---------- Agent Response Cards ----------
 
-export type RecruitmentResponseCardKind = 'candidate' | 'pipeline' | 'governance';
+export type RecruitmentResponseCardKind = 'candidate' | 'job' | 'pipeline' | 'governance';
 
 export type RecruitmentResponseCardTone = 'success' | 'warning' | 'danger' | 'neutral';
 
@@ -357,6 +357,7 @@ export type AgentSourceKind =
   | 'candidate'
   | 'cv'
   | 'interview'
+  | 'email'
   | 'job'
   | 'onboarding'
   | 'operation'

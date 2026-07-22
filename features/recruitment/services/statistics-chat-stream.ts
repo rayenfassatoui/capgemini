@@ -1,3 +1,7 @@
+import {
+  normalizeFileDownload,
+  type FileDownload,
+} from "../chat-artifact-events";
 import { STREAM_CHUNK_SIZE, type ToolTraceJson } from "./statistics-chat-types";
 
 function emitJsonEvent(
@@ -101,7 +105,7 @@ export function emitToolEndEvent(
 }
 
 export function takeFileDownloadPayload(data: unknown): {
-  fileDownload?: unknown;
+  fileDownload?: FileDownload;
   data: unknown;
 } {
   if (
@@ -112,7 +116,7 @@ export function takeFileDownloadPayload(data: unknown): {
     const record = data as Record<string, unknown>;
     const { _fileDownload, ...rest } = record;
     return {
-      fileDownload: _fileDownload,
+      fileDownload: normalizeFileDownload(_fileDownload),
       data: rest,
     };
   }

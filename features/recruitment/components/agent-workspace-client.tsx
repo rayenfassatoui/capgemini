@@ -3,6 +3,7 @@
 import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef } from "react";
 
+import { useTranslation } from "@/components/shared/i18n-provider";
 import { AgentChatSurface } from "@/features/recruitment/components/chat/agent-chat-surface";
 import { useStatisticsChatController } from "@/features/recruitment/components/chat/use-statistics-chat-controller";
 import { parseAgentReferenceParam } from "@/features/recruitment/components/chat/agent-prompts";
@@ -13,11 +14,11 @@ interface AgentWorkspaceClientProps {
   userName: string;
 }
 
-const ROLE_LABELS: Record<UserRole, string> = {
-  ta: "Talent Acquisition",
-  manager: "Manager",
-  hr: "Human Resources",
-  admin: "Administrator",
+const ROLE_LABEL_KEYS: Record<UserRole, string> = {
+  ta: "agent.roleTa",
+  manager: "agent.roleManager",
+  hr: "agent.roleHr",
+  admin: "agent.roleAdmin",
 };
 
 export function AgentWorkspaceClient({
@@ -25,6 +26,7 @@ export function AgentWorkspaceClient({
   userName,
 }: AgentWorkspaceClientProps) {
   const searchParams = useSearchParams();
+  const { t } = useTranslation();
   const prompt = searchParams.get("prompt")?.trim();
   const referenceParam = searchParams.get("reference");
   const reference = useMemo(
@@ -34,7 +36,7 @@ export function AgentWorkspaceClient({
   const references = useMemo(() => (reference ? [reference] : []), [reference]);
   const chat = useStatisticsChatController({ enabled: true, references });
   const appliedPromptRef = useRef<string | null>(null);
-  const roleLabel = ROLE_LABELS[role] ?? ROLE_LABELS.ta;
+  const roleLabel = t(ROLE_LABEL_KEYS[role] ?? ROLE_LABEL_KEYS.ta);
   const handoffKey = prompt
     ? `${prompt}:${reference?.type ?? "none"}:${reference?.id ?? "none"}`
     : null;
@@ -46,14 +48,14 @@ export function AgentWorkspaceClient({
   }, [chat, handoffKey, prompt]);
 
   return (
-    <section className="mx-auto flex min-h-[calc(100dvh-7rem)] w-full max-w-6xl flex-col gap-4 px-3 py-3 md:px-6 md:py-5">
+    <section className="mx-auto flex h-[calc(100dvh-10.75rem)] min-h-[30rem] w-full max-w-6xl flex-col gap-4 px-0 py-3 md:h-[calc(100dvh-11.5rem)] md:px-6 md:py-5">
       <header className="flex flex-col gap-3 border-b border-border pb-4 md:flex-row md:items-end md:justify-between">
         <div>
           <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
-            AI agent
+            {t("agent.eyebrow")}
           </p>
           <h1 className="mt-1 text-2xl font-semibold tracking-[-0.03em] text-foreground md:text-3xl">
-            Recruitment workspace
+            {t("agent.workspaceTitle")}
           </h1>
         </div>
         <p className="text-sm text-muted-foreground md:text-right">
@@ -61,11 +63,11 @@ export function AgentWorkspaceClient({
         </p>
       </header>
 
-      <div className="min-h-[calc(100dvh-13rem)] flex-1 overflow-hidden rounded-xl border border-border bg-card">
+      <div className="min-h-0 flex-1 overflow-hidden rounded-xl border border-border bg-card">
         <AgentChatSurface
           controller={chat}
           variant="workspace"
-          contextLabel={`${roleLabel} workspace`}
+          contextLabel={`${roleLabel} · ${t("agent.workspaceSuffix")}`}
           className="h-full"
         />
       </div>

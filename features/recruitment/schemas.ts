@@ -434,6 +434,7 @@ export const agentActionConfirmationSchema = z.object({
 });
 
 export const statisticsChatRequestSchema = z.object({
+  locale: z.enum(["en", "fr"]).default("en"),
   conversationId: z.string().uuid().optional(),
   messages: z.array(chatMessageSchema).min(1).max(20),
   attachments: z.array(chatAttachmentSchema).max(5).optional(),

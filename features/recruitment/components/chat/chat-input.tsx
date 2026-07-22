@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useCallback, useEffect, useLayoutEffect, useMemo, useState } from 'react';
+import { useRef, useCallback, useEffect, useId, useLayoutEffect, useMemo, useState } from 'react';
 import {
   IconBriefcase,
   IconCalendarEvent,
@@ -21,6 +21,7 @@ import {
 } from '@tabler/icons-react';
 import { listCvReferenceOptionsAction, listJobCommandOptionsAction } from '../../actions';
 import { Button } from '@/components/ui/button';
+import { useTranslation } from "@/components/shared/i18n-provider";
 import { cn } from '@/lib/utils';
 import { AgentReferenceChip } from './agent-reference-chip';
 import type { AgentReference } from './agent-prompts';
@@ -320,6 +321,254 @@ const ROOT_COMMANDS: RootCommand[] = [
   { id: 'clear', label: '/clear', title: 'Clear references', description: 'Remove all current reference chips.' },
   { id: 'help', label: '/help', title: 'Help', description: 'Show commands and examples.', aliases: ['commands'] },
 ];
+const FRENCH_ROOT_COMMANDS: Record<
+  RootCommandId,
+  Pick<RootCommand, 'title' | 'description'>
+> = {
+  cv: {
+    title: 'Référencer un CV',
+    description: "Joindre jusqu'à 5 CV comme contexte fiable.",
+  },
+  search: {
+    title: 'Rechercher dans le vivier',
+    description: 'Trouver des profils par compétence, rôle, langue ou expérience.',
+  },
+  job: {
+    title: 'Analyser un poste',
+    description: 'Choisir un poste et demander une analyse fondée sur les données.',
+  },
+  match: {
+    title: 'Faire correspondre un poste',
+    description: 'Classer les CV par rapport à un poste sélectionné.',
+  },
+  compare: {
+    title: 'Comparer',
+    description: 'Comparer les CV référencés ou les candidats.',
+  },
+  candidate: {
+    title: 'Candidat',
+    description: 'Analyser un candidat du pipeline par nom ou e-mail.',
+  },
+  interview: {
+    title: 'Entretien',
+    description: "Questions, suivi, planification ou vue d'aujourd'hui.",
+  },
+  email: {
+    title: 'E-mail',
+    description: "Préparer des invitations, offres ou e-mails de refus.",
+  },
+  pipeline: {
+    title: 'Pipeline',
+    description: 'Examiner les candidats par étape.',
+  },
+  stats: {
+    title: 'Statistiques',
+    description: 'Analyser le tableau de bord, le vivier de CV et les postes.',
+  },
+  duplicates: {
+    title: 'Doublons',
+    description: 'Identifier les CV en double avant le nettoyage.',
+  },
+  note: {
+    title: 'Note',
+    description: 'Préparer une demande de note candidat.',
+  },
+  analyse: {
+    title: "Modèles d'analyse",
+    description: "Choisir le type de réponse de l'agent.",
+  },
+  clear: {
+    title: 'Effacer les références',
+    description: 'Retirer toutes les références actuelles.',
+  },
+  help: {
+    title: 'Aide',
+    description: 'Afficher les commandes et des exemples.',
+  },
+};
+
+const FRENCH_COMMAND_HEADINGS: Record<SlashCommandKind, string> = {
+  root: "Commandes de l'agent",
+  cv: 'Référencer un CV',
+  search: 'Rechercher dans le vivier de CV',
+  job: 'Choisir un poste',
+  match: 'Choisir un poste à faire correspondre',
+  compare: 'Comparer',
+  candidate: 'Commandes candidat',
+  interview: 'Commandes entretien',
+  email: 'Commandes e-mail',
+  pipeline: 'Commandes pipeline',
+  stats: 'Commandes statistiques',
+  duplicates: 'Détection des doublons',
+  note: 'Note candidat',
+  analyse: "Choisir le type d'analyse",
+  clear: 'Effacer les références',
+  help: 'Aide sur les commandes',
+};
+
+const FRENCH_TEMPLATE_OVERRIDES: Record<
+  string,
+  Pick<PromptTemplate, 'title' | 'description' | 'prompt'>
+> = {
+  'cv-strengths': {
+    title: 'Forces et risques du CV',
+    description: 'Analyse recruteur concise avec limites et prochaine action.',
+    prompt:
+      'Résume ce CV : forces, risques, preuves manquantes et types de postes adaptés. Propose ensuite la prochaine action TA.',
+  },
+  'missing-evidence': {
+    title: 'Preuves manquantes',
+    description: 'Identifier les lacunes avant la présélection ou le matching.',
+    prompt:
+      'Liste les preuves manquantes pour ce CV. Sépare les lacunes d’extraction, les questions de suivi recruteur et les contrôles de risque.',
+  },
+  'job-fit': {
+    title: 'Types de postes adaptés',
+    description: 'Associer le CV à des familles de rôles réalistes.',
+    prompt:
+      'Identifie les types de postes les plus adaptés à ce CV et explique les preuves, les risques et les hypothèses de séniorité.',
+  },
+  'interview-plan': {
+    title: "Questions d'entretien",
+    description: 'Générer un plan de présélection ciblé.',
+    prompt:
+      'Génère un plan de premier entretien ciblé pour ce CV avec des questions techniques, des contrôles comportementaux, des signaux d’alerte et un guide de notation.',
+  },
+  'manager-summary': {
+    title: 'Synthèse pour le manager',
+    description: 'Transformer le CV en briefing manager concis.',
+    prompt:
+      'Rédige une synthèse pour le manager à partir de ce CV. Reste concis, fondé sur les preuves et explicite sur les éléments non vérifiés.',
+  },
+  'compare-references': {
+    title: 'Comparer les CV référencés',
+    description: 'Classer les CV actuellement joints au message.',
+    prompt: (_query, referenceCount) =>
+      referenceCount >= 2
+        ? 'Compare les CV référencés. Classe-les et explique les forces, écarts, risques et la prochaine action TA la plus sûre.'
+        : 'Compare des candidats pour un poste sélectionné. Demande d’abord quels candidats ou quel poste utiliser si les données sont ambiguës.',
+  },
+  'compare-job-candidates': {
+    title: 'Comparer les candidats pour un poste',
+    description: 'Utiliser les candidats du pipeline affectés à un poste.',
+    prompt:
+      'Compare les candidats pour un poste. Récupère d’abord les données du poste et des candidats, puis fournis un tableau de décision classé et une recommandation.',
+  },
+  'candidate-query': {
+    title: 'Analyser un candidat',
+    description: 'Trouver un candidat et résumer la prochaine action.',
+    prompt: (query) =>
+      `Analyse le candidat « ${query || 'nom ou e-mail du candidat'} ». Récupère son profil, son poste, son étape, sa présélection, ses entretiens, ses risques et la prochaine action.`,
+  },
+  'candidate-notes': {
+    title: 'Notes du candidat',
+    description: 'Afficher les notes et le contexte d’un candidat.',
+    prompt: (query) =>
+      `Affiche les notes du candidat « ${query || 'nom ou e-mail du candidat'} » et résume le suivi le plus important.`,
+  },
+  'today-interviews': {
+    title: "Entretiens d'aujourd'hui",
+    description: "Afficher la charge d'entretiens du jour.",
+    prompt:
+      "Affiche les entretiens d'aujourd'hui, regroupe-les par heure et signale les préparations nécessaires.",
+  },
+  'interview-questions': {
+    title: 'Générer des questions',
+    description: "Préparer des questions adaptées à l'étape.",
+    prompt: (query) =>
+      `Génère des questions d’entretien pour « ${query || 'le candidat sélectionné'} ». Ne demande le candidat, le poste ou l’étape que si les données actuelles ne permettent pas de les résoudre.`,
+  },
+  'follow-up': {
+    title: 'Questions de suivi',
+    description: "Examiner les lacunes après un rapport d'entretien.",
+    prompt: (query) =>
+      `Génère des questions de suivi pour « ${query || 'le candidat'} » à partir de son dernier rapport d’entretien et des risques non résolus.`,
+  },
+  'schedule-interview': {
+    title: 'Planifier un entretien',
+    description: 'Démarrer une demande de planification protégée.',
+    prompt: (query) =>
+      `Planifie un entretien pour « ${query || 'le candidat'} ». Confirme le candidat, le poste, l’étape, la date, l’heure et le lien de réunion avant d’envoyer les invitations.`,
+  },
+  'interview-invite': {
+    title: "Invitation à l'entretien",
+    description: "Préparer ou envoyer une invitation à l'entretien.",
+    prompt: (query) =>
+      `Prépare un e-mail d’invitation à un entretien pour « ${query || 'le candidat'} ». Confirme la date, l’heure, l’étape, l’intervieweur et le lien de réunion avant l’envoi.`,
+  },
+  'rejection-email': {
+    title: 'E-mail de refus',
+    description: 'Générer un e-mail de refus respectueux.',
+    prompt: (query) =>
+      `Prépare un e-mail de refus pour « ${query || 'le candidat'} ». Utilise les données du candidat et du poste, reste respectueux et demande confirmation avant l’envoi.`,
+  },
+  'offer-email': {
+    title: "E-mail d'offre",
+    description: "Préparer un message de type offre d'emploi.",
+    prompt: (query) =>
+      `Prépare un e-mail d’offre pour « ${query || 'le candidat'} ». Inclus le contexte du poste et la liste des documents d’intégration, puis demande confirmation avant l’envoi.`,
+  },
+  'ta-screening': {
+    title: 'File de présélection TA',
+    description: 'Afficher les candidats en attente de présélection TA.',
+    prompt:
+      'Affiche les candidats en présélection TA. Priorise ceux qui nécessitent une attention immédiate et explique pourquoi.',
+  },
+  'manager-stage': {
+    title: 'Étape manager',
+    description: 'Afficher la charge des entretiens et décisions manager.',
+    prompt:
+      'Affiche les candidats aux étapes entretien manager et accepté manager. Résume les blocages et les prochaines actions.',
+  },
+  'hr-stage': {
+    title: 'Étape RH',
+    description: 'Afficher les étapes entretien, accepté et refusé RH.',
+    prompt:
+      'Affiche les candidats aux étapes entretien RH et accepté RH. Résume leur préparation à la décision finale.',
+  },
+  hired: {
+    title: 'Recrutés et intégration',
+    description: "Analyser les candidats recrutés et l'état d'intégration.",
+    prompt:
+      'Affiche les candidats recrutés et leur état d’intégration. Signale les blocages et les tâches manquantes.',
+  },
+  'dashboard-overview': {
+    title: "Vue d'ensemble du tableau de bord",
+    description: 'Pipeline, postes, entretiens et blocages.',
+    prompt:
+      'Donne une vue d’ensemble du tableau de bord. Récupère les statistiques du pipeline et des postes ainsi que les analyses intelligentes, puis résume les actions prioritaires.',
+  },
+  'cv-pool-stats': {
+    title: 'Statistiques du vivier de CV',
+    description: 'Taille, compétences, langues et tendance du vivier.',
+    prompt:
+      'Affiche les statistiques du vivier de CV : total, principales compétences, langues, tendance des ajouts et prochaine action de sourcing.',
+  },
+  'job-stats': {
+    title: 'Statistiques des postes',
+    description: 'Postes ouverts, séniorité et demande.',
+    prompt:
+      'Affiche les statistiques des postes par statut, séniorité, unité commerciale et compétences les plus demandées.',
+  },
+  'scan-duplicates': {
+    title: 'Rechercher les CV en double',
+    description: 'Identifier les profils probablement dupliqués dans le vivier.',
+    prompt:
+      'Recherche les doublons dans le vivier de CV. Regroupe les correspondances probables, explique les raisons et demande confirmation avant toute suppression.',
+  },
+  'candidate-note': {
+    title: 'Ajouter une note candidat',
+    description: 'Transformer le texte après /note en demande protégée.',
+    prompt: (query) =>
+      `Ajoute une note candidat : « ${query || 'texte de la note'} ». Demande à quel candidat elle appartient si ce n’est pas clair, puis confirme avant l’enregistrement.`,
+  },
+  'slash-help': {
+    title: 'Afficher l’aide des commandes',
+    description: 'Expliquer les raccourcis disponibles et donner des exemples.',
+    prompt:
+      'Affiche les commandes slash disponibles, leur fonction et un exemple court pour chacune.',
+  },
+};
 
 const COMMAND_ALIASES: Record<string, RootCommandId> = ROOT_COMMANDS.reduce(
   (aliases, command) => {
@@ -351,6 +600,32 @@ const COMMAND_HEADINGS: Record<SlashCommandKind, string> = {
   clear: 'Clear references',
   help: 'Command help',
 };
+function getLocalizedRootCommands(locale: 'en' | 'fr'): RootCommand[] {
+  if (locale === 'en') return ROOT_COMMANDS;
+  return ROOT_COMMANDS.map((command) => ({
+    ...command,
+    ...FRENCH_ROOT_COMMANDS[command.id],
+  }));
+}
+
+function localizePromptTemplate(
+  template: PromptTemplate,
+  locale: 'en' | 'fr',
+): PromptTemplate {
+  if (locale === 'en') return template;
+  const override = FRENCH_TEMPLATE_OVERRIDES[template.id];
+  return override ? { ...template, ...override } : template;
+}
+
+function getCommandHeading(
+  kind: SlashCommandKind,
+  locale: 'en' | 'fr',
+): string {
+  return locale === 'fr'
+    ? FRENCH_COMMAND_HEADINGS[kind]
+    : COMMAND_HEADINGS[kind];
+}
+
 
 function renderCommandIcon(kind: SlashCommandKind, className: string) {
   switch (kind) {
@@ -469,12 +744,49 @@ function getCommandTemplates(
   kind: SlashCommandKind,
   query: string,
   referenceCount: number,
+  locale: 'en' | 'fr',
 ): PromptTemplate[] {
   const trimmedQuery = query.trim();
 
   if (kind === 'search') {
-    const target = trimmedQuery || 'target role, skill set, seniority, language, or location';
+    if (locale === 'fr') {
+      const target =
+        trimmedQuery ||
+        'rôle cible, compétences, séniorité, langue ou localisation';
+      return [
+        {
+          id: 'search-query',
+          title: trimmedQuery
+            ? `Rechercher « ${trimmedQuery} »`
+            : 'Rechercher dans le vivier de CV',
+          description:
+            'Utiliser la recherche RAG et classer les CV avec leurs sources.',
+          prompt: `Recherche dans le vivier de CV : « ${target} ». Utilise d’abord la recherche RAG, puis affiche les correspondances classées avec preuves, compétences, langues, risques et prochaine action.`,
+          aliases: ['find', 'rag', 'cv'],
+          alwaysVisible: true,
+        },
+        {
+          id: 'search-senior-frontend',
+          title: 'Profils frontend seniors',
+          description: 'React, Next.js, TypeScript et ingénierie UI.',
+          prompt:
+            'Recherche des profils frontend seniors avec React, Next.js, TypeScript, de solides preuves en ingénierie UI et une communication en anglais ou en français.',
+          aliases: ['react', 'frontend'],
+        },
+        {
+          id: 'search-data',
+          title: 'Profils data',
+          description: 'Data science, analytique, ML, Python et SQL.',
+          prompt:
+            'Recherche des profils data science ou analytique avec Python, SQL, machine learning, tableaux de bord et résultats de projets mesurables.',
+          aliases: ['data', 'python', 'sql'],
+        },
+      ];
+    }
 
+    const target =
+      trimmedQuery ||
+      'target role, skill set, seniority, language, or location';
     return [
       {
         id: 'search-query',
@@ -488,14 +800,16 @@ function getCommandTemplates(
         id: 'search-senior-frontend',
         title: 'Senior frontend profiles',
         description: 'React, Next.js, TypeScript, UI engineering.',
-        prompt: 'Search the CV pool for senior frontend profiles with React, Next.js, TypeScript, strong UI engineering evidence, and English or French communication.',
+        prompt:
+          'Search the CV pool for senior frontend profiles with React, Next.js, TypeScript, strong UI engineering evidence, and English or French communication.',
         aliases: ['react', 'frontend'],
       },
       {
         id: 'search-data',
         title: 'Data profiles',
         description: 'Data science, analytics, ML, Python, SQL.',
-        prompt: 'Search the CV pool for data science or analytics profiles with Python, SQL, machine learning, dashboarding, and measurable project evidence.',
+        prompt:
+          'Search the CV pool for data science or analytics profiles with Python, SQL, machine learning, dashboarding, and measurable project evidence.',
         aliases: ['data', 'python', 'sql'],
       },
     ];
@@ -512,14 +826,19 @@ function getCommandTemplates(
   }
 
   return STATIC_COMMAND_TEMPLATES[kind].map((template) => {
-    if (template.id !== 'compare-references') return template;
+    const localized = localizePromptTemplate(template, locale);
+    if (template.id !== 'compare-references') return localized;
 
     return {
-      ...template,
+      ...localized,
       description:
         referenceCount >= 2
-          ? `Compare ${referenceCount} referenced CVs.`
-          : 'Attach at least 2 CV references or compare candidates by job.',
+          ? locale === 'fr'
+            ? `Comparer ${referenceCount} CV référencés.`
+            : `Compare ${referenceCount} referenced CVs.`
+          : locale === 'fr'
+            ? 'Joignez au moins 2 CV ou comparez des candidats par poste.'
+            : 'Attach at least 2 CV references or compare candidates by job.',
     };
   });
 }
@@ -534,22 +853,42 @@ function resolveTemplatePrompt(
     : template.prompt;
 }
 
-function buildJobPrompt(kind: 'job' | 'match', option: AgentJobCommandOption): string {
-  const businessUnit = option.businessUnit ? ` in ${option.businessUnit}` : '';
-  const mustHave = option.mustHave.slice(0, 6).join(', ') || 'the listed must-have skills';
+function buildJobPrompt(
+  kind: 'job' | 'match',
+  option: AgentJobCommandOption,
+  locale: 'en' | 'fr',
+): string {
+  if (locale === 'fr') {
+    const businessUnit = option.businessUnit
+      ? ` dans ${option.businessUnit}`
+      : '';
+    const mustHave =
+      option.mustHave.slice(0, 6).join(', ') ||
+      'les compétences indispensables indiquées';
+    if (kind === 'match') {
+      return `Trouve les meilleurs CV pour le poste « ${option.title} » (${option.seniority}${businessUnit}). Classe les candidats, cite les compétences correspondantes et les écarts par rapport à ${mustHave}, puis recommande la prochaine action TA.`;
+    }
+    return `Analyse le poste « ${option.title} » (${option.seniority}${businessUnit}). Résume le statut, les compétences indispensables et souhaitées, la santé du pipeline candidat, les risques et la prochaine action de recrutement.`;
+  }
 
+  const businessUnit = option.businessUnit ? ` in ${option.businessUnit}` : '';
+  const mustHave =
+    option.mustHave.slice(0, 6).join(', ') ||
+    'the listed must-have skills';
   if (kind === 'match') {
     return `Find the best CV matches for job "${option.title}" (${option.seniority}${businessUnit}). Rank candidates, cite matched skills and gaps against ${mustHave}, and recommend the next TA action.`;
   }
-
   return `Review job "${option.title}" (${option.seniority}${businessUnit}). Summarize status, must-have skills, nice-to-have skills, candidate pipeline health, risks, and the next recruiting action.`;
 }
 
-function formatReferenceDate(value: Date): string | null {
+function formatReferenceDate(
+  value: Date,
+  locale: 'en' | 'fr',
+): string | null {
   const date = new Date(value);
   if (!Number.isFinite(date.getTime())) return null;
 
-  return new Intl.DateTimeFormat('en-GB', {
+  return new Intl.DateTimeFormat(locale === 'fr' ? 'fr-FR' : 'en-GB', {
     day: '2-digit',
     month: 'short',
     year: 'numeric',
@@ -569,32 +908,82 @@ function formatFileSize(bytes: number): string {
 
   return `${Number(value.toFixed(value >= 10 || exponent === 0 ? 0 : 1))} ${units[exponent]}`;
 }
-function buildCvAgentReference(option: AgentCvReferenceOption): AgentReference {
-  const uploadedAt = formatReferenceDate(option.createdAt);
+function buildCvAgentReference(
+  option: AgentCvReferenceOption,
+  locale: 'en' | 'fr',
+): AgentReference {
+  const uploadedAt = formatReferenceDate(option.createdAt, locale);
+  const labels =
+    locale === 'fr'
+      ? {
+          phone: 'Téléphone',
+          skills: 'Compétences',
+          languages: 'Langues',
+          latestExperience: 'Dernière expérience',
+          experienceEntries: "Expériences",
+          education: 'Formation',
+          educationEntries: 'Formations',
+          summary: 'Résumé',
+          file: 'Fichier',
+          fileType: 'Type de fichier',
+          size: 'Taille',
+          uploaded: 'Ajouté',
+        }
+      : {
+          phone: 'Phone',
+          skills: 'Skills',
+          languages: 'Languages',
+          latestExperience: 'Latest experience',
+          experienceEntries: 'Experience entries',
+          education: 'Education',
+          educationEntries: 'Education entries',
+          summary: 'Summary',
+          file: 'File',
+          fileType: 'File type',
+          size: 'Size',
+          uploaded: 'Uploaded',
+        };
   const facts: AgentReference['facts'] = [
     ...(option.email ? [{ label: 'Email', value: option.email }] : []),
-    ...(option.phone ? [{ label: 'Phone', value: option.phone }] : []),
+    ...(option.phone ? [{ label: labels.phone, value: option.phone }] : []),
     ...(option.skills.length > 0
-      ? [{ label: 'Skills', value: option.skills.slice(0, 6).join(', ') }]
+      ? [{ label: labels.skills, value: option.skills.slice(0, 6).join(', ') }]
       : []),
     ...(option.languages.length > 0
-      ? [{ label: 'Languages', value: option.languages.slice(0, 4).join(', ') }]
+      ? [
+          {
+            label: labels.languages,
+            value: option.languages.slice(0, 4).join(', '),
+          },
+        ]
       : []),
     ...(option.latestExperience
-      ? [{ label: 'Latest experience', value: option.latestExperience }]
+      ? [{ label: labels.latestExperience, value: option.latestExperience }]
       : option.experienceCount > 0
-        ? [{ label: 'Experience entries', value: String(option.experienceCount) }]
+        ? [
+            {
+              label: labels.experienceEntries,
+              value: String(option.experienceCount),
+            },
+          ]
         : []),
     ...(option.latestEducation
-      ? [{ label: 'Education', value: option.latestEducation }]
+      ? [{ label: labels.education, value: option.latestEducation }]
       : option.educationCount > 0
-        ? [{ label: 'Education entries', value: String(option.educationCount) }]
+        ? [
+            {
+              label: labels.educationEntries,
+              value: String(option.educationCount),
+            },
+          ]
         : []),
-    ...(option.summary ? [{ label: 'Summary', value: option.summary.slice(0, 160) }] : []),
-    { label: 'File', value: option.filename },
-    { label: 'File type', value: option.contentType },
-    { label: 'Size', value: formatFileSize(option.size) },
-    ...(uploadedAt ? [{ label: 'Uploaded', value: uploadedAt }] : []),
+    ...(option.summary
+      ? [{ label: labels.summary, value: option.summary.slice(0, 160) }]
+      : []),
+    { label: labels.file, value: option.filename },
+    { label: labels.fileType, value: option.contentType },
+    { label: labels.size, value: formatFileSize(option.size) },
+    ...(uploadedAt ? [{ label: labels.uploaded, value: uploadedAt }] : []),
   ];
 
   return {
@@ -638,8 +1027,10 @@ export function ChatInput({
   onRemoveReference,
   onClearReferences,
 }: ChatInputProps) {
+  const { t, locale } = useTranslation();
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const commandListboxId = useId();
   const previousInputRef = useRef(input);
   const [caretIndex, setCaretIndex] = useState(input.length);
   const [activeCommandIndex, setActiveCommandIndex] = useState(0);
@@ -661,7 +1052,7 @@ export function ChatInput({
     if (commandKind !== 'root') return [];
 
     const query = commandQuery.toLowerCase();
-    return ROOT_COMMANDS.filter((command) => {
+    return getLocalizedRootCommands(locale).filter((command) => {
       if (!query) return true;
 
       return (
@@ -672,7 +1063,7 @@ export function ChatInput({
         (command.aliases ?? []).some((alias) => alias.includes(query))
       );
     });
-  }, [commandKind, commandQuery]);
+  }, [commandKind, commandQuery, locale]);
 
   const visibleCvOptions = useMemo(() => {
     if (commandKind !== 'cv' || referenceCount >= MAX_COMPOSER_REFERENCES) return [];
@@ -692,10 +1083,15 @@ export function ChatInput({
   const visiblePromptTemplates = useMemo(() => {
     if (!commandKind) return [];
 
-    return getCommandTemplates(commandKind, commandQuery, referenceCount)
+    return getCommandTemplates(
+      commandKind,
+      commandQuery,
+      referenceCount,
+      locale,
+    )
       .filter((template) => templateMatchesQuery(template, commandQuery))
       .slice(0, 8);
-  }, [commandKind, commandQuery, referenceCount]);
+  }, [commandKind, commandQuery, locale, referenceCount]);
 
   const commandOptionCount =
     commandKind === 'root'
@@ -711,6 +1107,10 @@ export function ChatInput({
     commandOptionCount === 0
       ? 0
       : Math.min(activeCommandIndex, commandOptionCount - 1);
+  const activeCommandOptionId =
+    commandState && commandOptionCount > 0
+      ? `${commandListboxId}-option-${safeActiveCommandIndex}`
+      : undefined;
 
   const resizeTextarea = useCallback((textarea: HTMLTextAreaElement | null) => {
     if (!textarea) return;
@@ -809,18 +1209,18 @@ export function ChatInput({
 
   const handleCvOptionSelect = useCallback(
     (option: AgentCvReferenceOption) => {
-      onAddReference(buildCvAgentReference(option));
+      onAddReference(buildCvAgentReference(option, locale));
       replaceCommandSegment('');
     },
-    [onAddReference, replaceCommandSegment],
+    [locale, onAddReference, replaceCommandSegment],
   );
 
   const handleJobOptionSelect = useCallback(
     (option: AgentJobCommandOption) => {
       if (commandKind !== 'job' && commandKind !== 'match') return;
-      replaceCommandSegment(buildJobPrompt(commandKind, option));
+      replaceCommandSegment(buildJobPrompt(commandKind, option, locale));
     },
-    [commandKind, replaceCommandSegment],
+    [commandKind, locale, replaceCommandSegment],
   );
 
   const handleTemplateSelect = useCallback(
@@ -999,7 +1399,7 @@ export function ChatInput({
     commandState.kind !== 'clear';
 
   return (
-    <div className={cn("relative p-6 pt-0", variant === 'workspace' ? "bg-transparent" : "bg-background")}>
+    <div className={cn("relative px-3 pb-3 pt-0 sm:px-6 sm:pb-6", variant === 'workspace' ? "bg-transparent" : "bg-background")}>
       <div className={cn("mx-auto", variant === 'workspace' ? "max-w-4xl" : "max-w-3xl")}>
         {attachedFile && (
           <div className="flex items-center gap-3 mb-4 rounded-[12px] border border-border bg-card p-3 shadow-sm transition-all duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] translate-y-0 opacity-100">
@@ -1017,8 +1417,8 @@ export function ChatInput({
             <button
               type="button"
               onClick={onRemoveFile}
-              className="shrink-0 rounded-full p-2 text-muted-foreground hover:text-foreground hover:bg-muted transition-all duration-300"
-              aria-label="Remove attached file"
+              className="flex size-11 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              aria-label={t("agent.removeFile")}
             >
               <IconX className="size-4 stroke-[1.5]" />
             </button>
@@ -1033,11 +1433,13 @@ export function ChatInput({
           onChange={handleFileChange}
         />
 
+        <div className="relative">
         {commandState && (
           <div
+            id={commandListboxId}
             role="listbox"
-            aria-label="Agent slash commands"
-            className="mb-2 overflow-hidden rounded-2xl border border-border bg-card shadow-xl shadow-foreground/5 ring-1 ring-foreground/5"
+            aria-label={t("agent.slashCommands")}
+            className="absolute inset-x-0 bottom-full z-20 mb-2 overflow-hidden rounded-2xl border border-border bg-card shadow-xl shadow-foreground/5 ring-1 ring-foreground/5"
           >
             <div className="flex items-center justify-between border-b border-border/70 px-3 py-2">
               <div className="flex items-center gap-2">
@@ -1046,10 +1448,10 @@ export function ChatInput({
                 </span>
                 <div>
                   <p className="text-xs font-semibold text-foreground">
-                    {COMMAND_HEADINGS[commandState.kind]}
+                    {getCommandHeading(commandState.kind, locale)}
                   </p>
                   <p className="text-[11px] text-muted-foreground">
-                    ↑↓ navigate · Enter select · Esc close
+                    {t("agent.commandKeyboardHelp")}
                   </p>
                 </div>
               </div>
@@ -1059,12 +1461,13 @@ export function ChatInput({
             </div>
 
             {commandState.kind === 'root' && (
-              <div className="max-h-72 overflow-y-auto p-1.5">
+              <div className="max-h-64 overflow-y-auto p-1.5 sm:max-h-72">
                 {rootOptions.length > 0 ? (
                   rootOptions.map((command, index) => (
                       <button
                         key={command.id}
                         type="button"
+                        id={`${commandListboxId}-option-${index}`}
                         role="option"
                         aria-selected={index === safeActiveCommandIndex}
                         onMouseDown={(event) => event.preventDefault()}
@@ -1098,31 +1501,31 @@ export function ChatInput({
                   ))
                 ) : (
                   <p className="px-3 py-6 text-center text-sm text-muted-foreground">
-                    No command matches this shortcut.
+                    {t("agent.noCommandMatch")}
                   </p>
                 )}
               </div>
             )}
 
             {commandState.kind === 'cv' && (
-              <div className="max-h-80 overflow-y-auto p-1.5">
+              <div className="max-h-64 overflow-y-auto p-1.5 sm:max-h-80">
                 {cvLoadState === 'loading' && (
                   <div className="flex items-center gap-2 px-3 py-6 text-sm text-muted-foreground">
                     <IconLoader2 className="size-4 animate-spin" />
-                    Loading CV references...
+                    {t("agent.loadingCvReferences")}
                   </div>
                 )}
 
                 {cvLoadState === 'error' && (
                   <p className="px-3 py-6 text-center text-sm text-destructive">
-                    Could not load CV references.
+                    {t("agent.cvReferencesLoadError")}
                   </p>
                 )}
 
                 {cvLoadState === 'ready' &&
                   referenceCount >= MAX_COMPOSER_REFERENCES && (
                     <p className="px-3 py-6 text-center text-sm text-muted-foreground">
-                      Remove a reference before adding another one.
+                      {t("agent.referenceLimit")}
                     </p>
                   )}
 
@@ -1130,7 +1533,7 @@ export function ChatInput({
                   referenceCount < MAX_COMPOSER_REFERENCES &&
                   visibleCvOptions.length === 0 && (
                     <p className="px-3 py-6 text-center text-sm text-muted-foreground">
-                      No CV matches this search.
+                      {t("agent.noCvMatch")}
                     </p>
                   )}
 
@@ -1138,6 +1541,7 @@ export function ChatInput({
                   <button
                     key={option.id}
                     type="button"
+                    id={`${commandListboxId}-option-${index}`}
                     role="option"
                     aria-selected={index === safeActiveCommandIndex}
                     onMouseDown={(event) => event.preventDefault()}
@@ -1172,23 +1576,23 @@ export function ChatInput({
             )}
 
             {showsJobOptions && (
-              <div className="max-h-80 overflow-y-auto p-1.5">
+              <div className="max-h-64 overflow-y-auto p-1.5 sm:max-h-80">
                 {jobLoadState === 'loading' && (
                   <div className="flex items-center gap-2 px-3 py-6 text-sm text-muted-foreground">
                     <IconLoader2 className="size-4 animate-spin" />
-                    Loading jobs...
+                    {t("agent.loadingJobs")}
                   </div>
                 )}
 
                 {jobLoadState === 'error' && (
                   <p className="px-3 py-6 text-center text-sm text-destructive">
-                    Could not load jobs.
+                    {t("agent.jobsLoadError")}
                   </p>
                 )}
 
                 {jobLoadState === 'ready' && visibleJobOptions.length === 0 && (
                   <p className="px-3 py-6 text-center text-sm text-muted-foreground">
-                    No job matches this search.
+                    {t("agent.noJobMatch")}
                   </p>
                 )}
 
@@ -1196,6 +1600,7 @@ export function ChatInput({
                   <button
                     key={option.id}
                     type="button"
+                    id={`${commandListboxId}-option-${index}`}
                     role="option"
                     aria-selected={index === safeActiveCommandIndex}
                     onMouseDown={(event) => event.preventDefault()}
@@ -1233,6 +1638,7 @@ export function ChatInput({
               <div className="p-1.5">
                 <button
                   type="button"
+                  id={`${commandListboxId}-option-0`}
                   role="option"
                   aria-selected
                   onMouseDown={(event) => event.preventDefault()}
@@ -1246,9 +1652,11 @@ export function ChatInput({
                     <IconX className="size-4" />
                   </span>
                   <span className="min-w-0 flex-1">
-                    <span className="block text-sm font-semibold">Clear references</span>
+                    <span className="block text-sm font-semibold">
+                      {t("agent.clearReferences")}
+                    </span>
                     <span className="mt-0.5 block text-xs text-muted-foreground">
-                      Remove all CV reference chips from this composer.
+                      {t("agent.clearReferencesDescription")}
                     </span>
                   </span>
                 </button>
@@ -1256,12 +1664,13 @@ export function ChatInput({
             )}
 
             {showsPromptTemplates && (
-              <div className="max-h-80 overflow-y-auto p-1.5">
+              <div className="max-h-64 overflow-y-auto p-1.5 sm:max-h-80">
                 {visiblePromptTemplates.length > 0 ? (
                   visiblePromptTemplates.map((template, index) => (
                     <button
                       key={template.id}
                       type="button"
+                      id={`${commandListboxId}-option-${index}`}
                       role="option"
                       aria-selected={index === safeActiveCommandIndex}
                       onMouseDown={(event) => event.preventDefault()}
@@ -1289,7 +1698,7 @@ export function ChatInput({
                   ))
                 ) : (
                   <p className="px-3 py-6 text-center text-sm text-muted-foreground">
-                    No option matches this search.
+                    {t("agent.noOptionMatch")}
                   </p>
                 )}
               </div>
@@ -1300,14 +1709,14 @@ export function ChatInput({
         <form
           onSubmit={handleSubmit}
           className={cn(
-            "group relative flex flex-col gap-2 rounded-[1.75rem] border border-border p-2 shadow-[0_4px_24px_rgba(0,0,0,0.02)] transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] focus-within:border-primary/30 focus-within:shadow-[0_8px_32px_rgba(0,0,0,0.06)]",
-            variant === 'workspace' ? "bg-card/95" : "bg-card",
+            "group relative flex flex-col gap-2 rounded-[1.5rem] border border-border/90 bg-card p-2 shadow-[0_4px_24px_rgba(0,0,0,0.04)] transition-[border-color,box-shadow] duration-300 focus-within:border-primary/50 focus-within:shadow-[0_8px_32px_rgba(0,0,0,0.08)] dark:border-white/20 dark:bg-zinc-950/90",
+            variant === 'workspace' ? "supports-[backdrop-filter]:bg-card/95" : "",
           )}
         >
           {references.length > 0 && (
             <div className="flex flex-wrap items-center gap-2 border-b border-border/60 px-3 pb-2 pt-1">
               <span className="text-[11px] font-medium text-muted-foreground">
-                References
+                {t("agent.references")}
               </span>
               {references.map((item) => (
                 <AgentReferenceChip
@@ -1319,6 +1728,7 @@ export function ChatInput({
             </div>
           )}
           <textarea
+            role="combobox"
             ref={inputRef}
             value={input}
             onChange={handleInputChange}
@@ -1328,14 +1738,20 @@ export function ChatInput({
             onKeyUp={handleCaretChange}
             placeholder={
               attachedFile
-                ? 'Ask about this document...'
+                ? t("agent.attachmentPlaceholder")
                 : references.length > 0
-                  ? 'Ask about the referenced CVs...'
-                  : 'Send a message...'
+                  ? t("agent.referencePlaceholder")
+                  : t("agent.messagePlaceholder")
             }
+            aria-label={t("agent.messageLabel")}
+            aria-haspopup="listbox"
+            aria-expanded={commandState !== null}
+            aria-controls={commandState ? commandListboxId : undefined}
+            aria-activedescendant={activeCommandOptionId}
+            aria-autocomplete="list"
             disabled={isStreaming}
             rows={1}
-            className="w-full resize-none bg-transparent px-4 py-3.5 text-[15px] leading-relaxed text-foreground placeholder:text-muted-foreground focus:outline-none disabled:opacity-50 min-h-[52px]"
+            className="min-h-[52px] w-full resize-none bg-transparent px-3 py-3.5 text-[15px] leading-relaxed text-foreground placeholder:text-muted-foreground/90 focus:outline-none disabled:opacity-50 sm:px-4"
             style={{ overflowY: 'hidden' }}
           />
 
@@ -1344,10 +1760,10 @@ export function ChatInput({
               type="button"
               variant="ghost"
               size="icon"
-              className="h-10 w-10 shrink-0 rounded-full text-muted-foreground hover:text-foreground hover:bg-muted transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] active:scale-[0.96]"
+              className="size-11 shrink-0 rounded-full text-muted-foreground transition-transform duration-300 hover:bg-muted hover:text-foreground active:scale-[0.96]"
               disabled={isStreaming}
               onClick={() => fileInputRef.current?.click()}
-              aria-label="Attach file"
+              aria-label={t("agent.attachFile")}
             >
               <IconPaperclip className="size-5 stroke-[1.5]" />
             </Button>
@@ -1359,8 +1775,8 @@ export function ChatInput({
                   variant="ghost"
                   size="icon"
                   onClick={() => onInputChange('')}
-                  className="h-9 w-9 shrink-0 rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"
-                  aria-label="Clear message"
+                  className="size-11 shrink-0 rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"
+                  aria-label={t("agent.clearMessage")}
                 >
                   <IconX className="size-4 stroke-[1.5]" />
                 </Button>
@@ -1369,17 +1785,17 @@ export function ChatInput({
                 <Button
                   type="button"
                   onClick={onStop}
-                  className="h-10 w-10 shrink-0 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] scale-100 hover:scale-[0.98] active:scale-[0.94] flex items-center justify-center shadow-md"
-                  aria-label="Stop generating response"
+                  className="flex size-11 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-md transition-transform duration-300 hover:scale-[0.98] hover:bg-primary/90 active:scale-[0.94]"
+                  aria-label={t("agent.stop")}
                 >
                   <IconPlayerStopFilled className="size-4" />
                 </Button>
               ) : (
                 <Button
                   type="submit"
-                  className="h-10 w-10 shrink-0 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] hover:scale-[0.98] active:scale-[0.94] disabled:bg-muted disabled:text-muted-foreground flex items-center justify-center"
+                  className="flex size-11 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground transition-transform duration-300 hover:scale-[0.98] hover:bg-primary/90 active:scale-[0.94] disabled:bg-muted disabled:text-muted-foreground"
                   disabled={!input.trim() && !attachedFile && references.length === 0}
-                  aria-label="Send message"
+                  aria-label={t("agent.send")}
                 >
                   <IconSend2 className="size-4 stroke-[2px] ml-[2px]" />
                 </Button>
@@ -1387,6 +1803,7 @@ export function ChatInput({
             </div>
           </div>
         </form>
+        </div>
       </div>
     </div>
   );

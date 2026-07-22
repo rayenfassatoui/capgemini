@@ -1,5 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { AdminGovernanceClient } from '../components/admin-governance-client';
 import type { GovernanceAuditReport } from '../services/governance-types';
@@ -97,6 +97,10 @@ const report: GovernanceAuditReport = {
   ],
 };
 
+beforeEach(() => {
+  push.mockClear();
+});
+
 describe('AdminGovernanceClient', () => {
   it('renders governance evidence and opens sanitized details', () => {
     render(<AdminGovernanceClient report={report} />);
@@ -112,5 +116,28 @@ describe('AdminGovernanceClient', () => {
     expect(screen.getAllByText('update_candidate_stage').length).toBeGreaterThan(0);
     expect(screen.getByText('Invalid transition')).toBeInTheDocument();
     expect(screen.getByText(/\[REDACTED\]/)).toBeInTheDocument();
+  });
+
+  it('clears the visible filter state when reset', () => {
+    render(
+      <AdminGovernanceClient
+        report={{
+          ...report,
+          filters: {
+            ...report.filters,
+            action: 'update',
+          },
+        }}
+      />,
+    );
+
+    expect(screen.getByLabelText('Action / tool')).toHaveValue('update');
+    expect(screen.getByText('1 active')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Reset' }));
+
+    expect(screen.getByLabelText('Action / tool')).toHaveValue('');
+    expect(screen.getByText('0 active')).toBeInTheDocument();
+    expect(push).toHaveBeenCalledWith('/admin/governance');
   });
 });

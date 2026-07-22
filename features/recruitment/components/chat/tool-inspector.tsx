@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   IconAlertTriangle,
@@ -12,6 +12,7 @@ import {
   IconTerminal2,
 } from "@tabler/icons-react";
 
+import { useTranslation } from "@/components/shared/i18n-provider";
 import { cn } from "@/lib/utils";
 import type {
   ToolEvent,
@@ -86,16 +87,20 @@ function formatClockTime(value: string | undefined): string {
   });
 }
 
-function getStatusLabel(status: ToolEventStatus): string {
-  if (status === "queued") return "Queued";
-  if (status === "running") return "Running";
-  if (status === "pending_confirmation") return "Needs confirmation";
-  if (status === "error") return "Failed";
-  return "Completed";
+function getStatusLabel(
+  status: ToolEventStatus,
+  t: (key: string) => string,
+): string {
+  if (status === "queued") return t("agent.queued");
+  if (status === "running") return t("agent.running");
+  if (status === "pending_confirmation") return t("agent.needsConfirmation");
+  if (status === "error") return t("agent.failedStatus");
+  return t("agent.completed");
 }
 
 // Components
 function JsonPre({ label, value }: { label: string; value: ToolTraceJson | undefined }) {
+  const { t } = useTranslation();
   const [copied, setCopied] = useState(false);
   if (value === undefined) return null;
 
@@ -112,9 +117,11 @@ function JsonPre({ label, value }: { label: string; value: ToolTraceJson | undef
       <div className="flex items-center justify-between text-[10px] uppercase tracking-wider text-muted-foreground mb-1 select-none font-medium px-1">
         {label}
         <button
+          type="button"
           onClick={handleCopy}
-          className="text-muted-foreground/50 hover:text-muted-foreground transition-colors p-0.5 rounded-sm"
-          title="Copy JSON"
+          className="flex size-11 items-center justify-center rounded-md text-muted-foreground/70 transition-colors hover:bg-white/10 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          title={t("agent.copyJson")}
+          aria-label={copied ? t("agent.jsonCopied") : t("agent.copyJson")}
         >
           {copied ? <IconCheck className="size-3" /> : <IconCopy className="size-3" />}
         </button>
@@ -152,9 +159,11 @@ function StatusIcon({
 }
 
 function ToolRow({ event }: { event: ToolEvent }) {
+  const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
+  const detailsId = useId();
   const isError = event.status === "error";
-  const statusLabel = getStatusLabel(event.status);
+  const statusLabel = getStatusLabel(event.status, t);
   const retryAttempt = event.retry?.attempt;
   const retryMaxAttempts = event.retry?.maxAttempts;
   const retryText =
@@ -169,8 +178,9 @@ function ToolRow({ event }: { event: ToolEvent }) {
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center w-full py-1.5 px-2 hover:bg-muted/40 rounded-md text-xs transition-colors focus:outline-none focus:ring-1 focus:ring-ring focus:ring-offset-0"
+        className="flex min-h-11 w-full items-center rounded-md px-2 py-2 text-xs transition-colors hover:bg-muted/40 focus:outline-none focus:ring-2 focus:ring-ring"
         aria-expanded={isOpen}
+        aria-controls={detailsId}
       >
         <span className="flex-none mr-2 text-muted-foreground/60 group-hover/row:text-muted-foreground transition-colors">
           {isOpen ? <IconChevronDown className="size-3.5" /> : <IconChevronRight className="size-3.5" />}
@@ -190,6 +200,7 @@ function ToolRow({ event }: { event: ToolEvent }) {
       <AnimatePresence initial={false}>
         {isOpen && (
           <motion.div
+            id={detailsId}
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
@@ -200,47 +211,47 @@ function ToolRow({ event }: { event: ToolEvent }) {
               <div className="rounded-md border border-border/50 bg-muted/20 px-2.5 py-2 text-[11px] text-muted-foreground space-y-1.5">
                 <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
                   <span>
-                    <span className="text-foreground/80">Status:</span> {statusLabel}
+                    <span className="text-foreground/80">{t("agent.status")}:</span> {statusLabel}
                   </span>
                   <span>
-                    <span className="text-foreground/80">Duration:</span> {formatDuration(event)}
+                    <span className="text-foreground/80">{t("agent.duration")}:</span> {formatDuration(event)}
                   </span>
                   {retryText ? (
                     <span>
-                      <span className="text-foreground/80">Retry:</span> {retryText}
+                      <span className="text-foreground/80">{t("agent.retryLabel")}:</span> {retryText}
                     </span>
                   ) : null}
                 </div>
 
                 <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
                   <span>
-                    <span className="text-foreground/80">Started:</span> {formatClockTime(event.startedAt)}
+                    <span className="text-foreground/80">{t("agent.started")}:</span> {formatClockTime(event.startedAt)}
                   </span>
                   <span>
-                    <span className="text-foreground/80">Ended:</span> {formatClockTime(event.endedAt)}
+                    <span className="text-foreground/80">{t("agent.ended")}:</span> {formatClockTime(event.endedAt)}
                   </span>
                 </div>
 
                 {event.purpose ? (
                   <div>
-                    <span className="text-foreground/80">Purpose:</span> {event.purpose}
+                    <span className="text-foreground/80">{t("agent.purpose")}:</span> {event.purpose}
                   </div>
                 ) : null}
 
                 {event.summary ? (
                   <div>
-                    <span className="text-foreground/80">Summary:</span> {event.summary}
+                    <span className="text-foreground/80">{t("agent.summary")}:</span> {event.summary}
                   </div>
                 ) : null}
 
                 {event.retry?.reason ? (
                   <div>
-                    <span className="text-foreground/80">Retry reason:</span> {event.retry.reason}
+                    <span className="text-foreground/80">{t("agent.retryReason")}:</span> {event.retry.reason}
                   </div>
                 ) : null}
               </div>
 
-              <JsonPre label="Arguments" value={event.input} />
+              <JsonPre label={t("agent.arguments")} value={event.input} />
               
               {isError && event.error && (
                 <div className="rounded-md border border-destructive/30 bg-destructive/10 px-2.5 py-1.5 text-[11px] text-destructive font-mono">
@@ -249,7 +260,7 @@ function ToolRow({ event }: { event: ToolEvent }) {
               )}
               
               {!isError && (
-                <JsonPre label="Result" value={event.output} />
+                <JsonPre label={t("agent.result")} value={event.output} />
               )}
             </div>
           </motion.div>
@@ -258,11 +269,44 @@ function ToolRow({ event }: { event: ToolEvent }) {
     </div>
   );
 }
+const TOOL_PHASE_TRANSLATION_KEYS: Record<
+  ToolTracePhaseGroup["id"],
+  { label: string; description: string }
+> = {
+  planning: {
+    label: "agent.phasePlanning",
+    description: "agent.phasePlanningDescription",
+  },
+  retrieval: {
+    label: "agent.phaseRetrieval",
+    description: "agent.phaseRetrievalDescription",
+  },
+  analysis: {
+    label: "agent.phaseAnalysis",
+    description: "agent.phaseAnalysisDescription",
+  },
+  confirmation: {
+    label: "agent.phaseConfirmation",
+    description: "agent.phaseConfirmationDescription",
+  },
+  execution: {
+    label: "agent.phaseExecution",
+    description: "agent.phaseExecutionDescription",
+  },
+  verification: {
+    label: "agent.phaseVerification",
+    description: "agent.phaseVerificationDescription",
+  },
+};
+
 function ToolPhaseSection({ phase }: { phase: ToolTracePhaseGroup }) {
+  const { t } = useTranslation();
+  const translationKeys = TOOL_PHASE_TRANSLATION_KEYS[phase.id];
+  const phaseLabel = t(translationKeys.label);
   return (
     <section
       className="relative rounded-lg border border-border/50 bg-background/55 p-2"
-      aria-label={`${phase.label} phase`}
+      aria-label={`${phaseLabel} ${t("agent.phase")}`}
     >
       <div className="flex items-start gap-2.5 px-1 pb-2">
         <span className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full border border-border/70 bg-card">
@@ -271,20 +315,20 @@ function ToolPhaseSection({ phase }: { phase: ToolTracePhaseGroup }) {
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
             <h4 className="text-xs font-semibold text-foreground">
-              {phase.label}
+              {phaseLabel}
             </h4>
             <span className="rounded-full border border-border/60 bg-muted/40 px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
-              {phase.events.length} tool{phase.events.length === 1 ? "" : "s"}
+              {phase.events.length} {t(phase.events.length === 1 ? "agent.tool" : "agent.tools")}
             </span>
             <span className="rounded-full border border-border/60 bg-muted/40 px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
-              {getStatusLabel(phase.status)}
+              {getStatusLabel(phase.status, t)}
             </span>
             <span className="rounded-full border border-border/60 bg-muted/40 px-2 py-0.5 text-[10px] font-mono text-muted-foreground">
               {formatDurationMs(phase.durationMs)}
             </span>
           </div>
           <p className="mt-1 text-[11px] leading-4 text-muted-foreground">
-            {phase.description}
+            {t(translationKeys.description)}
           </p>
         </div>
       </div>
@@ -304,7 +348,9 @@ export function ToolInspector({
   error = null,
   className,
 }: ToolInspectorProps) {
+  const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
+  const contentId = useId();
   const [, refreshDurations] = useState(0);
 
   const safeEvents = useMemo(() => events ?? [], [events]);
@@ -338,8 +384,8 @@ export function ToolInspector({
         : "text-muted-foreground";
   const traceCountText =
     phaseGroups.length > 0
-      ? `${phaseGroups.length} phase${phaseGroups.length === 1 ? "" : "s"} / ${safeEvents.length} tool${safeEvents.length === 1 ? "" : "s"}`
-      : `Evidence trace: ${safeEvents.length} tool${safeEvents.length === 1 ? "" : "s"}`;
+      ? `${phaseGroups.length} ${t(phaseGroups.length === 1 ? "agent.phase" : "agent.phases")} / ${safeEvents.length} ${t(safeEvents.length === 1 ? "agent.tool" : "agent.tools")}`
+      : `${t("agent.evidenceTrace")}: ${safeEvents.length} ${t(safeEvents.length === 1 ? "agent.tool" : "agent.tools")}`;
 
   if (!hasEvents && !isLoading && !error) {
     return null; // hide completely in friendly UI if nothing used
@@ -352,8 +398,10 @@ export function ToolInspector({
         <button
           type="button"
           onClick={() => setIsOpen(!isOpen)}
+          aria-expanded={isOpen}
+          aria-controls={contentId}
           className={cn(
-            "flex w-full items-center justify-between px-3 py-2 text-xs font-medium focus:outline-none focus:ring-1 focus:ring-ring focus:bg-muted/30 transition-colors",
+            "flex min-h-11 w-full items-center justify-between px-3 py-2 text-xs font-medium transition-colors focus:bg-muted/30 focus:outline-none focus:ring-2 focus:ring-ring",
             isOpen ? "bg-muted/40 border-b border-border/40" : "hover:bg-muted/30"
           )}
         >
@@ -361,8 +409,8 @@ export function ToolInspector({
             <StatusIcon status={headerStatus} className="size-4" />
             <span className={headerTextClass}>
               {isTraceRunning
-                ? "Building evidence trace..."
-                : error ? "Evidence trace failed" : headerStatus === "pending_confirmation" ? "Confirmation required" : traceCountText}
+                ? t("agent.buildingTrace")
+                : error ? t("agent.traceFailed") : headerStatus === "pending_confirmation" ? t("agent.confirmationRequired") : traceCountText}
             </span>
           </div>
           <IconChevronDown
@@ -376,6 +424,7 @@ export function ToolInspector({
         <AnimatePresence initial={false}>
           {isOpen && (
             <motion.div
+            id={contentId}
               initial={{ height: 0, opacity: 0 }}
               animate={{ height: "auto", opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
@@ -398,7 +447,7 @@ export function ToolInspector({
 
               {!hasEvents && !error && (
                 <div className="p-4 text-xs text-muted-foreground text-center opacity-60">
-                  No specific tools were executed.
+                  {t("agent.noTools")}
                 </div>
               )}
             </motion.div>

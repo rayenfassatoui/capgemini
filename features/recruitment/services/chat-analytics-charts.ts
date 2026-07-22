@@ -23,6 +23,7 @@ interface ChartCandidate {
 interface BuildAnalyticsChartsOptions {
   question?: string;
   maxCharts?: number;
+  locale?: "en" | "fr";
 }
 
 const DEFAULT_MAX_CHARTS = 4;
@@ -48,6 +49,62 @@ const CANDIDATE_STAGE_LABELS: Record<string, string> = {
   hr_accepted: 'HR Accepted',
   hr_rejected: 'HR Rejected',
   hired: 'Hired',
+};
+
+const FR_CHART_TEXT: Readonly<Record<string, string>> = {
+  "CV upload trend": "Tendance des televersements de CV",
+  "CVs uploaded over the last 7 days.": "CV televerses au cours des 7 derniers jours.",
+  "Top CV skills": "Competences principales des CV",
+  "Most frequent skills found in the accessible CV pool.": "Competences les plus frequentes dans le pool CV accessible.",
+  "Language distribution": "Repartition des langues",
+  "Languages detected across the accessible CV pool.": "Langues detectees dans le pool CV accessible.",
+  "Jobs by status": "Postes par statut",
+  "Open and closed job requirements in the accessible workspace.": "Exigences de poste ouvertes et cloturees dans l'espace accessible.",
+  "Jobs by business unit": "Postes par unite commerciale",
+  "Job demand split by business unit.": "Demande de postes repartie par unite commerciale.",
+  "Most demanded skills": "Competences les plus demandees",
+  "Skills appearing most often in job requirements.": "Competences apparaissant le plus souvent dans les exigences de poste.",
+  "Jobs by seniority": "Postes par seniorite",
+  "Role seniority distribution across job requirements.": "Repartition des niveaux de seniorite dans les exigences de poste.",
+  "Pipeline funnel": "Entonnoir du pipeline",
+  "Candidates distributed across recruitment stages.": "Candidats repartis entre les etapes du recrutement.",
+  "Candidates distributed across all recruitment stages.": "Candidats repartis entre toutes les etapes du recrutement.",
+  "Skill gap: demand vs supply": "Ecart de competences : demande contre offre",
+  "Job demand compared with CV pool supply for the largest gaps.": "Demande des postes comparee a l'offre du pool CV pour les principaux ecarts.",
+  "Most demanded job profiles": "Profils de poste les plus demandes",
+  "Job profiles with the highest observed demand.": "Profils de poste ayant la demande observee la plus elevee.",
+  "Common CV skills": "Competences courantes des CV",
+  "Most frequent skills available in CV data.": "Competences les plus frequentes dans les donnees CV.",
+  "Recruitment KPI overview": "Apercu des KPI de recrutement",
+  "Current high-level recruitment counters. Candidate count means assigned pipeline candidates, not uploaded CVs.": "Compteurs de recrutement actuels. Le nombre de candidats designe les candidats assignes au pipeline, pas les CV televerses.",
+  "Hiring trend": "Tendance des recrutements",
+  "Hired and rejected candidates over the last 6 months.": "Candidats embauches et refuses au cours des 6 derniers mois.",
+  "Higher demand than supply marks skills to prioritize in sourcing.": "Une demande superieure a l'offre signale les competences a prioriser dans le sourcing.",
+  "Candidates per job": "Candidats par poste",
+  "Open workload concentration by job.": "Concentration de la charge ouverte par poste.",
+  "Jobs with more candidates may need faster screening decisions.": "Les postes avec davantage de candidats peuvent necessiter des decisions de preselection plus rapides.",
+  "Interviews by stage": "Entretiens par etape",
+  "Interview volume split by workflow stage.": "Volume des entretiens reparti par etape du workflow.",
+  "Count": "Nombre",
+  "Demand": "Demande",
+  "Supply": "Offre",
+  "Hired": "Embauches",
+  "Rejected": "Refuses",
+  "Pipeline candidates": "Candidats du pipeline",
+  "Jobs": "Postes",
+  "Interviews today": "Entretiens aujourd'hui",
+  "Pending screenings": "Preselections en attente",
+  "New": "Nouveau",
+  "TA Screening": "Preselection TA",
+  "TA Interview": "Entretien TA",
+  "TA Accepted": "Accepte par TA",
+  "TA Rejected": "Refuse par TA",
+  "Manager Interview": "Entretien manager",
+  "Manager Accepted": "Accepte par le manager",
+  "Manager Rejected": "Refuse par le manager",
+  "HR Interview": "Entretien RH",
+  "HR Accepted": "Accepte par les RH",
+  "HR Rejected": "Refuse par les RH",
 };
 
 const CANDIDATE_STAGE_ORDER = Object.keys(CANDIDATE_STAGE_LABELS);
@@ -533,6 +590,26 @@ function rankCharts(
     .map((candidate) => candidate.chart);
 }
 
+function localizeChartForFrench(
+  chart: RecruitmentAnalyticsChart,
+): RecruitmentAnalyticsChart {
+  const translate = (text: string) => FR_CHART_TEXT[text] ?? text;
+  return {
+    ...chart,
+    title: translate(chart.title),
+    ...(chart.description ? { description: translate(chart.description) } : {}),
+    ...(chart.summary ? { summary: translate(chart.summary) } : {}),
+    series: chart.series.map((series) => ({
+      ...series,
+      label: translate(series.label),
+    })),
+    data: chart.data.map((datum) => ({
+      ...datum,
+      label: translate(datum.label),
+    })),
+  };
+}
+
 export function buildAnalyticsChartsFromToolRecords(
   records: readonly AnalyticsChartToolRecord[],
   options: BuildAnalyticsChartsOptions = {}
@@ -584,9 +661,12 @@ export function buildAnalyticsChartsFromToolRecords(
     }
   }
 
-  return rankCharts(
+  const ranked = rankCharts(
     candidates,
     options.question ?? '',
-    options.maxCharts ?? DEFAULT_MAX_CHARTS
+    options.maxCharts ?? DEFAULT_MAX_CHARTS,
   );
+  return options.locale === "fr"
+    ? ranked.map(localizeChartForFrench)
+    : ranked;
 }

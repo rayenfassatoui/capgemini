@@ -8,50 +8,79 @@ type PipelineStageKind = "active" | "accepted" | "rejected" | "terminal";
 interface PipelineStageDefinition {
   key: string;
   label: string;
-  groupId: string;
   kind: PipelineStageKind;
 }
-
-interface PipelineStageGroup {
+interface PipelineStageGroupDefinition {
   id: string;
-  title: string;
-  stageKeys: string[];
+  label: string;
+  labelFr: string;
+  stageKeys: readonly string[];
 }
 
-const PIPELINE_STAGE_DEFINITIONS: readonly PipelineStageDefinition[] = [
-  { key: "new", label: "New", groupId: "sourcing_group", kind: "active" },
-  { key: "ta_screening", label: "TA screening", groupId: "ta_group", kind: "active" },
-  { key: "ta_interview", label: "TA interview", groupId: "ta_group", kind: "active" },
-  { key: "ta_accepted", label: "TA accepted", groupId: "ta_group", kind: "accepted" },
-  { key: "ta_rejected", label: "TA rejected", groupId: "ta_group", kind: "rejected" },
-  { key: "manager_interview", label: "Manager interview", groupId: "manager_group", kind: "active" },
-  { key: "manager_accepted", label: "Manager accepted", groupId: "manager_group", kind: "accepted" },
-  { key: "manager_rejected", label: "Manager rejected", groupId: "manager_group", kind: "rejected" },
-  { key: "hr_interview", label: "HR interview", groupId: "hr_group", kind: "active" },
-  { key: "hr_accepted", label: "HR accepted", groupId: "hr_group", kind: "accepted" },
-  { key: "hr_rejected", label: "HR rejected", groupId: "hr_group", kind: "rejected" },
-  { key: "hired", label: "Hired", groupId: "outcome_group", kind: "terminal" },
-];
 
-const PIPELINE_STAGE_GROUPS: readonly PipelineStageGroup[] = [
-  { id: "sourcing_group", title: "Sourcing", stageKeys: ["new"] },
+
+const PIPELINE_STAGE_DEFINITIONS: readonly PipelineStageDefinition[] = [
+  { key: "new", label: "New", kind: "active" },
+  { key: "ta_screening", label: "TA screening", kind: "active" },
+  { key: "ta_interview", label: "TA interview", kind: "active" },
+  { key: "ta_accepted", label: "TA accepted", kind: "accepted" },
+  { key: "ta_rejected", label: "TA rejected", kind: "rejected" },
+  { key: "manager_interview", label: "Manager interview", kind: "active" },
+  { key: "manager_accepted", label: "Manager accepted", kind: "accepted" },
+  { key: "manager_rejected", label: "Manager rejected", kind: "rejected" },
+  { key: "hr_interview", label: "HR interview", kind: "active" },
+  { key: "hr_accepted", label: "HR accepted", kind: "accepted" },
+  { key: "hr_rejected", label: "HR rejected", kind: "rejected" },
+  { key: "hired", label: "Hired", kind: "terminal" },
+];
+const PIPELINE_STAGE_GROUPS: readonly PipelineStageGroupDefinition[] = [
+  {
+    id: "sourcing_group",
+    label: "Sourcing",
+    labelFr: "Sourcing",
+    stageKeys: ["new"],
+  },
   {
     id: "ta_group",
-    title: "Talent acquisition",
+    label: "Talent acquisition",
+    labelFr: "Acquisition de talents",
     stageKeys: ["ta_screening", "ta_interview", "ta_accepted", "ta_rejected"],
   },
   {
     id: "manager_group",
-    title: "Manager review",
-    stageKeys: ["manager_interview", "manager_accepted", "manager_rejected"],
+    label: "Manager review",
+    labelFr: "Revue du responsable",
+    stageKeys: [
+      "manager_interview",
+      "manager_accepted",
+      "manager_rejected",
+    ],
   },
   {
     id: "hr_group",
-    title: "HR validation",
-    stageKeys: ["hr_interview", "hr_accepted", "hr_rejected"],
+    label: "Human resources",
+    labelFr: "Ressources humaines",
+    stageKeys: ["hr_interview", "hr_accepted", "hr_rejected", "hired"],
   },
-  { id: "outcome_group", title: "Outcome", stageKeys: ["hired"] },
 ];
+
+
+
+const FR_STAGE_LABELS: Readonly<Record<string, string>> = {
+  new: "Nouveau",
+  ta_screening: "Présélection TA",
+  ta_interview: "Entretien TA",
+  ta_accepted: "Accepté par TA",
+  ta_rejected: "Refusé par TA",
+  manager_interview: "Entretien responsable",
+  manager_accepted: "Accepté par le responsable",
+  manager_rejected: "Refusé par le responsable",
+  hr_interview: "Entretien RH",
+  hr_accepted: "Accepté par les RH",
+  hr_rejected: "Refusé par les RH",
+  hired: "Embauché",
+};
+
 
 const MAIN_PIPELINE_EDGES: readonly [string, string][] = [
   ["new", "ta_screening"],
@@ -161,6 +190,30 @@ function formatCandidateCount(count: number): string {
   return `${count} ${count === 1 ? "candidate" : "candidates"}`;
 }
 
+function formatLocalizedCandidateCount(
+  count: number,
+  locale: "en" | "fr",
+): string {
+  if (locale === "fr") {
+    return `${count} candidat${count === 1 ? "" : "s"}`;
+  }
+  return formatCandidateCount(count);
+}
+
+function localizeStageLabel(
+  stage: PipelineStageDefinition,
+  locale: "en" | "fr",
+): string {
+  return locale === "fr" ? FR_STAGE_LABELS[stage.key] ?? stage.label : stage.label;
+}
+function localizeStageGroupLabel(
+  group: PipelineStageGroupDefinition,
+  locale: "en" | "fr",
+): string {
+  return locale === "fr" ? group.labelFr : group.label;
+}
+
+
 function getBottleneckStageKey(funnel: Record<string, number>): string | null {
   let bottleneckKey: string | null = null;
   let bottleneckCount = 0;
@@ -194,7 +247,7 @@ function escapeMermaidLabel(value: string): string {
 
 export function buildRecruitmentMermaidDiagramFromToolRecords(
   records: readonly ToolExecutionRecord[],
-  options: { question: string },
+  options: { question: string; locale?: "en" | "fr" },
 ): string | null {
   if (!shouldBuildRecruitmentDiagram(options.question)) {
     return null;
@@ -204,6 +257,7 @@ export function buildRecruitmentMermaidDiagramFromToolRecords(
   if (!funnel) {
     return null;
   }
+  const locale = options.locale ?? "en";
 
   const pipelineData = buildPipelineData(funnel);
   const dataByStageKey = new Map(
@@ -216,15 +270,19 @@ export function buildRecruitmentMermaidDiagramFromToolRecords(
   const lines = ["```mermaid", "flowchart TD"];
 
   for (const group of PIPELINE_STAGE_GROUPS) {
-    lines.push(`  subgraph ${group.id}["${escapeMermaidLabel(group.title)}"]`);
+    lines.push(
+      `  subgraph ${group.id}["${escapeMermaidLabel(
+        localizeStageGroupLabel(group, locale),
+      )}"]`,
+    );
     lines.push("    direction TB");
 
     for (const stageKey of group.stageKeys) {
       const stage = getStageDefinition(stageKey);
-      const datum = dataByStageKey.get(stageKey);
+      const datum = dataByStageKey.get(stage.key);
       const count = typeof datum?.count === "number" ? datum.count : 0;
-      const nodeId = getStageNodeId(stageKey);
-      const label = `${stage.label}<br/>${formatCandidateCount(count)}`;
+      const nodeId = getStageNodeId(stage.key);
+      const label = `${localizeStageLabel(stage, locale)}<br/>${formatLocalizedCandidateCount(count, locale)}`;
       lines.push(`    ${nodeId}["${escapeMermaidLabel(label)}"]`);
     }
 
@@ -259,11 +317,15 @@ export function buildRecruitmentMermaidDiagramFromToolRecords(
   lines.push("```");
 
   const summary = bottleneckStage
-    ? `Grouped pipeline map generated from fetched stage counts. Highlighted bottleneck: ${bottleneckStage.label} (${formatCandidateCount(bottleneckCount)}).`
-    : "Grouped pipeline map generated from fetched stage counts. No active bottleneck was visible in the fetched stages.";
+    ? locale === "fr"
+      ? `Carte du pipeline generee a partir des comptes d'etapes recuperes. Blocage mis en evidence : ${localizeStageLabel(bottleneckStage, locale)} (${formatLocalizedCandidateCount(bottleneckCount, locale)}).`
+      : `Pipeline map generated from fetched stage counts. Highlighted bottleneck: ${bottleneckStage.label} (${formatCandidateCount(bottleneckCount)}).`
+    : locale === "fr"
+      ? "Carte du pipeline generee a partir des comptes d'etapes recuperes. Aucun blocage actif n'etait visible dans les etapes recuperees."
+      : "Pipeline map generated from fetched stage counts. No active bottleneck was visible in the fetched stages.";
 
   return [
-    "## Diagram",
+    locale === "fr" ? "## Diagramme" : "## Diagram",
     summary,
     "",
     lines.join("\n"),

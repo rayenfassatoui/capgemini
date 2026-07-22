@@ -56,6 +56,7 @@ interface QueueToolCallsParams {
   toolExecutionCache: Map<string, ToolExecutionRecord>;
   controller: ReadableStreamDefaultController<Uint8Array>;
   encoder: TextEncoder;
+  locale?: "en" | "fr";
 }
 
 export function queueToolCalls({
@@ -64,6 +65,7 @@ export function queueToolCalls({
   toolExecutionCache,
   controller,
   encoder,
+  locale = "en",
 }: QueueToolCallsParams) {
   for (const toolCall of toolCalls) {
     const toolName = toolCall.function.name;
@@ -84,7 +86,7 @@ export function queueToolCalls({
       args: queuedInputPayload,
       input: queuedInputPayload,
       startedAt: new Date().toISOString(),
-      purpose: inferToolPurpose(toolName, queuedArgs),
+      purpose: inferToolPurpose(toolName, queuedArgs, locale),
       retry: {
         attempt: 1,
         maxAttempts: 1,
@@ -105,6 +107,7 @@ interface ExecuteToolCallsParams {
   userId: string;
   role: UserRole;
   conversationId: string;
+  locale?: "en" | "fr";
   prepareGroundedResponse: (text: string) => string;
   persistAssistantMessage: (text: string) => Promise<void>;
   consecutiveToolFailures: number;
@@ -130,6 +133,7 @@ export async function executeToolCalls({
   userId,
   role,
   conversationId,
+  locale = "en",
   prepareGroundedResponse,
   persistAssistantMessage,
   consecutiveToolFailures,
@@ -183,7 +187,7 @@ export async function executeToolCalls({
     const traceId = toolCall.id;
     const startedAt = new Date().toISOString();
     const inputPayload = sanitizeToolTraceValue(toolArgs);
-    const purpose = inferToolPurpose(toolName, toolArgs);
+    const purpose = inferToolPurpose(toolName, toolArgs, locale);
 
     emitToolStartEvent(controller, encoder, {
       id: traceId,
@@ -206,6 +210,67 @@ export async function executeToolCalls({
       sawMutation = true;
     }
 
+    if (!validation.success) {
+      const endedAt = new Date().toISOString();
+      const durationMs = Math.max(
+        0,
+        new Date(endedAt).getTime() - new Date(startedAt).getTime(),
+      );
+      const result = { success: false, error: validation.error };
+      const trace = {
+        id: traceId,
+        tool: toolName,
+        success: false,
+        status: "error" as const,
+        summary: "Invalid tool arguments",
+        purpose,
+        startedAt,
+        endedAt,
+        durationMs,
+        input: inputPayload,
+        output: null,
+        error: validation.error,
+        retry: {
+          attempt: 1,
+          maxAttempts: 1,
+          retried: false,
+        },
+      };
+
+      emitToolEndEvent(controller, encoder, trace);
+      const record: ToolExecutionRecord = {
+        toolName,
+        args: rawToolArgs,
+        result,
+        mutating,
+        trace,
+      };
+      toolExecutionCache.set(cacheKey, record);
+      toolExecutionHistory.push(record);
+      llmMessages.push({
+        role: "tool",
+        tool_call_id: toolCall.id,
+        content: JSON.stringify({ error: validation.error }),
+      });
+
+      failureCount += 1;
+      if (failureCount >= MAX_CONSECUTIVE_TOOL_FAILURES) {
+        fullResponse = prepareGroundedResponse(
+          buildDeterministicFallbackFromRecords(toolExecutionHistory) ??
+            `I encountered ${failureCount} consecutive tool failures. Please try rephrasing your request.`,
+        );
+        return {
+          consecutiveToolFailures: failureCount,
+          sawMutatingTool: sawMutation,
+          fullResponse,
+          shouldBreakLoop: true,
+          shouldReturn: false,
+        };
+      }
+      continue;
+    }
+
+
     if (toolDef && requiresAgentActionConfirmation(toolName, mutating) && validation.success) {
       fullResponse = await requestAgentActionConfirmation({
         toolName,
@@ -216,6 +281,7 @@ export async function executeToolCalls({
         startedAt,
         conversationId,
         userId,
+        locale,
         controller,
         encoder,
         persistAssistantMessage,
@@ -235,16 +301,6 @@ export async function executeToolCalls({
       role,
     });
 
-    const record: ToolExecutionRecord = {
-      toolName,
-      args: toolArgs,
-      result,
-      mutating,
-    };
-
-    toolExecutionCache.set(cacheKey, record);
-    toolExecutionHistory.push(record);
-
     const { fileDownload, data } = takeFileDownloadPayload(result.data);
     if (fileDownload) {
       emitFileEvent(controller, encoder, fileDownload);
@@ -257,12 +313,11 @@ export async function executeToolCalls({
       0,
       new Date(endedAt).getTime() - new Date(startedAt).getTime(),
     );
-
-    emitToolEndEvent(controller, encoder, {
+    const trace = {
       id: traceId,
       tool: toolName,
       success: result.success,
-      status: result.success ? "success" : "error",
+      status: result.success ? ("success" as const) : ("error" as const),
       summary,
       purpose,
       startedAt,
@@ -276,7 +331,19 @@ export async function executeToolCalls({
         maxAttempts: 1,
         retried: false,
       },
-    });
+    };
+    const record: ToolExecutionRecord = {
+      toolName,
+      args: toolArgs,
+      result,
+      mutating,
+      trace,
+      fileDownload,
+    };
+
+    toolExecutionCache.set(cacheKey, record);
+    toolExecutionHistory.push(record);
+    emitToolEndEvent(controller, encoder, trace);
 
     if (!result.success) {
       failureCount += 1;
