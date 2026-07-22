@@ -27,6 +27,21 @@ describe('job skill normalization', () => {
     expect(labels.every(isAtomicJobSkillLabel)).toBe(true);
   });
 
+  it('strips common experience prefixes from unknown skill requirements', () => {
+    const labels = normalizeJobSkillLabels([
+      'Hands-on experience working with AWS cloud architecture',
+      '3+ years of experience in distributed systems',
+      "At least 5 years' experience using Kubernetes",
+    ]);
+
+    expect(labels).toEqual([
+      'AWS cloud architecture',
+      'Distributed systems',
+      'Kubernetes',
+    ]);
+    expect(labels.every(isAtomicJobSkillLabel)).toBe(true);
+  });
+
   it('normalizes createJobSchema skill arrays before persistence', () => {
     const parsed = createJobSchema.parse({
       title: 'Senior Agentic UI/UX Designer',

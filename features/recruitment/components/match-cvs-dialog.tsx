@@ -26,12 +26,94 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 
-import { matchCvsToJobWithFiltersAction, assignCvToJobAction } from '@/features/recruitment/actions';
-import type { CvMatchResult } from '@/features/recruitment/types';
+import {
+  assignCvToJobAction,
+  matchCvsToJobWithFiltersAction,
+} from '@/features/recruitment/actions';
+import { cvMatchEnrichmentResponseSchema } from '@/features/recruitment/schemas';
+import type { CvMatchFilters, CvMatchResult } from '@/features/recruitment/types';
 
 // ---------- Types ----------
 
 type DialogStep = 'filters' | 'loading' | 'results';
+
+type AiEnrichmentStatus = 'idle' | 'loading' | 'complete' | 'unavailable';
+
+interface BackgroundEnrichmentOptions {
+  jobId: string;
+  filters: CvMatchFilters;
+  requestId: number;
+  activeRequest: { readonly current: number };
+  signal: AbortSignal;
+  setResults: React.Dispatch<React.SetStateAction<CvMatchResult[]>>;
+  setStatus: React.Dispatch<React.SetStateAction<AiEnrichmentStatus>>;
+}
+
+async function enrichMatchesInBackground({
+  jobId,
+  filters,
+  requestId,
+  activeRequest,
+  signal,
+  setResults,
+  setStatus,
+}: BackgroundEnrichmentOptions): Promise<void> {
+  try {
+    const response = await fetch('/api/recruitment/cv-matching/enrich', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ jobId, filters }),
+      signal,
+    });
+    if (!response.ok) {
+      throw new Error('AI enrichment request failed');
+    }
+    const payload = cvMatchEnrichmentResponseSchema.parse(await response.json());
+    const enrichedResults = payload.results;
+    if (activeRequest.current !== requestId) return;
+
+    setResults((currentResults) => {
+      const assignedCvIds = new Set(
+        currentResults
+          .filter((result) => result.alreadyAssigned)
+          .map((result) => result.cvId),
+      );
+      return enrichedResults.map((result) =>
+        assignedCvIds.has(result.cvId)
+          ? { ...result, alreadyAssigned: true }
+          : result,
+      );
+    });
+    setStatus(
+      enrichedResults.some((result) => result.aiRecommendation)
+        ? 'complete'
+        : 'unavailable',
+    );
+  } catch {
+    if (activeRequest.current === requestId) {
+      setStatus('unavailable');
+    }
+  }
+}
+
+function MatchAnalysisStatus({
+  status,
+  analyzedCount,
+}: {
+  status: AiEnrichmentStatus;
+  analyzedCount: number;
+}): React.ReactNode {
+  if (status === 'loading') {
+    return <span className="ml-1">· AI recommendations loading in background</span>;
+  }
+  if (status === 'complete' && analyzedCount > 0) {
+    return <span className="ml-1">· {analyzedCount} AI-analyzed</span>;
+  }
+  if (status === 'unavailable') {
+    return <span className="ml-1">· Skill-ranked; AI recommendations unavailable</span>;
+  }
+  return null;
+}
 
 interface MatchCvsDialogProps {
   open: boolean;
@@ -39,7 +121,7 @@ interface MatchCvsDialogProps {
   jobId: string;
   jobMustHave: string[];
   jobNiceToHave: string[];
-  onAssigned?: () => void;
+  onAssigned?: (candidateId: string) => void;
 }
 
 // ---------- Inline Match Props ----------
@@ -48,7 +130,7 @@ interface InlineMatchProps {
   jobId: string;
   jobMustHave: string[];
   jobNiceToHave: string[];
-  onAssigned?: () => void;
+  onAssigned?: (candidateId: string) => void;
 }
 
 // ---------- Tag Input ----------
@@ -340,9 +422,9 @@ function MatchLoadingState() {
           <IconSparkles className="size-5 text-primary absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
         </div>
         <div className="text-center space-y-1">
-          <p className="text-sm font-medium">Analyzing candidates with AI...</p>
+          <p className="text-sm font-medium">Ranking candidates...</p>
           <p className="text-xs text-muted-foreground">
-            Filtering, scoring, and generating recommendations
+            Filtering and scoring CV profiles
           </p>
         </div>
       </div>
@@ -396,35 +478,79 @@ export function InlineCvMatching({
   const [minPositions, setMinPositions] = React.useState(0);
   const [results, setResults] = React.useState<CvMatchResult[]>([]);
   const [assigningCvId, setAssigningCvId] = React.useState<string | null>(null);
+  const [aiEnrichmentStatus, setAiEnrichmentStatus] =
+    React.useState<AiEnrichmentStatus>('idle');
+  const activeSearchRequest = React.useRef(0);
+  const activeEnrichmentRequest = React.useRef<AbortController | null>(null);
+
+  React.useEffect(() => {
+    return () => {
+      activeSearchRequest.current += 1;
+      activeEnrichmentRequest.current?.abort();
+    };
+  }, []);
 
   const handleRunMatch = async () => {
+    const requestId = ++activeSearchRequest.current;
+    activeEnrichmentRequest.current?.abort();
+    activeEnrichmentRequest.current = null;
+    const filters: CvMatchFilters = {
+      skills: filterSkills,
+      languages: filterLanguages,
+      minPositions,
+    };
+    setAiEnrichmentStatus('idle');
     setStep('loading');
     try {
-      const matchResults = await matchCvsToJobWithFiltersAction(jobId, {
-        skills: filterSkills,
-        languages: filterLanguages,
-        minPositions,
-      });
+      const matchResults = await matchCvsToJobWithFiltersAction(jobId, filters);
+      if (activeSearchRequest.current !== requestId) return;
+
       setResults(matchResults);
       setStep('results');
       if (matchResults.length === 0) {
         toast.info('No matching candidates found with these filters');
+        return;
       }
+
+      const enrichmentRequest = new AbortController();
+      activeEnrichmentRequest.current = enrichmentRequest;
+      setAiEnrichmentStatus('loading');
+      void enrichMatchesInBackground({
+        jobId,
+        filters,
+        requestId,
+        activeRequest: activeSearchRequest,
+        signal: enrichmentRequest.signal,
+        setResults,
+        setStatus: setAiEnrichmentStatus,
+      });
     } catch {
-      toast.error('Failed to match CVs');
-      setStep('filters');
+      if (activeSearchRequest.current === requestId) {
+        toast.error('Failed to match CVs');
+        setStep('filters');
+      }
     }
+  };
+
+  const handleNewSearch = () => {
+    activeSearchRequest.current += 1;
+    activeEnrichmentRequest.current?.abort();
+    activeEnrichmentRequest.current = null;
+    setAiEnrichmentStatus('idle');
+    setStep('filters');
   };
 
   const handleAssign = async (cvId: string) => {
     setAssigningCvId(cvId);
     try {
-      await assignCvToJobAction(cvId, jobId);
+      const candidate = await assignCvToJobAction(cvId, jobId);
       setResults((prev) =>
         prev.map((r) => (r.cvId === cvId ? { ...r, alreadyAssigned: true } : r))
       );
-      toast.success('Candidate assigned to job');
-      onAssigned?.();
+      toast.success('Candidate added to Interviews', {
+        description: 'Set the interview date, time, and meeting link now.',
+      });
+      onAssigned?.(candidate.id);
     } catch {
       toast.error('Failed to assign candidate');
     } finally {
@@ -450,14 +576,13 @@ export function InlineCvMatching({
             </h3>
             <p className="text-sm text-muted-foreground mt-0.5">
               {results.length} candidate{results.length !== 1 ? 's' : ''} found
-              {aiEnhancedCount > 0 && (
-                <span className="ml-1">
-                  - {aiEnhancedCount} AI-analyzed
-                </span>
-              )}
+              <MatchAnalysisStatus
+                status={aiEnrichmentStatus}
+                analyzedCount={aiEnhancedCount}
+              />
             </p>
           </div>
-          <Button variant="outline" size="sm" onClick={() => setStep('filters')}>
+          <Button variant="outline" size="sm" onClick={handleNewSearch}>
             <IconArrowLeft className="mr-2 size-4" />
             New Search
           </Button>
@@ -587,43 +712,89 @@ export function MatchCvsDialog({
   const [minPositions, setMinPositions] = React.useState(0);
   const [results, setResults] = React.useState<CvMatchResult[]>([]);
   const [assigningCvId, setAssigningCvId] = React.useState<string | null>(null);
+  const [aiEnrichmentStatus, setAiEnrichmentStatus] =
+    React.useState<AiEnrichmentStatus>('idle');
+  const activeSearchRequest = React.useRef(0);
+  const activeEnrichmentRequest = React.useRef<AbortController | null>(null);
 
   // Reset on open
   React.useEffect(() => {
+    activeSearchRequest.current += 1;
+    activeEnrichmentRequest.current?.abort();
+    activeEnrichmentRequest.current = null;
+    setAiEnrichmentStatus('idle');
     if (open) {
       setStep('filters');
       setResults([]);
     }
+
+    return () => {
+      activeSearchRequest.current += 1;
+      activeEnrichmentRequest.current?.abort();
+    };
   }, [open]);
 
   const handleRunMatch = async () => {
+    const requestId = ++activeSearchRequest.current;
+    activeEnrichmentRequest.current?.abort();
+    activeEnrichmentRequest.current = null;
+    const filters: CvMatchFilters = {
+      skills: filterSkills,
+      languages: filterLanguages,
+      minPositions,
+    };
+    setAiEnrichmentStatus('idle');
     setStep('loading');
     try {
-      const matchResults = await matchCvsToJobWithFiltersAction(jobId, {
-        skills: filterSkills,
-        languages: filterLanguages,
-        minPositions,
-      });
+      const matchResults = await matchCvsToJobWithFiltersAction(jobId, filters);
+      if (activeSearchRequest.current !== requestId) return;
+
       setResults(matchResults);
       setStep('results');
       if (matchResults.length === 0) {
         toast.info('No matching candidates found with these filters');
+        return;
       }
+
+      const enrichmentRequest = new AbortController();
+      activeEnrichmentRequest.current = enrichmentRequest;
+      setAiEnrichmentStatus('loading');
+      void enrichMatchesInBackground({
+        jobId,
+        filters,
+        requestId,
+        activeRequest: activeSearchRequest,
+        signal: enrichmentRequest.signal,
+        setResults,
+        setStatus: setAiEnrichmentStatus,
+      });
     } catch {
-      toast.error('Failed to match CVs');
-      setStep('filters');
+      if (activeSearchRequest.current === requestId) {
+        toast.error('Failed to match CVs');
+        setStep('filters');
+      }
     }
+  };
+
+  const handleNewSearch = () => {
+    activeSearchRequest.current += 1;
+    activeEnrichmentRequest.current?.abort();
+    activeEnrichmentRequest.current = null;
+    setAiEnrichmentStatus('idle');
+    setStep('filters');
   };
 
   const handleAssign = async (cvId: string) => {
     setAssigningCvId(cvId);
     try {
-      await assignCvToJobAction(cvId, jobId);
+      const candidate = await assignCvToJobAction(cvId, jobId);
       setResults((prev) =>
         prev.map((r) => (r.cvId === cvId ? { ...r, alreadyAssigned: true } : r))
       );
-      toast.success('Candidate assigned to job');
-      onAssigned?.();
+      toast.success('Candidate added to Interviews', {
+        description: 'Set the interview date, time, and meeting link now.',
+      });
+      onAssigned?.(candidate.id);
     } catch {
       toast.error('Failed to assign candidate');
     } finally {
@@ -714,11 +885,10 @@ export function MatchCvsDialog({
               </DialogTitle>
               <DialogDescription>
                 {results.length} candidate{results.length !== 1 ? 's' : ''} found
-                {aiEnhancedCount > 0 && (
-                  <span className="ml-1">
-                    · {aiEnhancedCount} AI-analyzed
-                  </span>
-                )}
+                <MatchAnalysisStatus
+                  status={aiEnrichmentStatus}
+                  analyzedCount={aiEnhancedCount}
+                />
               </DialogDescription>
             </DialogHeader>
 
@@ -767,7 +937,7 @@ export function MatchCvsDialog({
 
             {/* Footer actions */}
             <div className="flex justify-between pt-2">
-              <Button variant="ghost" size="sm" onClick={() => setStep('filters')}>
+              <Button variant="ghost" size="sm" onClick={handleNewSearch}>
                 <IconArrowLeft className="mr-2 size-4" />
                 Back to Filters
               </Button>

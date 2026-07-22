@@ -6,6 +6,13 @@ import type { CvMatchFilters, CvMatchResult, HybridSearchResult } from '../types
 import { getJob } from './jobs';
 import { callOpenRouter, cleanJsonResponse } from './ai';
 
+export interface CvMatchingExecutionOptions {
+  includeAiRecommendations?: boolean;
+  aiRecommendationLimit?: number;
+  aiTimeoutMs?: number;
+  aiSignal?: AbortSignal;
+}
+
 function skillsMatch(cvSkill: string, jobSkill: string): boolean {
   if (cvSkill === jobSkill) return true;
   
@@ -108,32 +115,35 @@ export async function matchCvsToJob(
 export async function matchCvsToJobWithFilters(
   jobId: string,
   filters: CvMatchFilters,
-  scope?: RetrievalScope
+  scope?: RetrievalScope,
+  options: CvMatchingExecutionOptions = {},
 ): Promise<CvMatchResult[]> {
   const validated = cvMatchFiltersSchema.parse(filters);
-  const job = await getJob(jobId);
-  if (!job) throw new Error('Job not found');
-
-  // Apply scope: admin sees all CVs, non-admin sees own CVs only
+  // Run independent reads together so result ranking is not delayed by serial DB
+  // round trips.
   const scopeCondition = scope && scope.role !== 'admin'
     ? eq(cvPool.uploadedBy, scope.userId)
     : undefined;
+  const [job, loadedCvs, existingCandidates] = await Promise.all([
+    getJob(jobId),
+    db.select({
+      id: cvPool.id,
+      filename: cvPool.filename,
+      extractedName: cvPool.extractedName,
+      extractedEmail: cvPool.extractedEmail,
+      extractedSkills: cvPool.extractedSkills,
+      extractedExperiences: cvPool.extractedExperiences,
+      extractedLanguages: cvPool.extractedLanguages,
+      extractedSummary: cvPool.extractedSummary,
+    }).from(cvPool).where(scopeCondition),
+    db
+      .select({ cvId: candidates.cvId })
+      .from(candidates)
+      .where(eq(candidates.jobId, jobId)),
+  ]);
+  if (!job) throw new Error('Job not found');
 
-  let allCvs = await db.select({
-    id: cvPool.id,
-    filename: cvPool.filename,
-    extractedName: cvPool.extractedName,
-    extractedEmail: cvPool.extractedEmail,
-    extractedSkills: cvPool.extractedSkills,
-    extractedExperiences: cvPool.extractedExperiences,
-    extractedLanguages: cvPool.extractedLanguages,
-    extractedSummary: cvPool.extractedSummary,
-  }).from(cvPool).where(scopeCondition);
-
-  const existingCandidates = await db
-    .select({ cvId: candidates.cvId })
-    .from(candidates)
-    .where(eq(candidates.jobId, jobId));
+  let allCvs = loadedCvs;
 
   const assignedCvIds = new Set(existingCandidates.map((c) => c.cvId));
 
@@ -223,9 +233,12 @@ export async function matchCvsToJobWithFilters(
   // Sort by keyword score
   results.sort((a, b) => b.matchScore - a.matchScore);
 
-  // Get AI recommendations for top 10
-  const topResults = results.slice(0, 10);
-  if (topResults.length > 0) {
+  const recommendationLimit = Math.min(
+    Math.max(options.aiRecommendationLimit ?? 5, 1),
+    10,
+  );
+  const topResults = results.slice(0, recommendationLimit);
+  if (options.includeAiRecommendations !== false && topResults.length > 0) {
     try {
       const candidateSummaries = topResults.map((r) => {
         const cv = allCvs.find((c) => c.id === r.cvId);
@@ -252,12 +265,20 @@ ${candidateSummaries.join('\n')}
 
 Return a JSON array where each object has:
 - "cvId": string (the candidate ID from above)
-- "score": number (0-100, your honest overall assessment considering skills, experience depth, and seniority fit)
-- "recommendation": string (2-3 sentences about the candidate's fit for this specific role)
-- "strengths": string[] (top 2-3 strengths relative to this job)
-- "concerns": string[] (top 1-3 concerns or gaps)`;
+- "score": number (0-100, considering skills, experience depth, and seniority fit)
+- "recommendation": string (one concise sentence about fit for this role)
+- "strengths": string[] (top 2 strengths relative to this job)
+- "concerns": string[] (top 2 concerns or gaps)`;
 
-      const content = await callOpenRouter(systemPrompt, userPrompt);
+      const content = await callOpenRouter(
+        systemPrompt,
+        userPrompt,
+        'structured',
+        {
+          timeoutMs: options.aiTimeoutMs ?? 20_000,
+          signal: options.aiSignal,
+        },
+      );
       const aiResults = aiMatchRecommendationOutputSchema.parse(
         JSON.parse(cleanJsonResponse(content))
       );

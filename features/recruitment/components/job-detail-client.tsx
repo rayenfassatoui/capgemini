@@ -207,7 +207,7 @@ export function JobDetailClient({
     if (candidateCard instanceof HTMLElement) {
       candidateCard.scrollIntoView({ block: 'center', behavior: 'smooth' });
     }
-  }, [activeTab, highlightedCandidateId]);
+  }, [activeTab, candidates.length, highlightedCandidateId]);
 
   // Dialog States
   const [scheduleDialogOpen, setScheduleDialogOpen] = React.useState(false);
@@ -581,6 +581,15 @@ export function JobDetailClient({
     router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
   };
 
+  const handleCandidateAssigned = (candidateId: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('tab', 'interviews');
+    params.set('candidateId', candidateId);
+    setSelectedCandidateId(candidateId);
+    setScheduleDialogOpen(true);
+    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+  };
+
 
   return (
     <div className="space-y-6">
@@ -715,6 +724,7 @@ export function JobDetailClient({
             jobId={jobId}
             jobMustHave={job.mustHave}
             jobNiceToHave={job.niceToHave}
+            onAssigned={handleCandidateAssigned}
           />
         </TabsContent>
 
@@ -849,7 +859,7 @@ export function JobDetailClient({
                 {candidates.filter(c => c.stage === 'ta_interview').length === 0 ? (
                   <TableRow>
                      <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                        No active candidates for interview. Go to Pipeline to accept candidates into the interview stage.
+                        No candidates are ready for interview. Assign a CV from CV Matching to schedule one.
                      </TableCell>
                   </TableRow>
                 ) : (

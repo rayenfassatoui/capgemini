@@ -118,7 +118,7 @@ export async function assignCvToJob(cvId: string, jobId: string, userId: string)
         ${cv.extractedPhone ?? null},
         ${cvId},
         ${jobId},
-        'new'::candidate_stage,
+        'ta_interview'::candidate_stage,
         ${userId}
       )
       RETURNING "id"
@@ -135,9 +135,9 @@ export async function assignCvToJob(cvId: string, jobId: string, userId: string)
       SELECT
         "id",
         NULL::candidate_stage,
-        'new'::candidate_stage,
+        'ta_interview'::candidate_stage,
         ${userId},
-        'CV assigned to job',
+        'CV assigned directly to interview',
         'assignment'
       FROM created
     )

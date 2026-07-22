@@ -51,7 +51,7 @@ const optionalJobSkillListSchema = z
 
 export const createJobSchema = z.object({
   title: z.string().min(2).max(120),
-  description: z.string().min(20),
+  description: z.string().min(20, 'Job description must contain at least 20 characters'),
   mustHave: requiredJobSkillListSchema,
   niceToHave: optionalJobSkillListSchema,
   seniority: z.string().min(2),
@@ -200,6 +200,37 @@ export const cvMatchFiltersSchema = z.object({
   skills: z.array(z.string()).default([]),
   languages: z.array(z.string()).default([]),
   minPositions: z.number().min(0).default(0),
+});
+
+export const cvMatchResultSchema = z.object({
+  cvId: z.string(),
+  cvFilename: z.string(),
+  candidateName: z.string(),
+  candidateEmail: z.string(),
+  matchScore: z.number().min(0).max(100),
+  matchedMustHave: z.array(z.string()),
+  matchedNiceToHave: z.array(z.string()),
+  gaps: z.array(z.string()),
+  alreadyAssigned: z.boolean(),
+  aiRecommendation: z.string().optional(),
+  aiStrengths: z.array(z.string()).optional(),
+  aiConcerns: z.array(z.string()).optional(),
+  candidateSkills: z.array(z.string()).optional(),
+  candidateLanguages: z.array(z.string()).optional(),
+  experienceCount: z.number().int().min(0).optional(),
+});
+
+export const cvMatchEnrichmentRequestSchema = z.object({
+  jobId: z.string().uuid(),
+  filters: cvMatchFiltersSchema,
+});
+
+export const cvMatchEnrichmentResponseSchema = z.object({
+  results: z.array(cvMatchResultSchema),
+});
+
+export const cvMatchApiErrorResponseSchema = z.object({
+  error: z.string(),
 });
 
 export const aiMatchRecommendationItemSchema = z.object({

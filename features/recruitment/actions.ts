@@ -218,8 +218,11 @@ export async function matchCvsToJobWithFiltersAction(
   const services = await getServices();
   // Phase 1: Pass scope for consistent access control
   const scope = { userId: session.user.id, role: session.user.role as 'ta' | 'admin' };
-  return services.matchCvsToJobWithFilters(jobId, filters, scope);
+  return services.matchCvsToJobWithFilters(jobId, filters, scope, {
+    includeAiRecommendations: false,
+  });
 }
+
 
 // ==================== CANDIDATE PIPELINE ACTIONS ====================
 

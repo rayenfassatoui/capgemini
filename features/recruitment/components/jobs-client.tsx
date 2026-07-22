@@ -41,6 +41,7 @@ import {
 } from '@/components/ui/card';
 
 import { createJobAction } from '@/features/recruitment/actions';
+import { createJobSchema } from '@/features/recruitment/schemas';
 import type { JobsStats } from '@/features/recruitment/types';
 import { cn } from '@/lib/utils';
 
@@ -124,47 +125,44 @@ export default function JobsClient({ initialJobs, stats }: JobsClientProps) {
   };
 
   const handleCreateJob = async () => {
-    if (!title || !description || !seniority) {
+    if (!title.trim() || !description.trim() || !seniority.trim()) {
       toast.error('Please fill in all required fields');
       return;
     }
 
-    // Auto-add any pending text in the input fields
-    if (mustHaveInput.trim()) {
-      addMustHaveSkill();
-    }
-    if (niceToHaveInput.trim()) {
-      addNiceToHaveSkill();
-    }
-
-    // Check after potential auto-add
-    const finalMustHave = mustHaveInput.trim() && !mustHaveSkills.includes(mustHaveInput.trim())
-      ? [...mustHaveSkills, mustHaveInput.trim()]
-      : mustHaveSkills;
+    const pendingMustHave = mustHaveInput.trim();
+    const pendingNiceToHave = niceToHaveInput.trim();
+    const finalMustHave =
+      pendingMustHave && !mustHaveSkills.includes(pendingMustHave)
+        ? [...mustHaveSkills, pendingMustHave]
+        : mustHaveSkills;
+    const finalNiceToHave =
+      pendingNiceToHave && !niceToHaveSkills.includes(pendingNiceToHave)
+        ? [...niceToHaveSkills, pendingNiceToHave]
+        : niceToHaveSkills;
 
     if (finalMustHave.length === 0) {
       toast.error('Please add at least one required skill (Must Have)');
       return;
     }
 
+    const parsedJob = createJobSchema.safeParse({
+      title: title.trim(),
+      description: description.trim(),
+      mustHave: finalMustHave,
+      niceToHave: finalNiceToHave,
+      seniority: seniority.trim(),
+      businessUnit: businessUnit.trim() || null,
+    });
+
+    if (!parsedJob.success) {
+      toast.error(parsedJob.error.issues[0]?.message ?? 'Invalid job details');
+      return;
+    }
+
     setIsSubmitting(true);
     try {
-      // Calculate final arrays including any pending input
-      const finalMustHave = mustHaveInput.trim() && !mustHaveSkills.includes(mustHaveInput.trim())
-        ? [...mustHaveSkills, mustHaveInput.trim()]
-        : mustHaveSkills;
-      const finalNiceToHave = niceToHaveInput.trim() && !niceToHaveSkills.includes(niceToHaveInput.trim())
-        ? [...niceToHaveSkills, niceToHaveInput.trim()]
-        : niceToHaveSkills;
-
-      const newJob = await createJobAction({
-        title,
-        description,
-        mustHave: finalMustHave,
-        niceToHave: finalNiceToHave,
-        seniority,
-        businessUnit: businessUnit || null,
-      });
+      const newJob = await createJobAction(parsedJob.data);
 
       if (newJob) {
         setJobs((prev) => [newJob as unknown as Job, ...prev]);
@@ -173,8 +171,7 @@ export default function JobsClient({ initialJobs, stats }: JobsClientProps) {
         resetForm();
       }
     } catch (error) {
-      console.error('Failed to create job:', error);
-      toast.error('Failed to create job. Please try again.');
+      toast.error(error instanceof Error ? error.message : 'Failed to create job. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -275,9 +272,10 @@ export default function JobsClient({ initialJobs, stats }: JobsClientProps) {
                 </div>
 
                 <div className="grid gap-2">
-                  <Label htmlFor="description">Description *</Label>
+                  <Label htmlFor="description">Description * (minimum 20 characters)</Label>
                   <Textarea
                     id="description"
+                    minLength={20}
                     placeholder="Job responsibilities and requirements..."
                     className="min-h-[100px]"
                     value={description}
@@ -286,10 +284,11 @@ export default function JobsClient({ initialJobs, stats }: JobsClientProps) {
                 </div>
 
                 <div className="grid gap-2">
-                  <Label>Must-Have Skills * (Press Enter)</Label>
+                  <Label htmlFor="must-have-skill">Must-Have Skills * (one label per entry)</Label>
                   <div className="flex gap-2">
                     <Input
-                      placeholder="Type skill and press Enter..."
+                      id="must-have-skill"
+                      placeholder="e.g. AWS cloud architecture, then press Enter"
                       value={mustHaveInput}
                       onChange={(e) => setMustHaveInput(e.target.value)}
                       onKeyDown={handleMustHaveKeyDown}
@@ -297,6 +296,7 @@ export default function JobsClient({ initialJobs, stats }: JobsClientProps) {
                     />
                     <Button
                       type="button"
+                      aria-label="Add must-have skill"
                       variant="outline"
                       size="icon"
                       onClick={addMustHaveSkill}
@@ -322,10 +322,11 @@ export default function JobsClient({ initialJobs, stats }: JobsClientProps) {
                 </div>
 
                 <div className="grid gap-2">
-                  <Label>Nice-to-Have Skills</Label>
+                  <Label htmlFor="nice-to-have-skill">Nice-to-Have Skills (one label per entry)</Label>
                   <div className="flex gap-2">
                     <Input
-                      placeholder="Type skill and press Enter..."
+                      id="nice-to-have-skill"
+                      placeholder="e.g. Terraform, then press Enter"
                       value={niceToHaveInput}
                       onChange={(e) => setNiceToHaveInput(e.target.value)}
                       onKeyDown={handleNiceToHaveKeyDown}
@@ -333,6 +334,7 @@ export default function JobsClient({ initialJobs, stats }: JobsClientProps) {
                     />
                     <Button
                       type="button"
+                      aria-label="Add nice-to-have skill"
                       variant="outline"
                       size="icon"
                       onClick={addNiceToHaveSkill}

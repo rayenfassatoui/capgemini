@@ -51,7 +51,7 @@ const KNOWN_SKILL_PATTERNS: ReadonlyArray<{
 ];
 
 const LEADING_PHRASES: readonly RegExp[] = [
-  /^(?:proven\s+)?experience\s+(?:working\s+)?(?:with|in|on)\s+/i,
+  /^(?:(?:at\s+least\s+)?\d+\+?\s+years?(?:['’]|\s+of)?\s+)?(?:(?:proven|demonstrated|extensive|relevant|practical|professional|strong|solid|hands[-\s]on)\s+)*experience\s+(?:working\s+)?(?:with|in|on|using)\s+/i,
   /^proficiency\s+(?:in|with)\s+/i,
   /^solid\s+understanding\s+of\s+/i,
   /^strong\s+understanding\s+of\s+/i,

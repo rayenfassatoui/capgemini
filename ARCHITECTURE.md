@@ -187,13 +187,18 @@ User Message
 
 ## Candidate Pipeline
 
-```
-new → ta_screening → ta_interview → ta_accepted → manager_interview
-                                  → ta_rejected
-                                                 → manager_accepted → hr_interview
-                                                 → manager_rejected
-                                                                    → hr_accepted → hired
-                                                                    → hr_rejected
+New CV-to-job assignments enter `ta_interview` directly so TA can schedule immediately. AI screening remains available for legacy candidates, but it is not an assignment gate.
+
+```text
+CV assignment → ta_interview
+Legacy candidate: new → ta_screening → ta_interview
+
+ta_interview → ta_accepted → manager_interview
+             → ta_rejected
+                                → manager_accepted → hr_interview
+                                → manager_rejected
+                                                   → hr_accepted → hired
+                                                   → hr_rejected
 ```
 
 ## Security

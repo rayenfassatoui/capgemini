@@ -14,6 +14,7 @@ import OpenAI from "openai";
 export interface AiCallOptions {
   timeoutMs?: number;
   retryOnTimeout?: boolean;
+  signal?: AbortSignal;
 }
 
 // ---- Environment ----
@@ -154,51 +155,82 @@ export async function callOpenRouter(
 ): Promise<string> {
   const client = getNvidiaClient();
   const model = getModelForTask(task);
-  const { timeoutMs, retryOnTimeout = false } = options;
-
-  const createRequest = () =>
-    client.chat.completions.create({
-      model,
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userPrompt },
-      ],
-      temperature: 0.3,
-    });
-
-  const runWithTimeout = async (): Promise<
-    ReturnType<typeof createRequest> extends Promise<infer T> ? T : never
-  > => {
-    if (!timeoutMs || timeoutMs <= 0) {
-      return await createRequest();
-    }
-
-    const timeoutPromise = new Promise<never>((_, reject) => {
-      setTimeout(() => reject(new Error("TIMEOUT")), timeoutMs);
-    });
-
-    return await Promise.race([createRequest(), timeoutPromise]);
+  const {
+    timeoutMs,
+    retryOnTimeout = false,
+    signal: callerSignal,
+  } = options;
+  const request = {
+    model,
+    messages: [
+      { role: "system" as const, content: systemPrompt },
+      { role: "user" as const, content: userPrompt },
+    ],
+    temperature: 0.3,
   };
 
-  let response: Awaited<ReturnType<typeof createRequest>>;
-
-  try {
-    response = await runWithTimeout();
-  } catch (error) {
-    const isTimeout = error instanceof Error && error.message === "TIMEOUT";
-    if (!isTimeout || !retryOnTimeout) {
-      throw error;
+  const createRequest = async () => {
+    const timeoutDuration = timeoutMs && timeoutMs > 0 ? timeoutMs : null;
+    if (timeoutDuration === null && !callerSignal) {
+      return client.chat.completions.create(request);
     }
 
-    response = await runWithTimeout();
-  }
+    const controller = new AbortController();
+    let timedOut = false;
+    const abortFromCaller = () => controller.abort();
+    callerSignal?.addEventListener("abort", abortFromCaller, { once: true });
+    if (callerSignal?.aborted) {
+      controller.abort();
+    }
+    const timeout =
+      timeoutDuration === null
+        ? undefined
+        : setTimeout(() => {
+            timedOut = true;
+            controller.abort();
+          }, timeoutDuration);
 
+    try {
+      return await client.chat.completions.create(request, {
+        signal: controller.signal,
+        maxRetries: 0,
+      });
+    } catch (error) {
+      if (timedOut) {
+        throw new Error("TIMEOUT");
+      }
+      throw error;
+    } finally {
+      clearTimeout(timeout);
+      callerSignal?.removeEventListener("abort", abortFromCaller);
+    }
+  };
+
+  const runRequest = async () => {
+    try {
+      return await createRequest();
+    } catch (error) {
+      const isTimeout = error instanceof Error && error.message === "TIMEOUT";
+      if (!isTimeout || !retryOnTimeout) {
+        throw error;
+      }
+
+      return createRequest();
+    }
+  };
+
+  const response = await runRequest();
   const message = response.choices?.[0]?.message;
-  // Handle NVIDIA's potential reasoning_content field (chain-of-thought)
-  // Prefer content, fall back to reasoning_content if present
-  const raw =
-    message?.content ??
-    (message as { reasoning_content?: string })?.reasoning_content;
+  let raw = message?.content;
+  if (
+    !raw &&
+    message &&
+    typeof message === "object" &&
+    "reasoning_content" in message &&
+    typeof message.reasoning_content === "string"
+  ) {
+    raw = message.reasoning_content;
+  }
   if (!raw) throw new Error("Empty AI response");
   return normalizeContent(raw);
 }
