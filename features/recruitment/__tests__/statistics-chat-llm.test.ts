@@ -63,7 +63,7 @@ describe('statistics chat LLM policy', () => {
     expect(result.choices?.[0]?.message?.content).toBe('ok');
     expect(create).toHaveBeenCalledWith(
       expect.objectContaining({
-        model: 'stepfun-ai/step-3.5-flash',
+        model: 'stepfun-ai/step-3.7-flash',
         stream: false,
         tools: undefined,
         tool_choice: 'auto',

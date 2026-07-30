@@ -8,7 +8,7 @@ export type { ToolTraceJson } from "../chat-artifact-events";
 
 export const MAX_AGENT_STEPS = 8;
 export const MAX_OUTPUT_TOKENS = 2048;
-export const LLM_REQUEST_TIMEOUT_MS = 30_000;
+export const LLM_REQUEST_TIMEOUT_MS = 90_000;
 export const MAX_CONSECUTIVE_TOOL_FAILURES = 3;
 export const STREAM_CHUNK_SIZE = 12;
 

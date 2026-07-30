@@ -51,7 +51,7 @@ const SECTIONS: SettingSection[] = [
     icon: IconBrandOpenai,
     items: [
       { label: "Provider", value: "NVIDIA Build API", status: "active" },
-      { label: "Model", value: "stepfun-ai/step-3.5-flash", status: "configured" },
+      { label: "Model", value: "stepfun-ai/step-3.7-flash", status: "configured" },
       { label: "Features", value: "CV Screening, Interview Guides, Statistics Chat", status: "active" },
     ],
   },

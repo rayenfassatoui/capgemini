@@ -12,7 +12,7 @@ AI-powered recruitment platform built for enterprise hiring workflows. Manages t
 | **Styling** | Tailwind CSS v4 + shadcn/ui |
 | **Database** | PostgreSQL (Neon) + Drizzle ORM + pgvector |
 | **Auth** | Better-auth (email/password, role-based) |
-| **AI (LLM)** | NVIDIA Build API (stepfun-ai/step-3.5-flash) |
+| **AI (LLM)** | NVIDIA Build API (stepfun-ai/step-3.7-flash) |
 | **AI (Embeddings)** | NVIDIA NV-EmbedQA E5 V5 (1024-dim vectors) |
 | **Email** | Nodemailer (Gmail SMTP) |
 | **Charts** | Recharts |

@@ -86,7 +86,7 @@ The platform includes a dedicated `/agent` workspace for long-form analysis, his
 |---|---|
 | **Feature-Driven Architecture** | Vertical slices keep related code together, easier to reason about than MVC |
 | **Server Actions over API routes** | Colocation with UI, automatic revalidation, type-safe forms |
-| **NVIDIA Build API** | OpenAI-compatible NVIDIA endpoint; all current task types use `stepfun-ai/step-3.5-flash` |
+| **NVIDIA Build API** | OpenAI-compatible NVIDIA endpoint; all current task types use `stepfun-ai/step-3.7-flash` |
 | **NVIDIA E5 V5 over OpenAI embeddings** | Free tier available, 1024-dim vectors, good multilingual support |
 | **pgvector over Pinecone/Weaviate** | No external vector DB needed, lives in same Neon database, HNSW indexing |
 | **In-memory rate limiting** | Zero dependencies, sufficient for single-instance deployment |
@@ -99,9 +99,9 @@ The platform includes a dedicated `/agent` workspace for long-form analysis, his
 ```typescript
 // features/recruitment/services/ai.ts
 export const AI_MODELS = {
-  agent: 'stepfun-ai/step-3.5-flash',       // Tool calling, multi-step reasoning
-  structured: 'stepfun-ai/step-3.5-flash',  // JSON generation, scoring
-  generation: 'stepfun-ai/step-3.5-flash',  // Job descriptions, emails
+  agent: 'stepfun-ai/step-3.7-flash',       // Tool calling, multi-step reasoning
+  structured: 'stepfun-ai/step-3.7-flash',  // JSON generation, scoring
+  generation: 'stepfun-ai/step-3.7-flash',  // Job descriptions, emails
 };
 ```
 

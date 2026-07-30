@@ -6,7 +6,7 @@
  * Models are organized by task type for optimal cost/quality balance.
  *
  * Uses NVIDIA Build API (https://integrate.api.nvidia.com/v1) with
- * OpenAI-compatible SDK for the stepfun-ai/step-3.5-flash model.
+ * OpenAI-compatible SDK for the stepfun-ai/step-3.7-flash model.
  */
 
 import OpenAI from "openai";
@@ -55,15 +55,15 @@ export function getNvidiaClient(): OpenAI {
  *
  * To override globally, set AI_MODEL in .env — all tasks will use that model.
  *
- * Model format for NVIDIA Build: org/model-name (e.g., stepfun-ai/step-3.5-flash)
+ * Model format for NVIDIA Build: org/model-name (e.g., stepfun-ai/step-3.7-flash)
  */
 export const AI_MODELS = {
   /** Primary agent model — best for tool calling, multi-step reasoning */
-  agent: "stepfun-ai/step-3.5-flash",
+  agent: "stepfun-ai/step-3.7-flash",
   /** Structured output — JSON generation, data extraction, scoring */
-  structured: "stepfun-ai/step-3.5-flash",
+  structured: "stepfun-ai/step-3.7-flash",
   /** Long-form generation — job descriptions, emails, analysis */
-  generation: "stepfun-ai/step-3.5-flash",
+  generation: "stepfun-ai/step-3.7-flash",
 } as const;
 
 export type AITaskType = keyof typeof AI_MODELS;
